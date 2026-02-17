@@ -47,7 +47,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     final city = profile['city'];
     final state = profile['state'];
     final matchScore = widget.userData['match_score'] ?? 0;
-    final distance = widget.userData['distance'] ?? 0;
+    final distance = (widget.userData['distance'] ?? 0).toDouble();
     final interests = profile['interests'] as List<dynamic>? ?? [];
     final coreValues = profile['core_values'] as List<dynamic>? ?? [];
 
@@ -144,9 +144,11 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
+                          // color: Colors.white.withOpacity(0.95),
                           color: _getMatchColor(matchScore).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
+                            // color: Colors.white,
                             color: _getMatchColor(matchScore),
                             width: 1,
                           ),
@@ -451,11 +453,11 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
 
   Color _getMatchColor(int score) {
     if (score >= 80) {
-      return Colors.green;
-    } else if (score >= 50) {
       return const Color(0xFF4A90E2);
+    } else if (score >= 50) {
+      return Colors.white;
     } else {
-      return Colors.orange;
+      return const Color(0xFFE74C3C);
     }
   }
 

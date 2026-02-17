@@ -182,156 +182,165 @@ class NearbyUsersScreen extends StatelessWidget {
     final bio = profile['bio'] ?? '';
     final avatarUrl = profile['avatar'];
     final matchScore = user['match_score'] ?? 0;
-    final distance = user['distance'] ?? 0;
+    final distance = (user['distance'] ?? 0).toDouble();
 
-    return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          enableDrag: true,
-          isDismissible: true,
-          builder: (context) => DraggableScrollableSheet(
-            initialChildSize: 0.95,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            expand: false,
-            builder: (context, scrollController) => UserProfileDetailScreen(
-              userData: user,
-              scrollController: scrollController,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
-          ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
-                image: avatarUrl != null && avatarUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(avatarUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: avatarUrl == null || avatarUrl.isEmpty
-                  ? const Icon(
-                      Icons.person,
-                      size: 30,
-                      color: Colors.white60,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.2),
+              image: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(avatarUrl),
+                      fit: BoxFit.cover,
                     )
                   : null,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            child: avatarUrl == null || avatarUrl.isEmpty
+                ? const Icon(
+                    Icons.person,
+                    size: 40,
+                    color: Colors.white60,
+                  )
+                : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getMatchColor(matchScore).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        '$matchScore%',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: _getMatchColor(matchScore),
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getMatchColor(matchScore).withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '$matchScore%',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: _getMatchColor(matchScore),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _getMatchLabel(matchScore),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: _getMatchColor(matchScore).withOpacity(0.8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (bio.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      bio,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.7),
-                        fontStyle: FontStyle.italic,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 14,
-                        color: Colors.white.withOpacity(0.5),
-                      ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 6),
                       Text(
-                        '${distance.toStringAsFixed(0)} yards away',
+                        _getMatchLabel(matchScore),
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withOpacity(0.5),
+                          color: _getMatchColor(matchScore).withOpacity(0.9),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (bio.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    bio,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
-              ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${distance.toStringAsFixed(0)} yards away',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        enableDrag: true,
+                        isDismissible: true,
+                        builder: (context) => DraggableScrollableSheet(
+                          initialChildSize: 0.95,
+                          minChildSize: 0.5,
+                          maxChildSize: 0.95,
+                          expand: false,
+                          builder: (context, scrollController) => UserProfileDetailScreen(
+                            userData: user,
+                            scrollController: scrollController,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'See Profile',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.white60,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
