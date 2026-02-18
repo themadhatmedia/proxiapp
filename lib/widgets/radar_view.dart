@@ -81,7 +81,7 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
   }
 
   Color _getColorForMatchScore(int matchScore) {
-    if (matchScore >= 80) {
+    if (matchScore > 80) {
       return const Color(0xFF4A90E2);
     } else if (matchScore >= 50) {
       return Colors.white;
@@ -99,16 +99,20 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
 
     final users = widget.usersData!['users'] as List<dynamic>? ?? [];
     final random = Random();
+    final maxDistance = widget.selectedRadius.toDouble();
 
     for (var user in users) {
       final matchScore = user['match_score'] ?? 0;
+      final userDistance = (user['distance'] ?? 0).toDouble();
+
       final angle = random.nextDouble() * 2 * pi;
-      final distance = 0.3 + random.nextDouble() * 0.6;
+
+      final normalizedDistance = (userDistance / maxDistance).clamp(0.2, 0.95);
 
       _userDots.add(
         UserDot(
           angle: angle,
-          distance: distance,
+          distance: normalizedDistance,
           animationOffset: random.nextDouble(),
           color: _getColorForMatchScore(matchScore),
         ),

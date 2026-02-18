@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
+import '../../data/models/user_model.dart';
 import '../profile/edit_basic_profile_screen.dart';
 import '../profile/edit_core_values_screen.dart';
 import '../profile/edit_interests_screen.dart';
@@ -223,7 +224,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           _buildStatItem(
-                            count: user.membership?.membership?.features?.dailyPulseLimit ?? 0,
+                            // count: user.membership?.membership?.features?.dailyPulseLimit ?? 0,
+                            count: _getRemainingPulses(user),
                             label: 'Pulses',
                           ),
                         ],
@@ -496,5 +498,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (createdAt == null) return 'Member since recently';
     final formatter = DateFormat('dd MMM yyyy');
     return 'Member since ${formatter.format(createdAt)}';
+  }
+
+  int _getRemainingPulses(User user) {
+    final dailyPulseLimit = user.membership?.membership?.features?.dailyPulseLimit ?? 0;
+    final dailyPulsesUsed = user.membership?.dailyPulsesUsed ?? 0;
+    return dailyPulseLimit - dailyPulsesUsed;
   }
 }

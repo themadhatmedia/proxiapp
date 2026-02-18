@@ -218,6 +218,7 @@ class Membership {
   final int userId;
   final int membershipId;
   final String status;
+  final int dailyPulsesUsed;
   final MembershipPlan? membership;
 
   Membership({
@@ -225,6 +226,7 @@ class Membership {
     required this.userId,
     required this.membershipId,
     required this.status,
+    required this.dailyPulsesUsed,
     this.membership,
   });
 
@@ -234,6 +236,7 @@ class Membership {
       userId: json['user_id'],
       membershipId: json['membership_id'],
       status: json['status'] ?? 'active',
+      dailyPulsesUsed: json['daily_pulses_used'] ?? 0,
       membership: json['membership'] != null ? MembershipPlan.fromJson(json['membership']) : null,
     );
   }

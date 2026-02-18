@@ -346,7 +346,7 @@ class NearbyUsersScreen extends StatelessWidget {
   }
 
   Color _getMatchColor(int score) {
-    if (score >= 80) {
+    if (score > 80) {
       return const Color(0xFF4A90E2);
     } else if (score >= 50) {
       return Colors.white;
@@ -356,7 +356,7 @@ class NearbyUsersScreen extends StatelessWidget {
   }
 
   String _getMatchLabel(int score) {
-    if (score >= 80) {
+    if (score > 80) {
       return 'Great Potential';
     } else if (score >= 50) {
       return 'Good Potential';

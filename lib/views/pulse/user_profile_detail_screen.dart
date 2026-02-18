@@ -53,8 +53,13 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
 
     return Container(
       decoration: const BoxDecoration(
+        // gradient: LinearGradient(
+        //   colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+        //   begin: Alignment.topCenter,
+        //   end: Alignment.bottomCenter,
+        // ),
         gradient: LinearGradient(
-          colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+          colors: [Color(0xFF1A1A2E), Color(0xFF0F0F1E)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -452,7 +457,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
   }
 
   Color _getMatchColor(int score) {
-    if (score >= 80) {
+    if (score > 80) {
       return const Color(0xFF4A90E2);
     } else if (score >= 50) {
       return Colors.white;
