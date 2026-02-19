@@ -7,6 +7,7 @@ import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/storage_service.dart';
 import '../utils/toast_helper.dart';
+import 'onboarding_controller.dart';
 
 class AuthController extends GetxController {
   final ApiService _apiService = ApiService();
@@ -121,6 +122,12 @@ class AuthController extends GetxController {
       _token.value = null;
       _user.value = null;
       _storageService.clearAll();
+
+      // Clear onboarding controller data if it exists
+      if (Get.isRegistered<OnboardingController>()) {
+        Get.find<OnboardingController>().reset();
+      }
+
       Get.offAllNamed('/auth');
     }
   }

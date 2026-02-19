@@ -64,52 +64,71 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                const Text(
-                  'Setup Permissions',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Setup Permissions',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Proxi needs these permissions to work properly',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      _PermissionCard(
+                        icon: Icons.location_on,
+                        title: 'Location Access',
+                        description: 'Always - To detect nearby users and send proximity alerts',
+                        isGranted: _locationGranted,
+                        onTap: _requestLocationPermission,
+                      ),
+                      const SizedBox(height: 16),
+                      _PermissionCard(
+                        icon: Icons.contacts,
+                        title: 'Contacts Access',
+                        description: 'Always - To find friends who also use Proxi',
+                        isGranted: _contactsGranted,
+                        onTap: _requestContactsPermission,
+                      ),
+                      const Spacer(),
+                      CustomButton(
+                        text: 'Continue',
+                        onPressed: _canContinue ? _handleContinue : () {},
+                        backgroundColor: _canContinue ? null : Colors.grey.shade400,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Proxi needs these permissions to work properly',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                _PermissionCard(
-                  icon: Icons.location_on,
-                  title: 'Location Access',
-                  description: 'Always - To detect nearby users and send proximity alerts',
-                  isGranted: _locationGranted,
-                  onTap: _requestLocationPermission,
-                ),
-                const SizedBox(height: 16),
-                _PermissionCard(
-                  icon: Icons.contacts,
-                  title: 'Contacts Access',
-                  description: 'Always - To find friends who also use Proxi',
-                  isGranted: _contactsGranted,
-                  onTap: _requestContactsPermission,
-                ),
-                const Spacer(),
-                CustomButton(
-                  text: 'Continue',
-                  onPressed: _canContinue ? _handleContinue : () {},
-                  backgroundColor: _canContinue ? null : Colors.grey.shade400,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

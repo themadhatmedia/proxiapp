@@ -242,10 +242,10 @@ class OnboardingController extends GetxController {
     //   ToastHelper.showError('Please enter your name');
     //   return false;
     // }
-    if (bio.trim().isEmpty) {
-      ToastHelper.showError('Please enter your bio');
-      return false;
-    }
+    // if (bio.trim().isEmpty) {
+    //   ToastHelper.showError('Please enter your bio');
+    //   return false;
+    // }
     if (dateOfBirth == null) {
       ToastHelper.showError('Please select your date of birth');
       return false;

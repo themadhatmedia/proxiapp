@@ -105,9 +105,9 @@ class _PulseScreenState extends State<PulseScreen> {
   void _onRadiusChanged(int radius) {
     setState(() {
       selectedRadius = radius;
-      hasSearched = false;
-      nearbyUserCount = 0;
-      nearbyUsersData = null;
+      // hasSearched = false;
+      // nearbyUserCount = 0;
+      // nearbyUsersData = null;
     });
   }
 

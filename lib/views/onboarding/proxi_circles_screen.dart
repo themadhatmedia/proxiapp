@@ -27,90 +27,109 @@ class ProxiCirclesScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                const Text(
-                  'Proxi Circles',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Set up your inner and outer circles',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                GestureDetector(
-                  onTap: () => _showProxiCirclesInfo(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
+                    const Expanded(
+                      child: Text(
+                        'Proxi Circles',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Set up your inner and outer circles',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      GestureDetector(
+                        onTap: () => _showProxiCirclesInfo(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
-                            Icons.info_outline,
-                            color: Colors.white,
-                            size: 16,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.3),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.info_outline,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'What are Proxi Circles?',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'What are Proxi Circles?',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      const _CircleCard(
+                        color: Colors.green,
+                        title: 'Inner Circle',
+                        description: 'Your closest connections - people you trust most',
+                        count: 0,
+                        maxCount: 5,
+                      ),
+                      const SizedBox(height: 16),
+                      const _CircleCard(
+                        color: Color(0xFF4A90E2),
+                        title: 'Outer Circle',
+                        description: 'Extended network - people you\'d like to connect with',
+                        count: 0,
+                        maxCount: 50,
+                      ),
+                      const Spacer(),
+                      CustomButton(
+                        text: 'Continue',
+                        onPressed: () {
+                          Get.offAllNamed('/home');
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                const _CircleCard(
-                  color: Colors.green,
-                  title: 'Inner Circle',
-                  description: 'Your closest connections - people you trust most',
-                  count: 0,
-                  maxCount: 5,
-                ),
-                const SizedBox(height: 16),
-                const _CircleCard(
-                  color: Color(0xFF4A90E2),
-                  title: 'Outer Circle',
-                  description: 'Extended network - people you\'d like to connect with',
-                  count: 0,
-                  maxCount: 50,
-                ),
-                const Spacer(),
-                CustomButton(
-                  text: 'Continue',
-                  onPressed: () {
-                    Get.offAllNamed('/home');
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
