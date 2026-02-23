@@ -740,4 +740,442 @@ class ApiService {
       },
     );
   }
+
+  Future<Map<String, dynamic>> sendCircleRequest({
+    required String token,
+    required int toUserId,
+  }) async {
+    final url = '$baseUrl/circles/request';
+    final requestData = {
+      'to_user_id': toUserId,
+    };
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+        );
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return responseData ??
+              {
+                'success': true,
+                'in_inner_circle': false,
+                'in_outer_circle': false,
+                'inner_request_status': 'pending',
+              };
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to send circle request';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> addToOuterCircle({
+    required String token,
+    required int toUserId,
+  }) async {
+    final url = '$baseUrl/circles/add-outer';
+    final requestData = {
+      'to_user_id': toUserId,
+    };
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+        );
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return responseData ??
+              {
+                'success': true,
+                'in_inner_circle': false,
+                'in_outer_circle': true,
+                'inner_request_status': 'not_sent',
+              };
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to add to outer circle';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getInnerCircle({
+    required String token,
+  }) async {
+    final url = '$baseUrl/circles/inner';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData ?? {};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to fetch inner circle';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getOuterCircle({
+    required String token,
+  }) async {
+    final url = '$baseUrl/circles/outer';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData ?? {};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to fetch outer circle';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getMutualCircle({
+    required String token,
+  }) async {
+    final url = '$baseUrl/circles/mutual';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData ?? {};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to fetch mutual circle';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> removeConnection({
+    required String token,
+    required int userId,
+  }) async {
+    final url = '$baseUrl/circles/remove';
+    final requestData = {
+      'user_id': userId,
+    };
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+        );
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return responseData ?? {'success': true};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to remove connection';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> respondToCircleRequest({
+    required String token,
+    required int requestId,
+    required String action,
+  }) async {
+    final url = '$baseUrl/circles/request/$requestId';
+    final requestData = {
+      'action': action,
+    };
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'PUT',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'PUT',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+        );
+
+        final response = await http.put(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+
+        final responseData = jsonDecode(response.body);
+
+        _logApiCall(
+          method: 'PUT',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData;
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to respond to request');
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> cancelCircleRequest({
+    required String token,
+    required int requestId,
+  }) async {
+    final url = '$baseUrl/circles/request/$requestId';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.delete(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return responseData ?? {'success': true};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to cancel request';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> searchUsers({
+    required String token,
+    required String query,
+  }) async {
+    final url = '$baseUrl/users/search?query=$query';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData ?? {};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to search users';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
 }

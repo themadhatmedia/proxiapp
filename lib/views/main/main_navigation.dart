@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/auth_controller.dart';
+import '../../controllers/circles_controller.dart';
+import '../../data/services/api_service.dart';
+import '../../data/services/location_service.dart';
 import '../home/circles_screen.dart';
 import '../home/discover_screen.dart';
 import '../home/messages_screen.dart';
 import '../home/profile_screen.dart';
 import '../home/pulse_screen.dart';
-import '../../data/services/location_service.dart';
-import '../../data/services/api_service.dart';
-import '../../controllers/auth_controller.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -23,6 +24,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final LocationService _locationService = Get.put(LocationService());
   final ApiService _apiService = ApiService();
   final AuthController _authController = Get.find<AuthController>();
+  final GlobalKey<NavigatorState> _circlesKey = GlobalKey<NavigatorState>();
 
   void _updateStatusBar() {
     // Set status bar to light icons (white) for Pulse screen (index 1)
@@ -65,6 +67,17 @@ class _MainNavigationState extends State<MainNavigation> {
       }
     } catch (e) {
       // Silently fail - location update is not critical for navigation
+    }
+  }
+
+  void _refreshCirclesData() {
+    try {
+      if (Get.isRegistered<CirclesController>()) {
+        final circlesController = Get.find<CirclesController>();
+        circlesController.loadAllData();
+      }
+    } catch (e) {
+      // Controller might not be initialized yet
     }
   }
 
@@ -151,6 +164,11 @@ class _MainNavigationState extends State<MainNavigation> {
             _currentIndex = index;
           });
           _updateStatusBar();
+
+          // Refresh circles data when navigating to circles screen
+          if (index == 2) {
+            _refreshCirclesData();
+          }
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
