@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 
 class UserProfileDetailScreen extends StatefulWidget {
@@ -23,21 +25,74 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
 
-  bool isProcessing = false;
   bool inInnerCircle = false;
   bool inOuterCircle = false;
   String innerRequestStatus = 'not_sent';
+  int? pendingRequestId;
 
   @override
   void initState() {
     super.initState();
-    // final userData = widget.userData['user'] ?? widget.userData;
     inInnerCircle = widget.userData['in_inner_circle'] ?? false;
     inOuterCircle = widget.userData['in_outer_circle'] ?? false;
     innerRequestStatus = widget.userData['inner_request_status'] ?? 'not_sent';
+
+    if (widget.userData['inner_request_id'] != null) {
+      pendingRequestId = widget.userData['inner_request_id'];
+    } else if (widget.userData['pending_request'] != null) {
+      pendingRequestId = widget.userData['pending_request']['id'];
+    }
   }
 
   Future<void> _sendInnerCircleRequest() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Send Inner Circle Request?',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'This will send a request to add this user to your inner circle. They will need to accept your request.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Send Request'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
     final userData = widget.userData['user'] ?? widget.userData;
     final userId = userData['id'];
 
@@ -46,13 +101,13 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
       return;
     }
 
-    setState(() => isProcessing = true);
+    await ProgressDialogHelper.show(context);
 
     try {
       final token = authController.token;
       if (token == null) {
         ToastHelper.showError('Authentication required');
-        setState(() => isProcessing = false);
+        await ProgressDialogHelper.hide();
         return;
       }
 
@@ -61,26 +116,80 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
         toUserId: userId,
       );
 
+      final requestData = response['request'];
+      final requestId = requestData != null ? requestData['id'] : null;
+      final innerRequestId = response['inner_request_id'];
+
       setState(() {
-        isProcessing = false;
         inInnerCircle = response['in_inner_circle'] ?? false;
         inOuterCircle = response['in_outer_circle'] ?? false;
         innerRequestStatus = response['inner_request_status'] ?? 'pending';
+        pendingRequestId = innerRequestId ?? requestId;
       });
 
       widget.userData['in_inner_circle'] = inInnerCircle;
       widget.userData['in_outer_circle'] = inOuterCircle;
       widget.userData['inner_request_status'] = innerRequestStatus;
+      widget.userData['inner_request_id'] = pendingRequestId;
 
+      await ProgressDialogHelper.hide();
       ToastHelper.showSuccess('Inner circle request sent');
     } catch (e) {
-      setState(() => isProcessing = false);
+      await ProgressDialogHelper.hide();
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
     }
   }
 
   Future<void> _addToOuterCircle() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Add to Outer Circle?',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            innerRequestStatus == 'pending' ? 'Your inner circle request will be cancelled and this user will be added to your outer circle instead.' : 'This will add the user to your outer circle immediately without requiring their approval.',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Add to Circle'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
     final userData = widget.userData['user'] ?? widget.userData;
     final userId = userData['id'];
 
@@ -89,14 +198,22 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
       return;
     }
 
-    setState(() => isProcessing = true);
+    await ProgressDialogHelper.show(context);
 
     try {
       final token = authController.token;
       if (token == null) {
         ToastHelper.showError('Authentication required');
-        setState(() => isProcessing = false);
+        await ProgressDialogHelper.hide();
         return;
+      }
+
+      if (pendingRequestId != null) {
+        await apiService.cancelCircleRequest(
+          token: token,
+          requestId: pendingRequestId!,
+        );
+        await Future.delayed(const Duration(milliseconds: 300));
       }
 
       final response = await apiService.addToOuterCircle(
@@ -105,26 +222,24 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
       );
 
       setState(() {
-        isProcessing = false;
         inInnerCircle = response['in_inner_circle'] ?? false;
         inOuterCircle = response['in_outer_circle'] ?? true;
         innerRequestStatus = response['inner_request_status'] ?? 'not_sent';
+        pendingRequestId = null;
       });
 
       widget.userData['in_inner_circle'] = inInnerCircle;
       widget.userData['in_outer_circle'] = inOuterCircle;
       widget.userData['inner_request_status'] = innerRequestStatus;
+      widget.userData['inner_request_id'] = null;
 
+      await ProgressDialogHelper.hide();
       ToastHelper.showSuccess('Added to outer circle');
     } catch (e) {
-      setState(() => isProcessing = false);
+      await ProgressDialogHelper.hide();
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
     }
-  }
-
-  Future<void> _sendMessage() async {
-    ToastHelper.showInfo('Messaging feature coming soon');
   }
 
   @override
@@ -146,7 +261,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     return Container(
       decoration: const BoxDecoration(
         // gradient: LinearGradient(
-        //   colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+        //   colors: [Colors.white, Color(0xFF3D5A80)],
         //   begin: Alignment.topCenter,
         //   end: Alignment.bottomCenter,
         // ),
@@ -270,7 +385,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      if (distance != null)
+                      if (distance != null && distance > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -411,7 +526,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                               children: [
                                 const Icon(
                                   Icons.home,
-                                  // color: Color(0xFF4A90E2),
+                                  // color: Colors.white,
                                   color: Colors.white,
                                   size: 16.0,
                                 ),
@@ -471,6 +586,22 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                       ),
                     ),
                   ],
+                  if (_hasSocialLinks(profile)) ...[
+                    const SizedBox(height: 20),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Social Links',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSocialLinks(profile),
+                  ],
                   const SizedBox(height: 24),
                 ],
               ),
@@ -496,20 +627,34 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
 
   Widget _buildActionButtons() {
     if (inInnerCircle) {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _sendMessage,
-          icon: const Icon(Icons.message),
-          label: const Text('Send Message'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.green.withOpacity(0.5),
+            width: 1,
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Inner Circle Connection',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.green,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -548,53 +693,94 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     }
 
     if (innerRequestStatus == 'pending') {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF4A90E2).withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF4A90E2).withOpacity(0.5),
-            width: 1,
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.hourglass_empty,
-              color: Color(0xFF4A90E2),
-              size: 20,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Inner Circle Request Sent',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF4A90E2),
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.5),
+                width: 1,
               ),
             ),
-          ],
-        ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.hourglass_empty,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Inner Circle Request Sent',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _addToOuterCircle,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.2),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.group_add, size: 20),
+                  SizedBox(width: 8),
+                  Text('Add to Outer Circle'),
+                ],
+              ),
+            ),
+          ),
+        ],
       );
     }
 
     if (innerRequestStatus == 'accepted') {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _sendMessage,
-          icon: const Icon(Icons.message),
-          label: const Text('Send Message'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.green.withOpacity(0.5),
+            width: 1,
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Inner Circle Connection',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.green,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -604,26 +790,30 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
         Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: isProcessing ? null : _sendInnerCircleRequest,
-                icon: const Icon(Icons.people),
-                label: const Text('Inner Circle'),
+              child: ElevatedButton(
+                onPressed: _sendInnerCircleRequest,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.people, size: 20),
+                    SizedBox(width: 8),
+                    Text('Inner Circle'),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: isProcessing ? null : _addToOuterCircle,
-                icon: const Icon(Icons.group_add),
-                label: const Text('Outer Circle'),
+              child: ElevatedButton(
+                onPressed: _addToOuterCircle,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white.withOpacity(0.2),
                   foregroundColor: Colors.white,
@@ -631,6 +821,14 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.group_add, size: 20),
+                    SizedBox(width: 8),
+                    Text('Outer Circle'),
+                  ],
                 ),
               ),
             ),
@@ -642,9 +840,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
 
   Color _getMatchColor(int score) {
     if (score > 80) {
-      return const Color(0xFF4A90E2);
+      return const Color(0xFF4CAF50);
     } else if (score >= 50) {
-      return Colors.white;
+      return const Color(0xFFFFA726);
     } else {
       return const Color(0xFFE74C3C);
     }
@@ -659,6 +857,125 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
       return city;
     } else {
       return state ?? '';
+    }
+  }
+
+  bool _hasSocialLinks(Map<String, dynamic> profile) {
+    return (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) ||
+        (profile['snapchat_url'] != null && profile['snapchat_url'].toString().isNotEmpty) ||
+        (profile['linkedin_url'] != null && profile['linkedin_url'].toString().isNotEmpty) ||
+        (profile['facebook_url'] != null && profile['facebook_url'].toString().isNotEmpty) ||
+        (profile['x_url'] != null && profile['x_url'].toString().isNotEmpty) ||
+        (profile['tiktok_url'] != null && profile['tiktok_url'].toString().isNotEmpty) ||
+        (profile['other_url'] != null && profile['other_url'].toString().isNotEmpty);
+  }
+
+  Widget _buildSocialLinks(Map<String, dynamic> profile) {
+    final links = <Map<String, String>>[];
+
+    if (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) {
+      links.add({'title': 'Instagram', 'url': profile['instagram_url'].toString()});
+    }
+    if (profile['snapchat_url'] != null && profile['snapchat_url'].toString().isNotEmpty) {
+      links.add({'title': 'Snapchat', 'url': profile['snapchat_url'].toString()});
+    }
+    if (profile['linkedin_url'] != null && profile['linkedin_url'].toString().isNotEmpty) {
+      links.add({'title': 'LinkedIn', 'url': profile['linkedin_url'].toString()});
+    }
+    if (profile['facebook_url'] != null && profile['facebook_url'].toString().isNotEmpty) {
+      links.add({'title': 'Facebook', 'url': profile['facebook_url'].toString()});
+    }
+    if (profile['x_url'] != null && profile['x_url'].toString().isNotEmpty) {
+      links.add({'title': 'X (Twitter)', 'url': profile['x_url'].toString()});
+    }
+    if (profile['tiktok_url'] != null && profile['tiktok_url'].toString().isNotEmpty) {
+      links.add({'title': 'TikTok', 'url': profile['tiktok_url'].toString()});
+    }
+    if (profile['other_url'] != null && profile['other_url'].toString().isNotEmpty) {
+      links.add({'title': 'Other', 'url': profile['other_url'].toString()});
+    }
+
+    return Column(
+      children: links.map((link) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _launchUrl(link['url']!),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _getSocialIcon(link['title']!),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        link['title']!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.open_in_new,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  IconData _getSocialIcon(String title) {
+    switch (title.toLowerCase()) {
+      case 'instagram':
+        return Icons.camera_alt;
+      case 'snapchat':
+        return Icons.camera;
+      case 'linkedin':
+        return Icons.business;
+      case 'facebook':
+        return Icons.facebook;
+      case 'x (twitter)':
+        return Icons.message;
+      case 'tiktok':
+        return Icons.music_note;
+      default:
+        return Icons.link;
+    }
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    try {
+      final uri = Uri.parse(urlString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ToastHelper.showError('Could not open link');
+      }
+    } catch (e) {
+      ToastHelper.showError('Invalid link');
     }
   }
 }

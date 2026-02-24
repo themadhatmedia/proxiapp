@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class RadarView extends StatefulWidget {
@@ -82,7 +83,7 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
 
   Color _getColorForMatchScore(int matchScore) {
     if (matchScore > 80) {
-      return const Color(0xFF4A90E2);
+      return Colors.white;
     } else if (matchScore >= 50) {
       return Colors.white;
     } else {
@@ -138,7 +139,7 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              const Color(0xFF4A90E2).withOpacity(0.1),
+              Colors.white.withOpacity(0.1),
               const Color(0xFF3D5A80).withOpacity(0.05),
               Colors.transparent,
             ],
@@ -173,7 +174,7 @@ class UserDot {
     required this.angle,
     required this.distance,
     required this.animationOffset,
-    this.color = const Color(0xFF4A90E2),
+    this.color = Colors.white,
   });
 }
 
@@ -194,13 +195,13 @@ class RadarPainter extends CustomPainter {
     final maxRadius = size.width / 2;
 
     final circlePaint = Paint()
-      ..color = const Color(0xFF4A90E2).withOpacity(0.3)
+      ..color = Colors.white.withOpacity(0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
     final pulseOpacity = 0.1 + (0.15 * ((pulseValue - 0.95) / 0.1));
     final pulseGlowPaint = Paint()
-      ..color = const Color(0xFF4A90E2).withOpacity(pulseOpacity)
+      ..color = Colors.white.withOpacity(pulseOpacity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
@@ -214,7 +215,7 @@ class RadarPainter extends CustomPainter {
     canvas.drawCircle(center, maxRadius * pulseValue, circlePaint);
 
     final centerIconPaint = Paint()
-      ..color = const Color(0xFF4A90E2)
+      ..color = Colors.white
       ..style = PaintingStyle.fill;
 
     final centerPulseSize = 8 * pulseValue;

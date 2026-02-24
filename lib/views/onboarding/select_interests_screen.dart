@@ -40,7 +40,7 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -139,7 +139,7 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isCurrentlySelected ? const Color(0xFF4A90E2) : Colors.white,
+                                        color: isCurrentlySelected ? Colors.white : Colors.white,
                                       ),
                                     ),
                                   ),

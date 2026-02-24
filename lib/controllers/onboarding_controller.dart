@@ -15,6 +15,7 @@ class OnboardingController extends GetxController {
 
   File? profileImage;
   String name = '';
+  String accountType = 'Personal';
   String bio = '';
   DateTime? dateOfBirth;
   String? gender;
@@ -158,7 +159,7 @@ class OnboardingController extends GetxController {
       final dob = dateOfBirth != null ? '${dateOfBirth!.year.toString().padLeft(4, '0')}-${dateOfBirth!.month.toString().padLeft(2, '0')}-${dateOfBirth!.day.toString().padLeft(2, '0')}' : null;
       await _apiService.updateProfile(
         token: token,
-        // displayName: name.trim(),
+        displayName: name.trim(),
         bio: bio.trim(),
         dateOfBirth: dob,
         gender: gender,
@@ -166,6 +167,7 @@ class OnboardingController extends GetxController {
         state: state,
         profession: profession.trim(),
         avatar: profileImage,
+        accountType: accountType.toLowerCase(),
       );
       return true;
     } catch (e) {
@@ -242,10 +244,6 @@ class OnboardingController extends GetxController {
     //   ToastHelper.showError('Please enter your name');
     //   return false;
     // }
-    // if (bio.trim().isEmpty) {
-    //   ToastHelper.showError('Please enter your bio');
-    //   return false;
-    // }
     if (dateOfBirth == null) {
       ToastHelper.showError('Please select your date of birth');
       return false;
@@ -289,6 +287,7 @@ class OnboardingController extends GetxController {
   void reset() {
     profileImage = null;
     name = '';
+    bio = '';
     dateOfBirth = null;
     gender = null;
     city = '';

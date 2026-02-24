@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import '../../widgets/custom_button.dart';
 
 class SetupPermissionsScreen extends StatefulWidget {
@@ -58,7 +59,7 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

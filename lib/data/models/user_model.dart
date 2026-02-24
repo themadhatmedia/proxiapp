@@ -14,6 +14,14 @@ class User {
   final String? state;
   final String? profession;
   final Membership? membership;
+  final String? linkedinUrl;
+  final String? facebookUrl;
+  final String? instagramUrl;
+  final String? xUrl;
+  final String? snapchatUrl;
+  final String? tiktokUrl;
+  final String? otherUrl;
+  final String? accountType;
 
   User({
     required this.id,
@@ -31,6 +39,14 @@ class User {
     this.state,
     this.profession,
     this.membership,
+    this.linkedinUrl,
+    this.facebookUrl,
+    this.instagramUrl,
+    this.xUrl,
+    this.snapchatUrl,
+    this.tiktokUrl,
+    this.otherUrl,
+    this.accountType,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -79,6 +95,14 @@ class User {
     String? city = profileData?['city'];
     String? state = profileData?['state'];
     String? profession = profileData?['profession'];
+    String? linkedinUrl = profileData?['linkedin_url'];
+    String? facebookUrl = profileData?['facebook_url'];
+    String? instagramUrl = profileData?['instagram_url'];
+    String? xUrl = profileData?['x_url'];
+    String? snapchatUrl = profileData?['snapchat_url'];
+    String? tiktokUrl = profileData?['tiktok_url'];
+    String? otherUrl = profileData?['other_url'];
+    String? accountType = profileData?['account_type'];
 
     Membership? membership;
     if (userData['membership'] != null) {
@@ -101,6 +125,14 @@ class User {
       state: state,
       profession: profession,
       membership: membership,
+      linkedinUrl: linkedinUrl,
+      facebookUrl: facebookUrl,
+      instagramUrl: instagramUrl,
+      xUrl: xUrl,
+      snapchatUrl: snapchatUrl,
+      tiktokUrl: tiktokUrl,
+      otherUrl: otherUrl,
+      accountType: accountType,
     );
   }
 
@@ -172,11 +204,13 @@ class Profile {
   final String? displayName;
   final String? bio;
   final String? avatarUrl;
+  final bool? restrictDm;
 
   Profile({
     this.displayName,
     this.bio,
     this.avatarUrl,
+    this.restrictDm,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -184,6 +218,7 @@ class Profile {
       displayName: json['display_name'],
       bio: json['bio'],
       avatarUrl: json['avatar_url'],
+      restrictDm: json['restrict_dm'],
     );
   }
 
@@ -192,6 +227,7 @@ class Profile {
       'display_name': displayName,
       'bio': bio,
       'avatar_url': avatarUrl,
+      'restrict_dm': restrictDm,
     };
   }
 }

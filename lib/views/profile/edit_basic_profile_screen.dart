@@ -27,9 +27,11 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
   DateTime? selectedDate;
   String? selectedGender;
   String? selectedState;
+  String? selectedAccountType;
   bool _isSaving = false;
 
   final List<String> genders = ['Male', 'Female'];
+  final List<String> accountTypes = ['Personal', 'Professional'];
   final List<String> stateOptions = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
 
   @override
@@ -44,6 +46,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
     selectedDate = user?.dateOfBirth;
     selectedGender = user?.gender;
     selectedState = user?.state;
+    selectedAccountType = user?.accountType ?? 'Personal';
   }
 
   @override
@@ -65,7 +68,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF4A90E2),
+              primary: Colors.white,
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
@@ -85,7 +88,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
   void _showStatePicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF3D5A80),
+      backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -115,6 +118,36 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
     );
   }
 
+  void _showAccountTypePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: accountTypes.map((type) {
+            return ListTile(
+              title: Text(
+                type.capitalize.toString(),
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              onTap: () {
+                setState(() {
+                  selectedAccountType = type;
+                });
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSave() async {
     if (nameController.text.trim().isEmpty) {
       ToastHelper.showError('Name is required');
@@ -137,13 +170,14 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
     try {
       await apiService.updateProfile(
         token: token,
-        name: nameController.text.trim(),
+        displayName: nameController.text.trim(),
         bio: bioController.text.trim(),
         dateOfBirth: selectedDate?.toIso8601String(),
         gender: selectedGender,
         city: cityController.text.trim().isNotEmpty ? cityController.text.trim() : null,
         state: selectedState,
         profession: professionController.text.trim().isNotEmpty ? professionController.text.trim() : null,
+        accountType: selectedAccountType!.toLowerCase(),
       );
 
       await authController.fetchUserProfile();
@@ -162,7 +196,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -214,6 +248,38 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         keyboardType: TextInputType.name,
                       ),
                       const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: _showAccountTypePicker,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                selectedAccountType.toString().capitalize ?? 'Account Type',
+                                style: TextStyle(
+                                  color: selectedAccountType != null ? Colors.white : Colors.white60,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white70,
+                                size: 24,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       TextField(
                         controller: bioController,
                         maxLines: 4,
@@ -241,7 +307,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                              color: Color(0xFF4A90E2),
+                              color: Colors.white,
                               width: 2,
                             ),
                           ),
@@ -300,7 +366,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                               style: TextStyle(color: Colors.white60),
                             ),
                             isExpanded: true,
-                            dropdownColor: const Color(0xFF3D5A80),
+                            dropdownColor: const Color(0xFF1A1A1A),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -390,7 +456,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: CustomButton(
                   text: _isSaving ? 'Saving...' : 'Save Changes',
                   onPressed: _isSaving ? () {} : _handleSave,

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../controllers/circles_controller.dart';
 import '../../data/models/user_model.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../widgets/circle_user_card.dart';
 
 class SearchUsersScreen extends StatefulWidget {
@@ -43,14 +44,122 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
   void _handleMenuAction(String action, int userId) {
     switch (action) {
       case 'send_inner':
-        controller.sendInnerCircleRequest(userId);
+        _sendInnerCircleRequest(userId);
         break;
       case 'add_outer':
-        controller.addToOuterCircle(userId);
+        _addToOuterCircle(userId);
         break;
       case 'profile':
         break;
     }
+  }
+
+  Future<void> _sendInnerCircleRequest(int userId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Send Inner Circle Request?',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'This will send a request to add this user to your inner circle. They will need to accept your request.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Send Request'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    await ProgressDialogHelper.show(context);
+    await controller.sendInnerCircleRequest(userId);
+    await ProgressDialogHelper.hide();
+  }
+
+  Future<void> _addToOuterCircle(int userId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Add to Outer Circle?',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'This will add the user to your outer circle immediately without requiring their approval.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Add to Circle'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    await ProgressDialogHelper.show(context);
+    await controller.addToOuterCircle(userId);
+    await ProgressDialogHelper.hide();
   }
 
   @override
@@ -59,7 +168,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -115,7 +224,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                       onPressed: _performSearch,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF4A90E2),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

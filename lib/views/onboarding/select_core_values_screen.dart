@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/onboarding_controller.dart';
+
 import '../../controllers/auth_controller.dart';
-import '../../widgets/custom_button.dart';
+import '../../controllers/onboarding_controller.dart';
 import '../../utils/toast_helper.dart';
+import '../../widgets/custom_button.dart';
 
 class SelectCoreValuesScreen extends StatefulWidget {
   const SelectCoreValuesScreen({super.key});
@@ -35,7 +36,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF4A90E2),
+              color: Colors.white,
             ),
           ),
           content: SingleChildScrollView(
@@ -70,7 +71,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+                      borderSide: const BorderSide(color: Colors.white, width: 2),
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -108,7 +109,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
+                backgroundColor: Colors.white,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -149,7 +150,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -249,7 +250,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: hasCustomValue ? const Color(0xFF4A90E2) : Colors.white,
+                                          color: hasCustomValue ? Colors.white : Colors.white,
                                         ),
                                       ),
                                     ),
@@ -282,7 +283,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+                                        color: isSelected ? Colors.white : Colors.white,
                                       ),
                                     ),
                                   ),

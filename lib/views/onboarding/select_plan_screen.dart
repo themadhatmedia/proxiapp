@@ -56,7 +56,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -148,7 +148,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                             style: TextStyle(
                                               fontSize: 20,
                                               fontWeight: FontWeight.bold,
-                                              color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+                                              color: isSelected ? Colors.black : Colors.white,
                                             ),
                                           ),
                                           Text(
@@ -156,7 +156,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.w600,
-                                              color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+                                              color: isSelected ? Colors.black : Colors.white,
                                             ),
                                           ),
                                         ],
@@ -166,7 +166,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                         plan.description,
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: isSelected ? const Color(0xFF4A90E2).withOpacity(0.7) : Colors.white60,
+                                          color: isSelected ? Colors.black.withOpacity(0.7) : Colors.white60,
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -174,7 +174,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                         plan.displayLimits,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: isSelected ? const Color(0xFF4A90E2).withOpacity(0.8) : Colors.white70,
+                                          color: isSelected ? Colors.black.withOpacity(0.8) : Colors.white70,
                                         ),
                                       ),
                                     ],

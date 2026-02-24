@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../controllers/circles_controller.dart';
 import '../../data/models/circle_connection_model.dart';
 import '../../data/models/circle_request_model.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/circle_user_card.dart';
 import '../circles/search_users_screen.dart';
@@ -65,10 +66,10 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         _showCancelRequestConfirmation(data);
         break;
       case 'send_inner':
-        controller.sendInnerCircleRequest(data);
+        _sendInnerCircleRequest(data);
         break;
       case 'add_outer':
-        controller.addToOuterCircle(data);
+        _addToOuterCircle(data);
         break;
     }
   }
@@ -142,11 +143,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
   }
 
   void _showRemoveConfirmation(dynamic data, String circleType) {
-    int userId = 0;
+    int connectionId = 0;
     if (data is CircleConnectionModel) {
-      userId = data.connectedUserId;
+      connectionId = data.id;
     } else if (data is CircleRequestModel) {
-      userId = data.toUserId;
+      connectionId = data.id;
     }
 
     showDialog(
@@ -186,9 +187,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              controller.removeConnection(userId, circleType);
+              await ProgressDialogHelper.show(context);
+              await controller.removeConnection(connectionId, circleType);
+              await ProgressDialogHelper.hide();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -243,9 +246,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              controller.acceptCircleRequest(request.id);
+              await ProgressDialogHelper.show(context);
+              await controller.acceptCircleRequest(request.id);
+              await ProgressDialogHelper.hide();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -300,9 +305,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              controller.rejectCircleRequest(request.id);
+              await ProgressDialogHelper.show(context);
+              await controller.rejectCircleRequest(request.id);
+              await ProgressDialogHelper.hide();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -357,9 +364,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              controller.cancelRequest(request.id);
+              await ProgressDialogHelper.show(context);
+              await controller.cancelRequest(request.id);
+              await ProgressDialogHelper.hide();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
@@ -376,13 +385,25 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     );
   }
 
+  Future<void> _sendInnerCircleRequest(int userId) async {
+    await ProgressDialogHelper.show(context);
+    await controller.sendInnerCircleRequest(userId);
+    await ProgressDialogHelper.hide();
+  }
+
+  Future<void> _addToOuterCircle(int userId) async {
+    await ProgressDialogHelper.show(context);
+    await controller.addToOuterCircle(userId);
+    await ProgressDialogHelper.hide();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -417,11 +438,12 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'circles_fab',
         onPressed: _navigateToSearch,
         backgroundColor: Colors.white,
         child: const Icon(
           Icons.search,
-          color: Color(0xFF4A90E2),
+          color: Colors.black,
         ),
       ),
     );
@@ -475,7 +497,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
       return RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: const Color(0xFF4A90E2),
+        color: Colors.white,
         child: ListView(
           children: [
             Padding(
@@ -669,7 +691,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
       if (connections.isEmpty) {
         return RefreshIndicator(
           onRefresh: _handleRefresh,
-          color: const Color(0xFF4A90E2),
+          color: Colors.white,
           child: ListView(
             children: [
               SizedBox(
@@ -702,7 +724,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
       return RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: const Color(0xFF4A90E2),
+        color: Colors.white,
         child: ListView(
           children: connections.map((connection) => _buildOuterConnectionCard(connection)).toList(),
         ),
@@ -723,7 +745,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
       if (connections.isEmpty) {
         return RefreshIndicator(
           onRefresh: _handleRefresh,
-          color: const Color(0xFF4A90E2),
+          color: Colors.white,
           child: ListView(
             children: [
               SizedBox(
@@ -756,7 +778,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
       return RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: const Color(0xFF4A90E2),
+        color: Colors.white,
         child: ListView(
           children: connections.map((connection) => _buildMutualConnectionCard(connection)).toList(),
         ),
@@ -768,101 +790,104 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     final user = connection.connectedUser;
     final profile = user?.profile;
 
-    return CircleUserCard(
-      name: user?.name ?? 'Unknown User',
-      bio: profile?.bio,
-      avatarUrl: profile?.avatar,
-      menuItems: [
-        const PopupMenuItem(
-          value: 'view_profile',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Profile',
-                style: TextStyle(
+    return Obx(
+      () => CircleUserCard(
+        name: user?.name ?? 'Unknown User',
+        bio: profile?.bio,
+        avatarUrl: profile?.avatar,
+        isLoading: controller.isActionLoading(connection.id),
+        menuItems: [
+          const PopupMenuItem(
+            value: 'view_profile',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
+                SizedBox(width: 10),
+                Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem(
-          value: 'message',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.message_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Send Message',
-                style: TextStyle(
+          const PopupMenuItem(
+            value: 'message',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.message_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
+                SizedBox(width: 10),
+                Text(
+                  'Send Message',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem(
-          value: 'posts',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.article_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Posts',
-                style: TextStyle(
+          const PopupMenuItem(
+            value: 'posts',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.article_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'remove',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.person_remove,
-                size: 18,
-                color: Colors.red,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Remove Connection',
-                style: TextStyle(
-                  color: Colors.red.shade400,
-                  fontSize: 14,
+                SizedBox(width: 10),
+                Text(
+                  'View Posts',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-      onMenuSelected: (value) => _handleMenuAction(value, connection, 'inner'),
+          PopupMenuItem(
+            value: 'remove',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.person_remove,
+                  size: 18,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Remove Connection',
+                  style: TextStyle(
+                    color: Colors.red.shade400,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        onMenuSelected: (value) => _handleMenuAction(value, connection, 'inner'),
+      ),
     );
   }
 
@@ -870,79 +895,82 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     final user = request.fromUser;
     final profile = user?.profile;
 
-    return CircleUserCard(
-      name: user?.name ?? 'Unknown User',
-      bio: profile?.bio,
-      avatarUrl: profile?.avatar,
-      menuItems: [
-        const PopupMenuItem(
-          value: 'view_profile',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Profile',
-                style: TextStyle(
+    return Obx(
+      () => CircleUserCard(
+        name: user?.name ?? 'Unknown User',
+        bio: profile?.bio,
+        avatarUrl: profile?.avatar,
+        isLoading: controller.isActionLoading(request.id),
+        menuItems: [
+          const PopupMenuItem(
+            value: 'view_profile',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
+                SizedBox(width: 10),
+                Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem(
-          value: 'accept',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.check_circle_outline,
-                size: 18,
-                color: Colors.green,
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Accept Request',
-                style: TextStyle(
+          const PopupMenuItem(
+            value: 'accept',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 18,
                   color: Colors.green,
-                  fontSize: 14,
                 ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'reject',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.cancel_outlined,
-                size: 18,
-                color: Colors.red,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Reject Request',
-                style: TextStyle(
-                  color: Colors.red.shade400,
-                  fontSize: 14,
+                SizedBox(width: 10),
+                Text(
+                  'Accept Request',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-      onMenuSelected: (value) => _handleIncomingRequestAction(value, request),
+          PopupMenuItem(
+            value: 'reject',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.cancel_outlined,
+                  size: 18,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Reject Request',
+                  style: TextStyle(
+                    color: Colors.red.shade400,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        onMenuSelected: (value) => _handleIncomingRequestAction(value, request),
+      ),
     );
   }
 
@@ -950,57 +978,60 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     final user = request.toUser;
     final profile = user?.profile;
 
-    return CircleUserCard(
-      name: user?.name ?? 'Unknown User',
-      bio: profile?.bio,
-      avatarUrl: profile?.avatar,
-      menuItems: [
-        const PopupMenuItem(
-          value: 'view_profile',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Profile',
-                style: TextStyle(
+    return Obx(
+      () => CircleUserCard(
+        name: user?.name ?? 'Unknown User',
+        bio: profile?.bio,
+        avatarUrl: profile?.avatar,
+        isLoading: controller.isActionLoading(request.id),
+        menuItems: [
+          const PopupMenuItem(
+            value: 'view_profile',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'cancel',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.cancel_outlined,
-                size: 18,
-                color: Colors.orange,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Cancel Request',
-                style: TextStyle(
-                  color: Colors.orange.shade400,
-                  fontSize: 14,
+                SizedBox(width: 10),
+                Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-      onMenuSelected: (value) => _handleMenuAction(value, request, 'inner'),
+          PopupMenuItem(
+            value: 'cancel',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.cancel_outlined,
+                  size: 18,
+                  color: Colors.orange,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Cancel Request',
+                  style: TextStyle(
+                    color: Colors.orange.shade400,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        onMenuSelected: (value) => _handleMenuAction(value, request, 'inner'),
+      ),
     );
   }
 
@@ -1008,79 +1039,82 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     final user = request.toUser;
     final profile = user?.profile;
 
-    return CircleUserCard(
-      name: user?.name ?? 'Unknown User',
-      bio: profile?.bio,
-      avatarUrl: profile?.avatar,
-      menuItems: const [
-        PopupMenuItem(
-          value: 'view_profile',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Profile',
-                style: TextStyle(
+    return Obx(
+      () => CircleUserCard(
+        name: user?.name ?? 'Unknown User',
+        bio: profile?.bio,
+        avatarUrl: profile?.avatar,
+        isLoading: controller.isActionLoading(request.id),
+        menuItems: const [
+          PopupMenuItem(
+            value: 'view_profile',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
+                SizedBox(width: 10),
+                Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: 'send_inner',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_add,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Send Inner Circle Request',
-                style: TextStyle(
+          PopupMenuItem(
+            value: 'send_inner',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_add,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'add_outer',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.group_add,
-                size: 18,
-                color: Color(0xFF50C878),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Add to Outer Circle',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
+                SizedBox(width: 10),
+                Text(
+                  'Send Inner Circle Request',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-      onMenuSelected: (value) => _handleMenuAction(value, user?.id ?? 0, 'inner'),
+          PopupMenuItem(
+            value: 'add_outer',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.group_add,
+                  size: 18,
+                  color: Color(0xFF50C878),
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Add to Outer Circle',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        onMenuSelected: (value) => _handleMenuAction(value, user?.id ?? 0, 'inner'),
+      ),
     );
   }
 
@@ -1088,79 +1122,82 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     final user = connection.connectedUser;
     final profile = user?.profile;
 
-    return CircleUserCard(
-      name: user?.name ?? 'Unknown User',
-      bio: profile?.bio,
-      avatarUrl: profile?.avatar,
-      menuItems: [
-        const PopupMenuItem(
-          value: 'view_profile',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Profile',
-                style: TextStyle(
+    return Obx(
+      () => CircleUserCard(
+        name: user?.name ?? 'Unknown User',
+        bio: profile?.bio,
+        avatarUrl: profile?.avatar,
+        isLoading: controller.isActionLoading(connection.id),
+        menuItems: [
+          const PopupMenuItem(
+            value: 'view_profile',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
+                SizedBox(width: 10),
+                Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem(
-          value: 'posts',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.article_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Posts',
-                style: TextStyle(
+          const PopupMenuItem(
+            value: 'posts',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.article_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'remove',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.person_remove,
-                size: 18,
-                color: Colors.red,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Remove Connection',
-                style: TextStyle(
-                  color: Colors.red.shade400,
-                  fontSize: 14,
+                SizedBox(width: 10),
+                Text(
+                  'View Posts',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-      onMenuSelected: (value) => _handleMenuAction(value, connection, 'outer'),
+          PopupMenuItem(
+            value: 'remove',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.person_remove,
+                  size: 18,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Remove Connection',
+                  style: TextStyle(
+                    color: Colors.red.shade400,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        onMenuSelected: (value) => _handleMenuAction(value, connection, 'outer'),
+      ),
     );
   }
 
@@ -1168,79 +1205,82 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     final user = connection.connectedUser;
     final profile = user?.profile;
 
-    return CircleUserCard(
-      name: user?.name ?? 'Unknown User',
-      bio: profile?.bio,
-      avatarUrl: profile?.avatar,
-      menuItems: [
-        const PopupMenuItem(
-          value: 'view_profile',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.person_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Profile',
-                style: TextStyle(
+    return Obx(
+      () => CircleUserCard(
+        name: user?.name ?? 'Unknown User',
+        bio: profile?.bio,
+        avatarUrl: profile?.avatar,
+        isLoading: controller.isActionLoading(connection.id),
+        menuItems: [
+          const PopupMenuItem(
+            value: 'view_profile',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
+                SizedBox(width: 10),
+                Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem(
-          value: 'posts',
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              Icon(
-                Icons.article_outlined,
-                size: 18,
-                color: Color(0xFF4A90E2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'View Posts',
-                style: TextStyle(
+          const PopupMenuItem(
+            value: 'posts',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.article_outlined,
+                  size: 18,
                   color: Colors.white,
-                  fontSize: 14,
                 ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'remove',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          height: 40,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.person_remove,
-                size: 18,
-                color: Colors.red,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Remove Connection',
-                style: TextStyle(
-                  color: Colors.red.shade400,
-                  fontSize: 14,
+                SizedBox(width: 10),
+                Text(
+                  'View Posts',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-      onMenuSelected: (value) => _handleMenuAction(value, connection, 'mutual'),
+          PopupMenuItem(
+            value: 'remove',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.person_remove,
+                  size: 18,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Remove Connection',
+                  style: TextStyle(
+                    color: Colors.red.shade400,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        onMenuSelected: (value) => _handleMenuAction(value, connection, 'mutual'),
+      ),
     );
   }
 }

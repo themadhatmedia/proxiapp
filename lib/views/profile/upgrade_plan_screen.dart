@@ -65,7 +65,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -130,13 +130,11 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                         return Column(
                           children: controller.availablePlans.map((plan) {
                             return GestureDetector(
-                              onTap: plan.isFree
-                                  ? () {
-                                      setState(() {
-                                        selectedPlanId = plan.id;
-                                      });
-                                    }
-                                  : null,
+                              onTap: () {
+                                setState(() {
+                                  selectedPlanId = plan.id;
+                                });
+                              },
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 margin: const EdgeInsets.only(bottom: 16),
@@ -160,7 +158,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                                           style: TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
-                                            color: selectedPlanId == plan.id ? const Color(0xFF4A90E2) : Colors.white,
+                                            color: selectedPlanId == plan.id ? Colors.black : Colors.white,
                                           ),
                                         ),
                                         Text(
@@ -168,7 +166,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                                           style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.w600,
-                                            color: selectedPlanId == plan.id ? const Color(0xFF4A90E2) : Colors.white,
+                                            color: selectedPlanId == plan.id ? Colors.black : Colors.white,
                                           ),
                                         ),
                                       ],
@@ -178,7 +176,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                                       plan.description,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: selectedPlanId == plan.id ? const Color(0xFF4A90E2).withOpacity(0.7) : Colors.white60,
+                                        color: selectedPlanId == plan.id ? Colors.black.withOpacity(0.7) : Colors.white60,
                                       ),
                                     ),
                                     const SizedBox(height: 12),
@@ -186,7 +184,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                                       plan.displayLimits,
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: selectedPlanId == plan.id ? const Color(0xFF4A90E2).withOpacity(0.8) : Colors.white70,
+                                        color: selectedPlanId == plan.id ? Colors.black.withOpacity(0.8) : Colors.white70,
                                       ),
                                     ),
                                   ],
@@ -201,7 +199,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: CustomButton(
                   text: _isSaving ? 'Updating...' : 'Update Subscription',
                   onPressed: _isSaving ? () {} : _handleSubscribe,

@@ -22,7 +22,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -44,7 +44,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _handleRefresh,
-                  color: const Color(0xFF4A90E2),
+                  color: Colors.white,
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

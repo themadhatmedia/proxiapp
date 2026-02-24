@@ -35,7 +35,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -69,11 +69,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'discover_fab',
         onPressed: () {},
-        backgroundColor: const Color(0xFF4A90E2),
+        backgroundColor: Colors.white,
         child: const Icon(
           Icons.add,
-          color: Colors.white,
+          color: Colors.black,
         ),
       ),
     );
@@ -155,7 +156,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
     return RefreshIndicator(
       onRefresh: _handleRefresh,
-      color: const Color(0xFF4A90E2),
+      color: Colors.white,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 80),
         itemCount: posts.length,
@@ -184,7 +185,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

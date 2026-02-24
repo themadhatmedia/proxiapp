@@ -153,7 +153,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       child: const Icon(
         Icons.navigation_rounded,
         size: 60,
-        color: Color(0xFF4A90E2),
+        color: Colors.white,
       ),
     );
   }

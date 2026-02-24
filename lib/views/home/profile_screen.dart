@@ -5,10 +5,9 @@ import 'package:intl/intl.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../data/models/user_model.dart';
-import '../profile/edit_basic_profile_screen.dart';
 import '../profile/edit_core_values_screen.dart';
 import '../profile/edit_interests_screen.dart';
-import '../profile/upgrade_plan_screen.dart';
+import '../profile/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -43,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF3D5A80),
+        backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -89,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -97,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
-            color: const Color(0xFF4A90E2),
+            color: Colors.white,
             child: Obx(() {
               final user = authController.currentUser.value;
               if (user == null) {
@@ -112,15 +111,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        'Profile',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Expanded(child: SizedBox()),
+                          const Text(
+                            'Profile',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: IconButton(
+                                onPressed: () => Get.to(() => const SettingsScreen()),
+                                icon: const Icon(
+                                  Icons.settings,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 15.0),
@@ -164,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               child: const Icon(
                                 Icons.edit,
-                                color: Color(0xFF4A90E2),
+                                color: Colors.black,
                                 size: 20,
                               ),
                             ),
@@ -279,7 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     children: [
                                       const Icon(
                                         Icons.home,
-                                        // color: Color(0xFF4A90E2),
+                                        // color: Colors.white,
                                         color: Colors.white,
                                         size: 18,
                                       ),
@@ -376,33 +394,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () => Get.to(() => const EditBasicProfileScreen()),
-                              icon: const Icon(Icons.edit),
-                              label: const Text('Edit Profile'),
+                              onPressed: () {},
+                              icon: const Icon(Icons.delete_forever),
+                              label: const Text('Delete Account'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4A90E2),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () => Get.to(() => const UpgradePlanScreen()),
-                              icon: const Icon(Icons.arrow_upward),
-                              label: const Text('Upgrade Subscription'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4A90E2),
-                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.grey.withOpacity(0.3),
+                                foregroundColor: Colors.white70,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -431,7 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : const Icon(Icons.logout),
                               label: Text(
                                 _isLoggingOut ? 'Logging out...' : 'Logout',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                 ),
                               ),
@@ -479,7 +476,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: const TextStyle(
             fontSize: 30.0,
             fontWeight: FontWeight.bold,
-            // color: Color(0xFF4A90E2),
+            // color: Colors.white,
             color: Colors.white,
           ),
         ),

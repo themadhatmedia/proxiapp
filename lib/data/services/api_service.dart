@@ -343,6 +343,15 @@ class ApiService {
     List<String>? coreValues,
     bool? locationVisible,
     File? avatar,
+    String? accountType,
+    String? linkedinUrl,
+    String? facebookUrl,
+    String? instagramUrl,
+    String? xUrl,
+    String? snapchatUrl,
+    String? tiktokUrl,
+    String? otherUrl,
+    bool? restrictDm,
   }) async {
     final url = '$baseUrl/profile';
 
@@ -369,6 +378,15 @@ class ApiService {
           if (preferences != null) request.fields['preferences'] = jsonEncode(preferences);
           if (coreValues != null) request.fields['core_values'] = jsonEncode(coreValues);
           if (locationVisible != null) request.fields['location_visible'] = locationVisible.toString();
+          if (accountType != null) request.fields['account_type'] = accountType;
+          if (linkedinUrl != null) request.fields['linkedin_url'] = linkedinUrl;
+          if (facebookUrl != null) request.fields['facebook_url'] = facebookUrl;
+          if (instagramUrl != null) request.fields['instagram_url'] = instagramUrl;
+          if (xUrl != null) request.fields['x_url'] = xUrl;
+          if (snapchatUrl != null) request.fields['snapchat_url'] = snapchatUrl;
+          if (tiktokUrl != null) request.fields['tiktok_url'] = tiktokUrl;
+          if (otherUrl != null) request.fields['other_url'] = otherUrl;
+          if (restrictDm != null) request.fields['restrict_dm'] = restrictDm.toString();
 
           request.files.add(
             await http.MultipartFile.fromPath('avatar', avatar.path),
@@ -393,6 +411,15 @@ class ApiService {
             if (preferences != null) 'preferences': preferences,
             if (coreValues != null) 'core_values': coreValues,
             if (locationVisible != null) 'location_visible': locationVisible,
+            if (accountType != null) 'account_type': accountType,
+            if (linkedinUrl != null) 'linkedin_url': linkedinUrl,
+            if (facebookUrl != null) 'facebook_url': facebookUrl,
+            if (instagramUrl != null) 'instagram_url': instagramUrl,
+            if (xUrl != null) 'x_url': xUrl,
+            if (snapchatUrl != null) 'snapchat_url': snapchatUrl,
+            if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
+            if (otherUrl != null) 'other_url': otherUrl,
+            if (restrictDm != null) 'restrict_dm': restrictDm,
           };
           final headers = {
             'Content-Type': 'application/json',
@@ -989,41 +1016,35 @@ class ApiService {
 
   Future<Map<String, dynamic>> removeConnection({
     required String token,
-    required int userId,
+    required int connectionId,
   }) async {
-    final url = '$baseUrl/circles/remove';
-    final requestData = {
-      'user_id': userId,
-    };
+    final url = '$baseUrl/circles/$connectionId';
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     };
 
     return _retryRequest(
-      method: 'POST',
+      method: 'DELETE',
       url: url,
       request: () async {
         _logApiCall(
-          method: 'POST',
+          method: 'DELETE',
           url: url,
           headers: headers,
-          requestData: requestData,
         );
 
-        final response = await http.post(
+        final response = await http.delete(
           Uri.parse(url),
           headers: headers,
-          body: jsonEncode(requestData),
         );
 
         final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
 
         _logApiCall(
-          method: 'POST',
+          method: 'DELETE',
           url: url,
           headers: headers,
-          requestData: requestData,
           statusCode: response.statusCode,
           responseData: responseData,
         );

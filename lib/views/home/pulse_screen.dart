@@ -27,8 +27,8 @@ class _PulseScreenState extends State<PulseScreen> {
   final ApiService apiService = ApiService();
   final LocationService locationService = Get.put(LocationService());
 
-  final List<int> radiusOptions = [500, 600, 700, 800, 900, 1000];
-  int selectedRadius = 500;
+  final List<int> radiusOptions = [50, 100, 150, 200];
+  int selectedRadius = 50;
   int nearbyUserCount = 0;
   bool isSearching = false;
   bool hasSearched = false;
@@ -105,9 +105,6 @@ class _PulseScreenState extends State<PulseScreen> {
   void _onRadiusChanged(int radius) {
     setState(() {
       selectedRadius = radius;
-      // hasSearched = false;
-      // nearbyUserCount = 0;
-      // nearbyUsersData = null;
     });
   }
 
@@ -162,7 +159,7 @@ class _PulseScreenState extends State<PulseScreen> {
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1A1A2E), Color(0xFF0F0F1E)],
+              colors: [Colors.black, Color(0xFF0A0A0A)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -201,7 +198,7 @@ class _PulseScreenState extends State<PulseScreen> {
                   Column(
                     children: [
                       const SpinKitPulse(
-                        color: Color(0xFF4A90E2),
+                        color: Colors.white,
                         size: 25.0,
                       ),
                       const SizedBox(height: 5),
@@ -220,7 +217,7 @@ class _PulseScreenState extends State<PulseScreen> {
                     nearbyUserCount.toString(),
                     style: const TextStyle(
                       fontSize: 42,
-                      color: Color(0xFF4A90E2),
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -278,7 +275,7 @@ class _PulseScreenState extends State<PulseScreen> {
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF4A90E2) : Colors.transparent,
+                              color: isSelected ? Colors.white : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -286,7 +283,7 @@ class _PulseScreenState extends State<PulseScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isSelected ? Colors.white : Colors.white.withOpacity(0.6),
+                                color: isSelected ? Colors.black : Colors.white.withOpacity(0.6),
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                 height: 1.2,
                               ),
@@ -306,8 +303,8 @@ class _PulseScreenState extends State<PulseScreen> {
                       child: ElevatedButton(
                         onPressed: _showNearbyUsersSheet,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: const Icon(
                 Icons.navigation_rounded,
                 size: 50,
-                color: Color(0xFF4A90E2),
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 30),

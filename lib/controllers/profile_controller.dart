@@ -24,6 +24,14 @@ class ProfileController extends GetxController {
   final selectedCoreValueNames = <String>[].obs;
   final customCoreValue = Rxn<String>();
 
+  final linkedinUrl = ''.obs;
+  final facebookUrl = ''.obs;
+  final instagramUrl = ''.obs;
+  final xUrl = ''.obs;
+  final snapchatUrl = ''.obs;
+  final tiktokUrl = ''.obs;
+  final otherUrl = ''.obs;
+
   Future<void> loadInterests() async {
     try {
       isLoading.value = true;
@@ -214,5 +222,47 @@ class ProfileController extends GetxController {
         ),
       ),
     );
+  }
+
+  Future<void> loadSocialLinks() async {
+    final currentUser = authController.currentUser.value;
+    if (currentUser != null) {
+      linkedinUrl.value = currentUser.linkedinUrl ?? '';
+      facebookUrl.value = currentUser.facebookUrl ?? '';
+      instagramUrl.value = currentUser.instagramUrl ?? '';
+      xUrl.value = currentUser.xUrl ?? '';
+      snapchatUrl.value = currentUser.snapchatUrl ?? '';
+      tiktokUrl.value = currentUser.tiktokUrl ?? '';
+      otherUrl.value = currentUser.otherUrl ?? '';
+    }
+  }
+
+  Future<bool> saveSocialLinks() async {
+    try {
+      final token = authController.token;
+      if (token == null) return false;
+
+      isLoading.value = true;
+
+      await apiService.updateProfile(
+        token: token,
+        linkedinUrl: linkedinUrl.value.isEmpty ? null : linkedinUrl.value,
+        facebookUrl: facebookUrl.value.isEmpty ? null : facebookUrl.value,
+        instagramUrl: instagramUrl.value.isEmpty ? null : instagramUrl.value,
+        xUrl: xUrl.value.isEmpty ? null : xUrl.value,
+        snapchatUrl: snapchatUrl.value.isEmpty ? null : snapchatUrl.value,
+        tiktokUrl: tiktokUrl.value.isEmpty ? null : tiktokUrl.value,
+        otherUrl: otherUrl.value.isEmpty ? null : otherUrl.value,
+      );
+
+      await authController.fetchUserProfile();
+      ToastHelper.showSuccess('Social links updated');
+      return true;
+    } catch (e) {
+      ToastHelper.showError('Failed to update social links');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

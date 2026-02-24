@@ -28,7 +28,7 @@ class CircleConnectionModel {
       status: json['status'] ?? '',
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
-      connectedUser: json['connected_user'] != null ? ConnectedUser.fromJson(json['connected_user']) : null,
+      connectedUser: json['connected_user'] != null ? ConnectedUser.fromJson(json['connected_user']) : (json['other_user'] != null ? ConnectedUser.fromJson(json['other_user']) : null),
     );
   }
 }
@@ -38,6 +38,11 @@ class ConnectedUser {
   final String name;
   final String email;
   final bool isActive;
+  final bool isAdmin;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? emailVerifiedAt;
+  final DateTime? lastLoginAt;
   final UserProfile? profile;
 
   ConnectedUser({
@@ -45,6 +50,11 @@ class ConnectedUser {
     required this.name,
     required this.email,
     required this.isActive,
+    required this.isAdmin,
+    this.createdAt,
+    this.updatedAt,
+    this.emailVerifiedAt,
+    this.lastLoginAt,
     this.profile,
   });
 
@@ -54,6 +64,11 @@ class ConnectedUser {
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       isActive: json['is_active'] ?? true,
+      isAdmin: json['is_admin'] ?? false,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      emailVerifiedAt: json['email_verified_at'] != null ? DateTime.tryParse(json['email_verified_at']) : null,
+      lastLoginAt: json['last_login_at'] != null ? DateTime.tryParse(json['last_login_at']) : null,
       profile: json['profile'] != null ? UserProfile.fromJson(json['profile']) : null,
     );
   }
@@ -74,8 +89,16 @@ class UserProfile {
   final String? city;
   final String? state;
   final String? profession;
+  final String? accountType;
   final bool locationVisible;
   final bool onlineStatus;
+  final DateTime? lastSeenAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? linkedinUrl;
+  final String? facebookUrl;
+  final String? instagramUrl;
+  final String? xUrl;
 
   UserProfile({
     required this.id,
@@ -92,8 +115,16 @@ class UserProfile {
     this.city,
     this.state,
     this.profession,
+    this.accountType,
     required this.locationVisible,
     required this.onlineStatus,
+    this.lastSeenAt,
+    this.createdAt,
+    this.updatedAt,
+    this.linkedinUrl,
+    this.facebookUrl,
+    this.instagramUrl,
+    this.xUrl,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -112,8 +143,16 @@ class UserProfile {
       city: json['city'],
       state: json['state'],
       profession: json['profession'],
+      accountType: json['account_type'],
       locationVisible: json['location_visible'] ?? true,
       onlineStatus: json['online_status'] ?? false,
+      lastSeenAt: json['last_seen_at'] != null ? DateTime.tryParse(json['last_seen_at']) : null,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      linkedinUrl: json['linkedin_url'],
+      facebookUrl: json['facebook_url'],
+      instagramUrl: json['instagram_url'],
+      xUrl: json['x_url'],
     );
   }
 
@@ -133,8 +172,16 @@ class UserProfile {
       'city': city,
       'state': state,
       'profession': profession,
+      'account_type': accountType,
       'location_visible': locationVisible,
       'online_status': onlineStatus,
+      'last_seen_at': lastSeenAt?.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'linkedin_url': linkedinUrl,
+      'facebook_url': facebookUrl,
+      'instagram_url': instagramUrl,
+      'x_url': xUrl,
     };
   }
 }

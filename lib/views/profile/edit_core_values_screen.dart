@@ -39,7 +39,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF4A90E2),
+              color: Colors.white,
             ),
           ),
           content: SingleChildScrollView(
@@ -74,7 +74,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+                      borderSide: const BorderSide(color: Colors.white, width: 2),
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -112,7 +112,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
+                backgroundColor: Colors.white,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -151,7 +151,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -251,7 +251,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: hasCustomValue ? const Color(0xFF4A90E2) : Colors.white,
+                                          color: hasCustomValue ? Colors.white : Colors.white,
                                         ),
                                       ),
                                     ),
@@ -268,7 +268,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                                 onTap: () => controller.toggleCoreValue(coreValue.name),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  // padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   decoration: BoxDecoration(
                                     color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
@@ -284,7 +284,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+                                        color: isSelected ? Colors.white : Colors.white,
                                       ),
                                     ),
                                   ),
@@ -299,7 +299,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: CustomButton(
                   text: _isSaving ? 'Saving...' : 'Save Changes',
                   onPressed: _isSaving ? () {} : _handleSave,

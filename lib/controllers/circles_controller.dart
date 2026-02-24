@@ -15,6 +15,8 @@ class CirclesController extends GetxController {
   final RxBool isLoadingOuter = false.obs;
   final RxBool isLoadingMutual = false.obs;
 
+  final RxMap<int, bool> actionLoadingStates = <int, bool>{}.obs;
+
   final RxList<CircleConnectionModel> activeConnections = <CircleConnectionModel>[].obs;
   final RxList<CircleRequestModel> incomingRequests = <CircleRequestModel>[].obs;
   final RxList<CircleRequestModel> sentRequests = <CircleRequestModel>[].obs;
@@ -89,6 +91,14 @@ class CirclesController extends GetxController {
   void onInit() {
     super.onInit();
     loadAllData();
+  }
+
+  void setActionLoading(int id, bool isLoading) {
+    actionLoadingStates[id] = isLoading;
+  }
+
+  bool isActionLoading(int id) {
+    return actionLoadingStates[id] ?? false;
   }
 
   Future<void> loadAllData() async {
@@ -184,17 +194,18 @@ class CirclesController extends GetxController {
     }
   }
 
-  Future<void> removeConnection(int userId, String circleType) async {
+  Future<void> removeConnection(int connectionId, String circleType) async {
     final token = _authController.token;
     if (token == null) {
       ToastHelper.showError('Authentication required');
       return;
     }
 
+    setActionLoading(connectionId, true);
     try {
       await _apiService.removeConnection(
         token: token,
-        userId: userId,
+        connectionId: connectionId,
       );
 
       ToastHelper.showSuccess('Connection removed');
@@ -209,6 +220,8 @@ class CirclesController extends GetxController {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(connectionId, false);
     }
   }
 
@@ -219,6 +232,7 @@ class CirclesController extends GetxController {
       return;
     }
 
+    setActionLoading(requestId, true);
     try {
       await _apiService.cancelCircleRequest(
         token: token,
@@ -230,6 +244,8 @@ class CirclesController extends GetxController {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(requestId, false);
     }
   }
 
@@ -240,6 +256,7 @@ class CirclesController extends GetxController {
       return;
     }
 
+    setActionLoading(userId, true);
     try {
       await _apiService.sendCircleRequest(
         token: token,
@@ -251,6 +268,8 @@ class CirclesController extends GetxController {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(userId, false);
     }
   }
 
@@ -261,6 +280,7 @@ class CirclesController extends GetxController {
       return;
     }
 
+    setActionLoading(userId, true);
     try {
       await _apiService.addToOuterCircle(
         token: token,
@@ -272,6 +292,8 @@ class CirclesController extends GetxController {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(userId, false);
     }
   }
 
@@ -282,6 +304,7 @@ class CirclesController extends GetxController {
       return;
     }
 
+    setActionLoading(requestId, true);
     try {
       await _apiService.respondToCircleRequest(
         token: token,
@@ -294,6 +317,8 @@ class CirclesController extends GetxController {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(requestId, false);
     }
   }
 
@@ -304,6 +329,7 @@ class CirclesController extends GetxController {
       return;
     }
 
+    setActionLoading(requestId, true);
     try {
       await _apiService.respondToCircleRequest(
         token: token,
@@ -316,6 +342,8 @@ class CirclesController extends GetxController {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(requestId, false);
     }
   }
 

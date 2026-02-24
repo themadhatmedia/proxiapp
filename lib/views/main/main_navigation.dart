@@ -27,26 +27,14 @@ class _MainNavigationState extends State<MainNavigation> {
   final GlobalKey<NavigatorState> _circlesKey = GlobalKey<NavigatorState>();
 
   void _updateStatusBar() {
-    // Set status bar to light icons (white) for Pulse screen (index 1)
-    // which has a dark background
-    if (_currentIndex == 1) {
-      SystemChrome.setSystemUIOverlayStyle(
-        const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-      );
-    } else {
-      // Set status bar to dark icons for other screens
-      SystemChrome.setSystemUIOverlayStyle(
-        const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.dark,
-          statusBarBrightness: Brightness.light,
-        ),
-      );
-    }
+    // All screens now have dark background, so use light status bar icons
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+    );
   }
 
   Future<void> _updateUserLocation() async {
@@ -103,14 +91,13 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+          color: Colors.black,
+          border: Border(
+            top: BorderSide(
+              color: Colors.white.withOpacity(0.1),
+              width: 0.5,
             ),
-          ],
+          ),
         ),
         child: SafeArea(
           child: Padding(
@@ -173,7 +160,7 @@ class _MainNavigationState extends State<MainNavigation> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF4A90E2).withOpacity(0.2) : Colors.transparent,
+            color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -181,14 +168,14 @@ class _MainNavigationState extends State<MainNavigation> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? const Color(0xFF4A90E2) : Colors.white60,
+                color: isSelected ? Colors.white : Colors.white60,
                 size: 24,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? const Color(0xFF4A90E2) : Colors.white60,
+                  color: isSelected ? Colors.white : Colors.white60,
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),

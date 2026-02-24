@@ -21,7 +21,7 @@ class ProxiCirclesScreen extends StatelessWidget {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -112,7 +112,7 @@ class ProxiCirclesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       const _CircleCard(
-                        color: Color(0xFF4A90E2),
+                        color: Colors.white,
                         title: 'Outer Circle',
                         description: 'Extended network - people you\'d like to connect with',
                         count: 0,
@@ -216,7 +216,7 @@ class _ProxiCirclesInfoSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF4A90E2),
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.all(24),
@@ -242,7 +242,7 @@ class _ProxiCirclesInfoSheet extends StatelessWidget {
           const SizedBox(height: 20),
           _InfoSection(
             icon: Icons.circle,
-            iconColor: const Color(0xFF4A90E2),
+            iconColor: Colors.white,
             title: 'Outer Circle',
             description: 'These are people in your extended network - acquaintances, potential collaborators, or people you\'d like to connect with. You\'ll receive proximity alerts based on your preferences.',
           ),
@@ -258,7 +258,7 @@ class _ProxiCirclesInfoSheet extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF4A90E2),
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

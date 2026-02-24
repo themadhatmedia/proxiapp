@@ -24,6 +24,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
   final TextEditingController professionController = TextEditingController();
 
   final List<String> genderOptions = ['Male', 'Female'];
+  final List<String> accountTypeOptions = ['Personal', 'Professional'];
   final List<String> stateOptions = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
 
   @override
@@ -46,8 +47,8 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
               primary: Colors.white,
-              onPrimary: Color(0xFF4A90E2),
-              surface: Color(0xFF3D5A80),
+              onPrimary: Colors.white,
+              surface: Color(0xFF1A1A1A),
               onSurface: Colors.white,
             ),
           ),
@@ -66,7 +67,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF3D5A80),
+      backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -98,7 +99,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
   void _showGenderPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF3D5A80),
+      backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -125,10 +126,40 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
     );
   }
 
+  void _showAccountTypePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: accountTypeOptions.map((type) {
+            return ListTile(
+              title: Text(
+                type,
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              onTap: () {
+                setState(() {
+                  controller.accountType = type;
+                });
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   void _showStatePicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF3D5A80),
+      backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -187,7 +218,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -330,14 +361,62 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
                           text: const TextSpan(
                             children: [
                               TextSpan(
-                                text: 'Bio',
+                                text: 'Account Type ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white,
                                 ),
                               ),
+                              TextSpan(
+                                text: '*',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.red,
+                                ),
+                              ),
                             ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: _showAccountTypePicker,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                controller.accountType,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white60,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Bio',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
                           ),
                         ),
                       ),

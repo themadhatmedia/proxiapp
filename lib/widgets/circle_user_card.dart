@@ -7,6 +7,7 @@ class CircleUserCard extends StatelessWidget {
   final VoidCallback? onTap;
   final List<PopupMenuEntry<String>> menuItems;
   final Function(String) onMenuSelected;
+  final bool isLoading;
 
   const CircleUserCard({
     super.key,
@@ -16,6 +17,7 @@ class CircleUserCard extends StatelessWidget {
     this.onTap,
     required this.menuItems,
     required this.onMenuSelected,
+    this.isLoading = false,
   });
 
   @override
@@ -108,25 +110,35 @@ class CircleUserCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  onSelected: onMenuSelected,
-                  itemBuilder: (context) => menuItems,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 20,
-                  ),
-                  color: const Color(0xFF1A1A2E),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 1,
+                if (isLoading)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
+                  )
+                else
+                  PopupMenuButton<String>(
+                    onSelected: onMenuSelected,
+                    itemBuilder: (context) => menuItems,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: Colors.white.withOpacity(0.9),
+                      size: 20,
+                    ),
+                    color: const Color(0xFF1A1A1A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                    offset: const Offset(0, 40),
                   ),
-                  offset: const Offset(0, 40),
-                ),
               ],
             ),
           ),

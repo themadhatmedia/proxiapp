@@ -185,4 +185,9 @@ class AuthController extends GetxController {
       return false;
     }
   }
+
+  void updateUser(User user) {
+    _user.value = user;
+    _storageService.saveUserData(jsonEncode(user.toJson()));
+  }
 }

@@ -18,31 +18,36 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = backgroundColor ?? Colors.white;
+    final isWhiteBackground = bgColor == Colors.white;
+
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? const Color(0xFF5B9FED),
+          backgroundColor: bgColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 24,
                 width: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isWhiteBackground ? Colors.black : Colors.white,
+                  ),
                 ),
               )
             : Text(
                 text,
                 style: TextStyle(
-                  color: textColor ?? Colors.white,
+                  color: textColor ?? (isWhiteBackground ? Colors.black : Colors.white),
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),

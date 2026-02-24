@@ -41,7 +41,7 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF4A90E2), Color(0xFF3D5A80)],
+            colors: [Colors.black, Color(0xFF0A0A0A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -124,7 +124,7 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                                 onTap: () => controller.toggleInterest(interest.name),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  // padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   decoration: BoxDecoration(
                                     color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
@@ -140,7 +140,7 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+                                        color: isSelected ? Colors.white : Colors.white,
                                       ),
                                     ),
                                   ),
@@ -155,7 +155,7 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: CustomButton(
                   text: _isSaving ? 'Saving...' : 'Save Changes',
                   onPressed: _isSaving ? () {} : _handleSave,
