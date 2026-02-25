@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../posts/create_post_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -70,7 +73,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'discover_fab',
-        onPressed: () {},
+        onPressed: () async {
+          final result = await Get.to(() => const CreatePostScreen());
+          if (result == true) {
+            _handleRefresh();
+          }
+        },
         backgroundColor: Colors.white,
         child: const Icon(
           Icons.add,

@@ -350,40 +350,41 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          // color: Colors.white.withOpacity(0.95),
-                          color: _getMatchColor(matchScore).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            // color: Colors.white,
-                            color: _getMatchColor(matchScore),
-                            width: 1,
+                      if (matchScore != null && matchScore > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.star,
-                              size: 16,
+                          decoration: BoxDecoration(
+                            // color: Colors.white.withOpacity(0.95),
+                            color: _getMatchColor(matchScore).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              // color: Colors.white,
                               color: _getMatchColor(matchScore),
+                              width: 1,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$matchScore% Match',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.star,
+                                size: 16,
                                 color: _getMatchColor(matchScore),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Text(
+                                '$matchScore% Match',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getMatchColor(matchScore),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       const SizedBox(width: 12),
                       if (distance != null && distance > 0)
                         Container(
@@ -421,7 +422,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     ],
                   ),
                   if (bio.isNotEmpty) ...[
-                    const SizedBox(height: 16),
+                    if (matchScore != null && matchScore > 0 && distance != null && distance > 0) SizedBox(height: 16),
                     Text(
                       bio,
                       textAlign: TextAlign.center,
@@ -591,7 +592,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Social Links',
+                        'Social & Service Links',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -861,17 +862,13 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
   }
 
   bool _hasSocialLinks(Map<String, dynamic> profile) {
-    return (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) ||
-        (profile['snapchat_url'] != null && profile['snapchat_url'].toString().isNotEmpty) ||
-        (profile['linkedin_url'] != null && profile['linkedin_url'].toString().isNotEmpty) ||
-        (profile['facebook_url'] != null && profile['facebook_url'].toString().isNotEmpty) ||
-        (profile['x_url'] != null && profile['x_url'].toString().isNotEmpty) ||
-        (profile['tiktok_url'] != null && profile['tiktok_url'].toString().isNotEmpty) ||
-        (profile['other_url'] != null && profile['other_url'].toString().isNotEmpty);
+    return (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) || (profile['snapchat_url'] != null && profile['snapchat_url'].toString().isNotEmpty) || (profile['linkedin_url'] != null && profile['linkedin_url'].toString().isNotEmpty) || (profile['facebook_url'] != null && profile['facebook_url'].toString().isNotEmpty) || (profile['x_url'] != null && profile['x_url'].toString().isNotEmpty) || (profile['tiktok_url'] != null && profile['tiktok_url'].toString().isNotEmpty) || (profile['other_url'] != null && profile['other_url'].toString().isNotEmpty);
   }
 
   Widget _buildSocialLinks(Map<String, dynamic> profile) {
     final links = <Map<String, String>>[];
+
+    print('profile: $profile');
 
     if (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) {
       links.add({'title': 'Instagram', 'url': profile['instagram_url'].toString()});
@@ -895,6 +892,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
       links.add({'title': 'Other', 'url': profile['other_url'].toString()});
     }
 
+    print('links: $links');
     return Column(
       children: links.map((link) {
         return Container(
@@ -968,14 +966,28 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
 
   Future<void> _launchUrl(String urlString) async {
     try {
-      final uri = Uri.parse(urlString);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        ToastHelper.showError('Could not open link');
+      String validUrl = urlString.trim();
+
+      if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+        validUrl = 'https://$validUrl';
       }
+
+      print('validUrl: $validUrl');
+
+      final uri = Uri.parse(validUrl);
+
+      // final canLaunch = await canLaunchUrl(uri);
+      // if (canLaunch) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      // } else {
+      //   if (mounted) {
+      //     ToastHelper.showError('Could not open link');
+      //   }
+      // }
     } catch (e) {
-      ToastHelper.showError('Invalid link');
+      if (mounted) {
+        ToastHelper.showError('Invalid link');
+      }
     }
   }
 }

@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
+import '../../utils/permission_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/radar_view.dart';
 import '../pulse/nearby_users_screen.dart';
@@ -48,9 +49,15 @@ class _PulseScreenState extends State<PulseScreen> {
   Future<void> _searchNearbyUsers() async {
     if (isSearching) return;
 
-    final hasPermission = await locationService.checkAndRequestPermission();
+    final hasPermission = await PermissionHelper.checkLocationPermission();
     if (!hasPermission) {
-      ToastHelper.showError('Location permission is required');
+      if (!mounted) return;
+      await PermissionHelper.showLocationPermissionDialog(
+        context: context,
+        onGranted: () {
+          _searchNearbyUsers();
+        },
+      );
       return;
     }
 

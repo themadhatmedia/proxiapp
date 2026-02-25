@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/core_value_model.dart';
 import '../models/interest_model.dart';
 import '../models/plan_model.dart';
+import '../models/post_model.dart';
 import '../models/user_model.dart';
 
 class ApiService {
@@ -1195,6 +1196,73 @@ class ApiService {
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to search users';
           throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Post> createPost({
+    required String token,
+    required String content,
+    List<File>? mediaFiles,
+  }) async {
+    final url = '$baseUrl/posts/create';
+    final headers = {
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        final request = http.MultipartRequest('POST', Uri.parse(url));
+        request.headers.addAll(headers);
+        request.fields['content'] = content;
+
+        if (mediaFiles != null && mediaFiles.isNotEmpty) {
+          for (var file in mediaFiles) {
+            final stream = http.ByteStream(file.openRead());
+            final length = await file.length();
+            final multipartFile = http.MultipartFile(
+              'media[]',
+              stream,
+              length,
+              filename: file.path.split('/').last,
+            );
+            request.files.add(multipartFile);
+          }
+        }
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: {
+            'content': content,
+            'media_count': mediaFiles?.length ?? 0,
+          },
+        );
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+        final responseData = jsonDecode(response.body);
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: {
+            'content': content,
+            'media_count': mediaFiles?.length ?? 0,
+          },
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return Post.fromJson(responseData['data'] ?? responseData);
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to create post');
         }
       },
     );

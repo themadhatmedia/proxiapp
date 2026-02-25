@@ -46,6 +46,7 @@ dependencies:
   # flutter_easyloading: ^3.0.5
   progress_dialog_null_safe: ^3.1.0
   url_launcher: ^6.3.2
+  video_player: ^2.11.0
 
 dev_dependencies:
   flutter_test:

@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'api_service.dart';
+
 import '../../controllers/auth_controller.dart';
+import 'api_service.dart';
 
 class LocationService extends GetxService {
   final ApiService _apiService = ApiService();
@@ -67,6 +69,11 @@ class LocationService extends GetxService {
         return;
       }
 
+      final hasPermission = await checkAndRequestPermission();
+      if (!hasPermission) {
+        return;
+      }
+
       final position = await getCurrentLocation();
       if (position != null) {
         await _apiService.updateLocation(
@@ -76,7 +83,7 @@ class LocationService extends GetxService {
         );
       }
     } catch (e) {
-      print(e.toString());
+      print(e);
     }
   }
 

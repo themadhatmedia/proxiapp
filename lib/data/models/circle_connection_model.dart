@@ -99,6 +99,10 @@ class UserProfile {
   final String? facebookUrl;
   final String? instagramUrl;
   final String? xUrl;
+  final String? snapchatUrl;
+  final String? tiktokUrl;
+  final String? otherUrl;
+  final bool? restrictDm;
 
   UserProfile({
     required this.id,
@@ -125,6 +129,10 @@ class UserProfile {
     this.facebookUrl,
     this.instagramUrl,
     this.xUrl,
+    this.snapchatUrl,
+    this.tiktokUrl,
+    this.otherUrl,
+    this.restrictDm,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -153,6 +161,10 @@ class UserProfile {
       facebookUrl: json['facebook_url'],
       instagramUrl: json['instagram_url'],
       xUrl: json['x_url'],
+      snapchatUrl: json['snapchat_url'],
+      tiktokUrl: json['tiktok_url'],
+      otherUrl: json['other_url'],
+      restrictDm: json['restrict_dm'],
     );
   }
 
@@ -182,6 +194,10 @@ class UserProfile {
       'facebook_url': facebookUrl,
       'instagram_url': instagramUrl,
       'x_url': xUrl,
+      'snapchat_url': snapchatUrl,
+      'tiktok_url': tiktokUrl,
+      'other_url': otherUrl,
+      'restrict_dm': restrictDm,
     };
   }
 }
