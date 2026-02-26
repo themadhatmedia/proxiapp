@@ -24,7 +24,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
   final List<VideoPlayerController> _videoControllers = [];
-  static const int maxMediaSize = 10 * 1024 * 1024; // 10MB
+  static const int maxMediaSize = 10 * 1024 * 1024; // 10MB per file
+  static const int maxTotalSize = 50 * 1024 * 1024; // 50MB total
 
   @override
   void dispose() {
@@ -244,6 +245,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       final fileSize = await file.length();
       if (fileSize > maxMediaSize) {
         ToastHelper.showError('File size must be less than 10MB');
+        return;
+      }
+
+      // Check total size of all media files
+      int currentTotalSize = 0;
+      for (var existingFile in _mediaFiles) {
+        currentTotalSize += await existingFile.length();
+      }
+
+      if (currentTotalSize + fileSize > maxTotalSize) {
+        ToastHelper.showError('Total media size cannot exceed 50MB. Please remove some files.');
         return;
       }
 
@@ -469,6 +481,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
   }
 
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Future<int> _getTotalMediaSize() async {
+    int totalSize = 0;
+    for (var file in _mediaFiles) {
+      totalSize += await file.length();
+    }
+    return totalSize;
+  }
+
   Widget _buildMediaPreview() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -482,12 +508,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Media (${_mediaFiles.length})',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Media (${_mediaFiles.length})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    FutureBuilder<int>(
+                      future: _getTotalMediaSize(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          final totalSize = snapshot.data!;
+                          final percentage = (totalSize / maxTotalSize * 100).clamp(0, 100);
+                          final isNearLimit = percentage > 80;
+                          return Text(
+                            '${_formatFileSize(totalSize)} / ${_formatFileSize(maxTotalSize)}',
+                            style: TextStyle(
+                              color: isNearLimit ? Colors.orange : Colors.white60,
+                              fontSize: 12,
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
                 ),
               ),
               TextButton.icon(
@@ -516,21 +567,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
               return Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: double.infinity,
-                      child: Container(
-                        color: isVideo ? Colors.black : Colors.black45,
-                        child: isVideo
-                            ? _buildVideoPreview(file)
-                            : Image.file(
-                                file,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                              ),
+                  GestureDetector(
+                    onTap: isVideo ? () => _showVideoReview(file) : null,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Container(
+                          color: isVideo ? Colors.black : Colors.black45,
+                          child: isVideo
+                              ? _buildVideoPreview(file)
+                              : Image.file(
+                                  file,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                        ),
                       ),
                     ),
                   ),
@@ -554,11 +608,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
                   if (isVideo)
-                    const Center(
-                      child: Icon(
-                        Icons.play_circle_outline,
-                        color: Colors.white,
-                        size: 40,
+                    GestureDetector(
+                      onTap: isVideo ? () => _showVideoReview(file) : null,
+                      child: Center(
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          color: Colors.white,
+                          size: 40,
+                        ),
                       ),
                     ),
                   if (_isGifFile(file))
@@ -654,6 +711,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
+  void _showVideoReview(File file) {
+    final fileIndex = _mediaFiles.indexOf(file);
+    int videoIndex = 0;
+    for (int i = 0; i < fileIndex; i++) {
+      if (_isVideoFile(_mediaFiles[i])) {
+        videoIndex++;
+      }
+    }
+
+    if (videoIndex >= _videoControllers.length) return;
+
+    final controller = _videoControllers[videoIndex];
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => VideoReviewDialog(
+        controller: controller,
+      ),
+    );
+  }
+
   Widget _buildAddMediaButton() {
     return InkWell(
       onTap: _pickMedia,
@@ -698,6 +777,207 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               size: 16,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class VideoReviewDialog extends StatefulWidget {
+  final VideoPlayerController controller;
+
+  const VideoReviewDialog({
+    super.key,
+    required this.controller,
+  });
+
+  @override
+  State<VideoReviewDialog> createState() => _VideoReviewDialogState();
+}
+
+class _VideoReviewDialogState extends State<VideoReviewDialog> {
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isPlaying = widget.controller.value.isPlaying;
+    widget.controller.addListener(_videoListener);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_videoListener);
+    super.dispose();
+  }
+
+  void _videoListener() {
+    if (mounted) {
+      setState(() {
+        _isPlaying = widget.controller.value.isPlaying;
+      });
+    }
+  }
+
+  void _togglePlayPause() {
+    if (_isPlaying) {
+      widget.controller.pause();
+    } else {
+      widget.controller.play();
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height - 120,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with close button
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Video Preview',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          if (_isPlaying) {
+                            widget.controller.pause();
+                          }
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                      ),
+                    ],
+                  ),
+                ),
+                // Video player
+                AspectRatio(
+                  aspectRatio: widget.controller.value.aspectRatio,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      VideoPlayer(widget.controller),
+                      // Play/Pause overlay
+                      GestureDetector(
+                        onTap: _togglePlayPause,
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Center(
+                            child: AnimatedOpacity(
+                              opacity: _isPlaying ? 0.0 : 1.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Video controls
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(16),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Progress bar
+                      VideoProgressIndicator(
+                        widget.controller,
+                        allowScrubbing: true,
+                        colors: const VideoProgressColors(
+                          playedColor: Colors.white,
+                          bufferedColor: Colors.white30,
+                          backgroundColor: Colors.white10,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Time and controls
+                      Row(
+                        children: [
+                          IconButton(
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                            onPressed: _togglePlayPause,
+                            icon: Icon(
+                              _isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ValueListenableBuilder(
+                            valueListenable: widget.controller,
+                            builder: (context, VideoPlayerValue value, child) {
+                              return Text(
+                                '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -444,6 +444,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         child: const Icon(
           Icons.search,
           color: Colors.black,
+          size: 28.0,
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../posts/create_post_screen.dart';
+import '../posts/my_posts_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -13,6 +14,7 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProviderStateMixin {
   bool _isRefreshing = false;
   late TabController _tabController;
+  bool _isFabExpanded = false;
 
   @override
   void initState() {
@@ -71,19 +73,122 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'discover_fab',
-        onPressed: () async {
-          final result = await Get.to(() => const CreatePostScreen());
-          if (result == true) {
-            _handleRefresh();
-          }
-        },
-        backgroundColor: Colors.white,
-        child: const Icon(
-          Icons.add,
-          color: Colors.black,
+      floatingActionButton: _buildSpeedDialFab(),
+    );
+  }
+
+  Widget _buildSpeedDialFab() {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        if (_isFabExpanded)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isFabExpanded = false;
+              });
+            },
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_isFabExpanded) ...[
+              _buildSpeedDialOption(
+                icon: Icons.add,
+                label: 'Create Post',
+                onTap: () async {
+                  setState(() {
+                    _isFabExpanded = false;
+                  });
+                  final result = await Get.to(() => const CreatePostScreen());
+                  if (result == true) {
+                    _handleRefresh();
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSpeedDialOption(
+                icon: Icons.article_outlined,
+                label: 'My Posts',
+                onTap: () async {
+                  setState(() {
+                    _isFabExpanded = false;
+                  });
+                  await Get.to(() => const MyPostsScreen());
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+            FloatingActionButton(
+              heroTag: 'discover_fab',
+              onPressed: () {
+                setState(() {
+                  _isFabExpanded = !_isFabExpanded;
+                });
+              },
+              backgroundColor: Colors.white,
+              child: AnimatedRotation(
+                turns: _isFabExpanded ? 0.250 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  _isFabExpanded ? Icons.close : Icons.add,
+                  color: Colors.black,
+                  size: 28.0,
+                ),
+              ),
+            ),
+          ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildSpeedDialOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15.0,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.black,
+              size: 28,
+            ),
+          ),
+        ],
       ),
     );
   }

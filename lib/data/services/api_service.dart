@@ -4,7 +4,10 @@ import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' as http_parser;
 
+import '../models/circle_connection_model.dart';
+import '../models/circle_request_model.dart';
 import '../models/core_value_model.dart';
 import '../models/interest_model.dart';
 import '../models/plan_model.dart';
@@ -1221,6 +1224,26 @@ class ApiService {
 
         if (mediaFiles != null && mediaFiles.isNotEmpty) {
           for (var file in mediaFiles) {
+            final extension = file.path.split('.').last.toLowerCase();
+            String? mimeType;
+
+            // Determine MIME type based on extension
+            if (['jpg', 'jpeg'].contains(extension)) {
+              mimeType = 'image/jpeg';
+            } else if (extension == 'png') {
+              mimeType = 'image/png';
+            } else if (extension == 'webp') {
+              mimeType = 'image/webp';
+            } else if (extension == 'gif') {
+              mimeType = 'image/gif';
+            } else if (extension == 'mp4') {
+              mimeType = 'video/mp4';
+            } else if (extension == 'mov') {
+              mimeType = 'video/quicktime';
+            } else if (extension == 'avi') {
+              mimeType = 'video/x-msvideo';
+            }
+
             final stream = http.ByteStream(file.openRead());
             final length = await file.length();
             final multipartFile = http.MultipartFile(
@@ -1228,6 +1251,7 @@ class ApiService {
               stream,
               length,
               filename: file.path.split('/').last,
+              contentType: mimeType != null ? http_parser.MediaType.parse(mimeType) : null,
             );
             request.files.add(multipartFile);
           }
@@ -1237,32 +1261,136 @@ class ApiService {
           method: 'POST',
           url: url,
           headers: headers,
-          requestData: {
-            'content': content,
-            'media_count': mediaFiles?.length ?? 0,
-          },
+          requestData: {'content': content},
         );
 
         final streamedResponse = await request.send();
         final response = await http.Response.fromStream(streamedResponse);
-        final responseData = jsonDecode(response.body);
+
+        dynamic responseData;
+        try {
+          responseData = jsonDecode(response.body);
+        } catch (e) {
+          _logApiCall(
+            method: 'POST',
+            url: url,
+            headers: headers,
+            requestData: {'content': content},
+            statusCode: response.statusCode,
+            responseData: {'raw_response': response.body.substring(0, 500)},
+          );
+          throw Exception('Invalid response format from server');
+        }
 
         _logApiCall(
           method: 'POST',
           url: url,
           headers: headers,
-          requestData: {
-            'content': content,
-            'media_count': mediaFiles?.length ?? 0,
-          },
+          requestData: {'content': content},
           statusCode: response.statusCode,
           responseData: responseData,
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          return Post.fromJson(responseData['data'] ?? responseData);
+          // API returns { "success": true, "post": {...} }
+          if (responseData['post'] != null) {
+            return Post.fromJson(responseData['post']);
+          } else if (responseData['data'] != null) {
+            return Post.fromJson(responseData['data']);
+          } else {
+            return Post.fromJson(responseData);
+          }
+        } else if (response.statusCode == 413) {
+          throw Exception('Files are too large. Total size must be less than 50MB');
         } else {
           throw Exception(responseData['message'] ?? 'Failed to create post');
+        }
+      },
+    );
+  }
+
+  Future<List<Post>> getMyPosts(String token) async {
+    final url = '$baseUrl/my-posts';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> postsData = responseData['data'] ?? responseData ?? [];
+          return postsData.map((json) => Post.fromJson(json)).toList();
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to get posts';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<void> deletePost(String token, int postId) async {
+    final url = '$baseUrl/posts/$postId';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .delete(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          final errorMessage = responseData?['message'] ?? 'Failed to delete post';
+          throw Exception(errorMessage);
         }
       },
     );

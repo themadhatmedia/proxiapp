@@ -2,6 +2,8 @@ class Post {
   final int? id;
   final int? userId;
   final String content;
+  final String? type;
+  final String? visibility;
   final List<String>? mediaUrls;
   final int? likes;
   final int? comments;
@@ -12,6 +14,8 @@ class Post {
     this.id,
     this.userId,
     required this.content,
+    this.type,
+    this.visibility,
     this.mediaUrls,
     this.likes,
     this.comments,
@@ -23,7 +27,25 @@ class Post {
     List<String>? mediaUrls;
     if (json['media'] != null) {
       if (json['media'] is List) {
-        mediaUrls = List<String>.from(json['media']);
+        final mediaList = json['media'] as List;
+        if (mediaList.isNotEmpty) {
+          if (mediaList.first is Map) {
+            // API returns array of media objects with 'url' or 'full_url' property
+            mediaUrls = mediaList
+                .map((media) {
+                  if (media is Map<String, dynamic>) {
+                    // Prefer full_url, fallback to url
+                    return (media['full_url'] ?? media['url'] ?? '') as String;
+                  }
+                  return '';
+                })
+                .where((url) => url.isNotEmpty)
+                .toList();
+          } else if (mediaList.first is String) {
+            // API returns array of strings
+            mediaUrls = List<String>.from(mediaList);
+          }
+        }
       } else if (json['media'] is String) {
         mediaUrls = [json['media']];
       }
@@ -33,9 +55,11 @@ class Post {
       id: json['id'],
       userId: json['user_id'],
       content: json['content'] ?? '',
+      type: json['type'],
+      visibility: json['visibility'],
       mediaUrls: mediaUrls,
-      likes: json['likes'] ?? 0,
-      comments: json['comments'] ?? 0,
+      likes: json['likes'] ?? json['likes_count'] ?? 0,
+      comments: json['comments'] ?? json['comments_count'] ?? 0,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
       user: json['user'] != null ? PostUser.fromJson(json['user']) : null,
     );
@@ -46,6 +70,8 @@ class Post {
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
       'content': content,
+      if (type != null) 'type': type,
+      if (visibility != null) 'visibility': visibility,
       if (mediaUrls != null) 'media': mediaUrls,
       if (likes != null) 'likes': likes,
       if (comments != null) 'comments': comments,
