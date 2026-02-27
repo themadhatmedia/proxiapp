@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/auth_controller.dart';
 import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
 import '../../utils/toast_helper.dart';
+import '../../widgets/post_card.dart';
 
 class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
@@ -16,6 +18,7 @@ class MyPostsScreen extends StatefulWidget {
 class _MyPostsScreenState extends State<MyPostsScreen> {
   final ApiService _apiService = ApiService();
   final StorageService _storageService = StorageService();
+  final AuthController _authController = Get.find<AuthController>();
 
   bool _isLoading = true;
   List<Post> _posts = [];
@@ -45,8 +48,37 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
       final posts = await _apiService.getMyPosts(token);
 
+      final currentUser = _authController.currentUser.value;
+
+      final postsWithUser = posts.map((post) {
+        if (post.user == null && currentUser != null) {
+          return Post(
+            id: post.id,
+            userId: post.userId,
+            content: post.content,
+            type: post.type,
+            visibility: post.visibility,
+            media: post.media,
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+            liked: post.liked,
+            isModerated: post.isModerated,
+            isFlagged: post.isFlagged,
+            createdAt: post.createdAt,
+            user: PostUser(
+              id: currentUser.id!,
+              name: currentUser.name ?? 'Unknown User',
+              displayName: currentUser.displayName,
+              avatarUrl: currentUser.avatarUrl,
+            ),
+            permissions: post.permissions,
+          );
+        }
+        return post;
+      }).toList();
+
       setState(() {
-        _posts = posts;
+        _posts = postsWithUser;
         _isLoading = false;
       });
     } catch (e) {
@@ -67,27 +99,51 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         title: const Text(
           'Delete Post',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         content: const Text(
-          'Are you sure you want to delete this post?',
-          style: TextStyle(color: Colors.white70),
+          'Are you sure you want to delete this post? This action cannot be undone.',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 15,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: Colors.white60),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 15,
+              ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red.withOpacity(0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text(
               'Delete',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -106,6 +162,54 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         ToastHelper.showError('Failed to delete post: ${e.toString()}');
       }
     }
+  }
+
+  Future<void> _handleLike(Post post) async {
+    if (post.id == null) return;
+
+    try {
+      final token = _storageService.getToken();
+      if (token == null) return;
+
+      await _apiService.likePost(token, post.id!);
+
+      setState(() {
+        final index = _posts.indexWhere((p) => p.id == post.id);
+        if (index != -1) {
+          final isLiked = post.liked ?? false;
+          _posts[index] = Post(
+            id: post.id,
+            userId: post.userId,
+            content: post.content,
+            type: post.type,
+            visibility: post.visibility,
+            media: post.media,
+            likesCount: (post.likesCount ?? 0) + (isLiked ? -1 : 1),
+            commentsCount: post.commentsCount,
+            liked: !isLiked,
+            isModerated: post.isModerated,
+            isFlagged: post.isFlagged,
+            createdAt: post.createdAt,
+            user: post.user,
+            permissions: post.permissions,
+          );
+        }
+      });
+
+      ToastHelper.showSuccess(
+        (post.liked ?? false) ? 'Post unliked' : 'Post liked',
+      );
+    } catch (e) {
+      ToastHelper.showError('Failed to like post');
+    }
+  }
+
+  void _handleComment(Post post) {
+    ToastHelper.showInfo('Comments feature coming soon');
+  }
+
+  void _handleShare(Post post) {
+    ToastHelper.showInfo('Share feature coming soon');
   }
 
   @override
@@ -134,8 +238,18 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 
   Widget _buildHeader() {
-    return Padding(
+    return Container(
       padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.black.withOpacity(0.5),
+            Colors.transparent,
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
       child: Row(
         children: [
           IconButton(
@@ -154,6 +268,15 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               color: Colors.white,
             ),
           ),
+          const Spacer(),
+          if (!_isLoading)
+            Text(
+              '${_posts.length} ${_posts.length == 1 ? 'post' : 'posts'}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.6),
+              ),
+            ),
         ],
       ),
     );
@@ -173,19 +296,22 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
-              color: Colors.white60,
+              color: Colors.white.withOpacity(0.4),
               size: 64,
             ),
             const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -193,8 +319,21 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              child: const Text('Retry'),
+              child: const Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
@@ -208,7 +347,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           children: [
             Icon(
               Icons.article_outlined,
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withOpacity(0.2),
               size: 80,
             ),
             const SizedBox(height: 16),
@@ -216,8 +355,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               'No posts yet',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.6),
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
@@ -225,7 +364,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               'Create your first post to get started',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.4),
-                fontSize: 14,
+                fontSize: 15,
               ),
             ),
           ],
@@ -236,207 +375,21 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     return RefreshIndicator(
       onRefresh: _handleRefresh,
       color: Colors.white,
+      backgroundColor: const Color(0xFF1A1A1A),
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 16, top: 8),
         itemCount: _posts.length,
         itemBuilder: (context, index) {
           final post = _posts[index];
-          return _buildPostCard(post);
+          return PostCard(
+            post: post,
+            onLike: () => _handleLike(post),
+            onComment: () => _handleComment(post),
+            onDelete: post.id != null ? () => _deletePost(post.id!) : null,
+            onShare: () => _handleShare(post),
+          );
         },
       ),
     );
-  }
-
-  Widget _buildPostCard(Post post) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: post.user?.avatarUrl != null
-                    ? ClipOval(
-                        child: Image.network(
-                          post.user!.avatarUrl!,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.person,
-                              color: Colors.white60,
-                              size: 24,
-                            );
-                          },
-                        ),
-                      )
-                    : const Icon(
-                        Icons.person,
-                        color: Colors.white60,
-                        size: 24,
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.user?.name ?? 'Unknown',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _formatDate(post.createdAt),
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                icon: const Icon(
-                  Icons.more_vert,
-                  color: Colors.white60,
-                ),
-                color: const Color(0xFF2A2A2A),
-                onSelected: (value) {
-                  if (value == 'delete' && post.id != null) {
-                    _deletePost(post.id!);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Delete',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (post.content.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                post.content,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-          if (post.mediaUrls != null && post.mediaUrls!.isNotEmpty)
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  post.mediaUrls!.first,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.black,
-                      child: const Icon(
-                        Icons.image,
-                        color: Colors.white60,
-                        size: 48,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.favorite_border,
-                color: Colors.white.withOpacity(0.8),
-                size: 20,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                (post.likes ?? 0).toString(),
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Icon(
-                Icons.chat_bubble_outline,
-                color: Colors.white.withOpacity(0.8),
-                size: 20,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                (post.comments ?? 0).toString(),
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 365) {
-      final years = (difference.inDays / 365).floor();
-      return '${years}y ago';
-    } else if (difference.inDays > 30) {
-      final months = (difference.inDays / 30).floor();
-      return '${months}mo ago';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
   }
 }

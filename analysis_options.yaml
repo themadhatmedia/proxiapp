@@ -19,6 +19,7 @@ analyzer:
     deprecated_member_use: ignore
     use_build_context_synchronously: ignore
     unused_field: ignore
+    depend_on_referenced_packages: ignore
 include: package:flutter_lints/flutter.yaml
 
 formatter:

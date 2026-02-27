@@ -6,8 +6,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
 
-import '../models/circle_connection_model.dart';
-import '../models/circle_request_model.dart';
 import '../models/core_value_model.dart';
 import '../models/interest_model.dart';
 import '../models/plan_model.dart';
@@ -1344,7 +1342,16 @@ class ApiService {
         );
 
         if (response.statusCode == 200) {
-          final List<dynamic> postsData = responseData['data'] ?? responseData ?? [];
+          // Handle both array and object responses
+          List<dynamic> postsData;
+          if (responseData is List) {
+            postsData = responseData;
+          } else if (responseData is Map) {
+            // Check for posts array directly (e.g., {success: true, posts: [...]})
+            postsData = responseData['posts'] ?? responseData['data'] ?? [];
+          } else {
+            postsData = [];
+          }
           return postsData.map((json) => Post.fromJson(json)).toList();
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to get posts';
@@ -1390,6 +1397,90 @@ class ApiService {
 
         if (response.statusCode != 200 && response.statusCode != 204) {
           final errorMessage = responseData?['message'] ?? 'Failed to delete post';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<void> likePost(String token, int postId) async {
+    final url = '$baseUrl/posts/$postId/like';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .post(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          final errorMessage = responseData?['message'] ?? 'Failed to like post';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<void> unlikePost(String token, int postId) async {
+    final url = '$baseUrl/posts/$postId/unlike';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .delete(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          final errorMessage = responseData?['message'] ?? 'Failed to unlike post';
           throw Exception(errorMessage);
         }
       },
