@@ -90,7 +90,6 @@ class CirclesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadAllData();
   }
 
   void setActionLoading(int id, bool isLoading) {

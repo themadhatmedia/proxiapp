@@ -5,6 +5,7 @@ import '../../controllers/auth_controller.dart';
 import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/post_card.dart';
 
@@ -66,8 +67,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             isFlagged: post.isFlagged,
             createdAt: post.createdAt,
             user: PostUser(
-              id: currentUser.id!,
-              name: currentUser.name ?? 'Unknown User',
+              id: currentUser.id,
+              name: currentUser.name,
               displayName: currentUser.displayName,
               avatarUrl: currentUser.avatarUrl,
             ),
@@ -151,15 +152,27 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     );
 
     if (confirmed == true && mounted) {
+      ProgressDialogHelper.show(context);
+
       try {
         final token = _storageService.getToken();
-        if (token == null) return;
+        if (token == null) {
+          ProgressDialogHelper.hide();
+          return;
+        }
 
         await _apiService.deletePost(token, postId);
-        ToastHelper.showSuccess('Post deleted successfully');
-        _loadMyPosts();
+
+        if (mounted) {
+          ProgressDialogHelper.hide();
+          ToastHelper.showSuccess('Post deleted successfully');
+          _loadMyPosts();
+        }
       } catch (e) {
-        ToastHelper.showError('Failed to delete post: ${e.toString()}');
+        if (mounted) {
+          ProgressDialogHelper.hide();
+          ToastHelper.showError('Failed to delete post: ${e.toString()}');
+        }
       }
     }
   }
@@ -206,10 +219,6 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
   void _handleComment(Post post) {
     ToastHelper.showInfo('Comments feature coming soon');
-  }
-
-  void _handleShare(Post post) {
-    ToastHelper.showInfo('Share feature coming soon');
   }
 
   @override
@@ -386,7 +395,6 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             onLike: () => _handleLike(post),
             onComment: () => _handleComment(post),
             onDelete: post.id != null ? () => _deletePost(post.id!) : null,
-            onShare: () => _handleShare(post),
           );
         },
       ),

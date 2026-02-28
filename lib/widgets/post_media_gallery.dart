@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:video_player/video_player.dart';
 
 import '../data/models/post_model.dart';
 import '../views/posts/media_viewer_screen.dart';
@@ -22,8 +24,10 @@ class PostMediaGallery extends StatelessWidget {
       return _buildTwoMedia();
     } else if (media.length == 3) {
       return _buildThreeMedia();
+    } else if (media.length == 4) {
+      return _buildFourMedia();
     } else {
-      return _buildMultipleMedia();
+      return _buildFiveOrMoreMedia();
     }
   }
 
@@ -32,13 +36,13 @@ class PostMediaGallery extends StatelessWidget {
       onTap: () => Get.to(() => MediaViewerScreen(media: media, initialIndex: 0)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxHeight: 400,
-          ),
+        child: AspectRatio(
+          aspectRatio: 4 / 5,
           child: Stack(
             children: [
-              _buildMediaThumbnail(item),
+              Positioned.fill(
+                child: _buildSingleMediaThumbnail(item),
+              ),
               if (item.isVideo) _buildVideoOverlay(),
             ],
           ),
@@ -48,75 +52,163 @@ class PostMediaGallery extends StatelessWidget {
   }
 
   Widget _buildTwoMedia() {
-    return SizedBox(
-      height: 200,
-      child: Row(
-        children: [
-          Expanded(
+    return Row(
+      children: [
+        Expanded(
+          child: AspectRatio(
+            aspectRatio: 1,
             child: _buildMediaTile(media[0], 0),
           ),
-          const SizedBox(width: 4),
-          Expanded(
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: AspectRatio(
+            aspectRatio: 1,
             child: _buildMediaTile(media[1], 1),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildThreeMedia() {
-    return SizedBox(
-      height: 300,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: _buildMediaTile(media[0], 0),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: _buildMediaTile(media[1], 1),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: _buildMediaTile(media[2], 2),
-                ),
-              ],
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[0], 0),
+              ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[1], 1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[2], 2),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Expanded(child: SizedBox()),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildMultipleMedia() {
-    return SizedBox(
-      height: 300,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: _buildMediaTile(media[0], 0),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: _buildMediaTile(media[1], 1),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: _buildMediaTileWithCount(media[2], 2, media.length - 3),
-                ),
-              ],
+  Widget _buildFourMedia() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[0], 0),
+              ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[1], 1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[2], 2),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[3], 3),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFiveOrMoreMedia() {
+    final remainingCount = media.length > 5 ? media.length - 5 : 0;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[0], 0),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[1], 1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[2], 2),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaTile(media[3], 3),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: remainingCount > 0 ? _buildMediaTileWithCount(media[4], 4, remainingCount) : _buildMediaTile(media[4], 4),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: SizedBox(),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -157,7 +249,7 @@ class PostMediaGallery extends StatelessWidget {
             if (remainingCount > 0)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withOpacity(0.7),
                   child: Center(
                     child: Text(
                       '+$remainingCount',
@@ -177,59 +269,124 @@ class PostMediaGallery extends StatelessWidget {
   }
 
   Widget _buildMediaThumbnail(MediaItem item) {
-    String imageUrl;
     if (item.isVideo) {
-      if (item.thumbnail != null && item.thumbnail!.isNotEmpty) {
-        imageUrl = item.thumbnail!;
-        debugPrint('Video thumbnail URL: $imageUrl');
-      } else {
-        debugPrint('No thumbnail for video: ${item.fullUrl}');
-        return Container(
-          color: Colors.black,
+      // If video has a thumbnail URL, use it
+      if (item.thumbnail != null) {
+        return SizedBox(
           width: double.infinity,
-          child: const Center(
-            child: Icon(
-              Icons.play_circle_outline,
-              color: Colors.white60,
-              size: 64,
+          height: double.infinity,
+          child: CachedNetworkImage(
+            imageUrl: item.thumbnail!,
+            fit: BoxFit.cover,
+            memCacheWidth: 800,
+            memCacheHeight: 800,
+            placeholder: (context, url) => Container(
+              color: Colors.black,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
             ),
+            errorWidget: (context, url, error) {
+              debugPrint('Error loading video thumbnail: $error');
+              return VideoThumbnailWidget(videoUrl: item.fullUrl);
+            },
           ),
         );
       }
-    } else {
-      imageUrl = item.fullUrl;
+      // If no thumbnail, generate one from video
+      return VideoThumbnailWidget(videoUrl: item.fullUrl);
     }
 
-    return Image.network(
-      imageUrl,
-      fit: BoxFit.cover,
+    // For images
+    return SizedBox(
       width: double.infinity,
-      cacheWidth: 800,
-      cacheHeight: 600,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint('Error loading ${item.isVideo ? 'thumbnail' : 'image'}: $error');
-        return Container(
+      height: double.infinity,
+      child: CachedNetworkImage(
+        imageUrl: item.fullUrl,
+        fit: BoxFit.cover,
+        memCacheWidth: 800,
+        memCacheHeight: 800,
+        placeholder: (context, url) => Container(
           color: Colors.black,
-          width: double.infinity,
-          child: Center(
-            child: Icon(
-              item.isVideo ? Icons.videocam_off : Icons.broken_image,
-              color: Colors.white60,
-              size: 48,
-            ),
-          ),
-        );
-      },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: Colors.black,
-          width: double.infinity,
-          child: Center(
+          child: const Center(
             child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
               color: Colors.white,
               strokeWidth: 2,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) {
+          debugPrint('Error loading image: $error');
+          return Container(
+            color: Colors.black,
+            child: const Center(
+              child: Icon(
+                Icons.broken_image,
+                color: Colors.white60,
+                size: 64,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSingleMediaThumbnail(MediaItem item) {
+    if (item.isVideo) {
+      // If video has a thumbnail URL, use it
+      if (item.thumbnail != null) {
+        return CachedNetworkImage(
+          imageUrl: item.thumbnail!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          placeholder: (context, url) => Container(
+            color: Colors.black,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) {
+            debugPrint('Error loading video thumbnail: $error');
+            return VideoThumbnailWidget(videoUrl: item.fullUrl);
+          },
+        );
+      }
+      // If no thumbnail, generate one from video
+      return VideoThumbnailWidget(videoUrl: item.fullUrl);
+    }
+
+    // For images
+    return CachedNetworkImage(
+      imageUrl: item.fullUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      placeholder: (context, url) => Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) {
+        debugPrint('Error loading image: $error');
+        return Container(
+          color: Colors.black,
+          child: const Center(
+            child: Icon(
+              Icons.broken_image,
+              color: Colors.white60,
+              size: 80,
             ),
           ),
         );
@@ -253,7 +410,117 @@ class PostMediaGallery extends StatelessWidget {
         child: Icon(
           Icons.play_circle_outline,
           color: Colors.white,
-          size: 56,
+          size: 64,
+        ),
+      ),
+    );
+  }
+}
+
+class VideoThumbnailWidget extends StatefulWidget {
+  final String videoUrl;
+
+  const VideoThumbnailWidget({
+    super.key,
+    required this.videoUrl,
+  });
+
+  @override
+  State<VideoThumbnailWidget> createState() => _VideoThumbnailWidgetState();
+}
+
+class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> with AutomaticKeepAliveClientMixin {
+  static final Map<String, VideoPlayerController> _controllerCache = {};
+  VideoPlayerController? _controller;
+  bool _isInitialized = false;
+  bool _hasError = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    try {
+      if (_controllerCache.containsKey(widget.videoUrl)) {
+        _controller = _controllerCache[widget.videoUrl];
+        if (mounted) {
+          setState(() {
+            _isInitialized = true;
+          });
+        }
+        return;
+      }
+
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+      await _controller!.initialize();
+      await _controller!.seekTo(const Duration(milliseconds: 100));
+
+      _controllerCache[widget.videoUrl] = _controller!;
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing video thumbnail: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    if (_hasError) {
+      return Container(
+        color: Colors.black,
+        width: double.infinity,
+        child: const Center(
+          child: Icon(
+            Icons.videocam_off,
+            color: Colors.white60,
+            size: 48,
+          ),
+        ),
+      );
+    }
+
+    if (!_isInitialized || _controller == null) {
+      return Container(
+        color: Colors.black,
+        width: double.infinity,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: _controller!.value.size.width,
+          height: _controller!.value.size.height,
+          child: VideoPlayer(_controller!),
         ),
       ),
     );

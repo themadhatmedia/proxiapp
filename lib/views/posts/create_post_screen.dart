@@ -325,8 +325,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _createPost() async {
     final content = _contentController.text.trim();
 
-    if (content.isEmpty && _mediaFiles.isEmpty) {
-      ToastHelper.showError('Please add content or media');
+    if (content.isEmpty) {
+      ToastHelper.showError('Please add content');
       return;
     }
 

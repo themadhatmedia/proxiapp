@@ -181,8 +181,6 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
         child: Image.network(
           mediaItem.fullUrl,
           fit: BoxFit.contain,
-          cacheWidth: 1200,
-          cacheHeight: 1200,
           errorBuilder: (context, error, stackTrace) {
             return const Center(
               child: Column(
