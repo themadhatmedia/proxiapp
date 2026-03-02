@@ -452,8 +452,8 @@ class PostCard extends StatelessWidget {
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
-          memCacheWidth: 800,
-          memCacheHeight: 800,
+          maxWidthDiskCache: 800,
+          maxHeightDiskCache: 800,
           placeholder: (context, url) => Container(
             color: Colors.black,
             child: const Center(
@@ -479,8 +479,8 @@ class PostCard extends StatelessWidget {
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      memCacheWidth: 800,
-      memCacheHeight: 800,
+      maxWidthDiskCache: 800,
+      maxHeightDiskCache: 800,
       placeholder: (context, url) => Container(
         color: Colors.black,
         child: const Center(
