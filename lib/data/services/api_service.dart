@@ -247,6 +247,48 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    final url = '$baseUrl/forgot-password';
+    final requestData = {'email': email};
+    final headers = {'Content-Type': 'application/json'};
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+        );
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData as Map<String, dynamic>;
+        } else {
+          return responseData as Map<String, dynamic>;
+        }
+      },
+    );
+  }
+
   Future<void> logout(String token) async {
     final url = '$baseUrl/logout';
     final headers = {
@@ -1483,6 +1525,195 @@ class ApiService {
           final errorMessage = responseData?['message'] ?? 'Failed to unlike post';
           throw Exception(errorMessage);
         }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getDiscoverPosts(String token) async {
+    final url = '$baseUrl/posts';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = jsonDecode(response.body);
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200) {
+          final errorMessage = responseData['message'] ?? 'Failed to fetch posts';
+          throw Exception(errorMessage);
+        }
+
+        return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getPostComments(String token, int postId) async {
+    final url = '$baseUrl/posts/$postId/comments';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = jsonDecode(response.body);
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200) {
+          final errorMessage = responseData['message'] ?? 'Failed to fetch comments';
+          throw Exception(errorMessage);
+        }
+
+        return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> addComment(
+    String token,
+    int postId,
+    String content, {
+    int? parentId,
+  }) async {
+    final url = '$baseUrl/posts/$postId/comment';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    final body = {
+      'content': content,
+      if (parentId != null) 'parent_id': parentId,
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: body,
+        );
+
+        final response = await http
+            .post(
+              Uri.parse(url),
+              headers: headers,
+              body: jsonEncode(body),
+            )
+            .timeout(timeout);
+
+        final responseData = jsonDecode(response.body);
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: body,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          final errorMessage = responseData['message'] ?? 'Failed to add comment';
+          throw Exception(errorMessage);
+        }
+
+        return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> deleteComment(String token, int commentId) async {
+    final url = '$baseUrl/posts/$commentId/comment';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .delete(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          final errorMessage = responseData['message'] ?? 'Failed to delete comment';
+          throw Exception(errorMessage);
+        }
+
+        return responseData;
       },
     );
   }

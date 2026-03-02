@@ -27,8 +27,16 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    controller = Get.put(CirclesController());
     _tabController = TabController(length: 3, vsync: this);
+    _ensureControllerInitialized();
+  }
+
+  void _ensureControllerInitialized() {
+    if (!Get.isRegistered<CirclesController>()) {
+      controller = Get.put(CirclesController());
+    } else {
+      controller = Get.find<CirclesController>();
+    }
   }
 
   @override
@@ -38,6 +46,9 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
   }
 
   Future<void> _handleRefresh() async {
+    showIncomingRequests.value = false;
+    showSentRequests.value = false;
+    showRejectedRequests.value = false;
     await controller.loadAllData();
   }
 

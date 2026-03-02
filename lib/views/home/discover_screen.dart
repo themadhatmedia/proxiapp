@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/discover_controller.dart';
+import '../../widgets/discover_post_card.dart';
 import '../posts/create_post_screen.dart';
 import '../posts/my_posts_screen.dart';
 
@@ -12,9 +14,9 @@ class DiscoverScreen extends StatefulWidget {
 }
 
 class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProviderStateMixin {
-  bool _isRefreshing = false;
   late TabController _tabController;
   bool _isFabExpanded = false;
+  final DiscoverController _controller = Get.put(DiscoverController());
 
   @override
   void initState() {
@@ -26,12 +28,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleRefresh() async {
-    setState(() => _isRefreshing = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isRefreshing = false);
   }
 
   @override
@@ -64,8 +60,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildPostList(isInnerProxi: true),
-                    _buildPostList(isInnerProxi: false),
+                    _buildInnerProxiList(),
+                    _buildOuterProxiList(),
                   ],
                 ),
               ),
@@ -108,7 +104,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   });
                   final result = await Get.to(() => const CreatePostScreen());
                   if (result == true) {
-                    _handleRefresh();
+                    _controller.fetchPosts();
                   }
                 },
               ),
@@ -225,175 +221,101 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildPostList({required bool isInnerProxi}) {
-    final posts = isInnerProxi
-        ? [
-            {
-              'name': 'Nick Gartside',
-              'date': '12/10/2025 12:39 AM',
-              'content': 'Proxi! Proxi! Proxi!',
-              'likes': 3,
-              'comments': 0,
-            },
-            {
-              'name': 'Trace Sheridan',
-              'date': '12/05/2025 12:22 AM',
-              'content': 'Wow, very clean and intuitive provisioning. Well done Joe!',
-              'likes': 2,
-              'comments': 2,
-            },
-            {
-              'name': 'Joe Rodriguez',
-              'date': '12/04/2025 11:53 AM',
-              'content': 'We got it!!! Will we Beezing the Leeall!!!',
-              'likes': 5,
-              'comments': 1,
-            },
-          ]
-        : [
-            {
-              'name': 'Jay Tarpara',
-              'date': '02/04/2026 10:10 PM',
-              'content': 'Test post',
-              'likes': 1,
-              'comments': 1,
-            },
-            {
-              'name': 'Sarah Johnson',
-              'date': '12/03/2025 09:15 AM',
-              'content': 'Loving this community!',
-              'likes': 8,
-              'comments': 3,
-            },
-          ];
+  Widget _buildInnerProxiList() {
+    return Obx(() {
+      if (_controller.isLoadingInner.value) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        );
+      }
 
-    return RefreshIndicator(
-      onRefresh: _handleRefresh,
-      color: Colors.white,
-      child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 80),
-        itemCount: posts.length,
-        itemBuilder: (context, index) {
-          final post = posts[index];
-          return _buildPostCard(
-            name: post['name'] as String,
-            date: post['date'] as String,
-            content: post['content'] as String,
-            likes: post['likes'] as int,
-            comments: post['comments'] as int,
-          );
-        },
-      ),
-    );
+      if (_controller.innerProxyPosts.isEmpty) {
+        return RefreshIndicator(
+          onRefresh: _controller.refreshInnerPosts,
+          color: Colors.white,
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 80),
+            children: [
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: Center(
+                  child: Text(
+                    'No posts yet',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return RefreshIndicator(
+        onRefresh: _controller.refreshInnerPosts,
+        color: Colors.white,
+        child: ListView.builder(
+          padding: const EdgeInsets.only(bottom: 80),
+          itemCount: _controller.innerProxyPosts.length,
+          itemBuilder: (context, index) {
+            final post = _controller.innerProxyPosts[index];
+            return DiscoverPostCard(post: post);
+          },
+        ),
+      );
+    });
   }
 
-  Widget _buildPostCard({
-    required String name,
-    required String date,
-    required String content,
-    required int likes,
-    required int comments,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildOuterProxiList() {
+    return Obx(() {
+      if (_controller.isLoadingOuter.value) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        );
+      }
+
+      if (_controller.outerProxyPosts.isEmpty) {
+        return RefreshIndicator(
+          onRefresh: _controller.refreshOuterPosts,
+          color: Colors.white,
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 80),
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white60,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: Center(
+                  child: Text(
+                    'No posts yet',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 16,
                     ),
-                    Text(
-                      date,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            content,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.favorite_border,
-                color: Colors.white.withOpacity(0.8),
-                size: 20,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                likes.toString(),
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Icon(
-                Icons.chat_bubble_outline,
-                color: Colors.white.withOpacity(0.8),
-                size: 20,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                comments.toString(),
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Show comments',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
+        );
+      }
+
+      return RefreshIndicator(
+        onRefresh: _controller.refreshOuterPosts,
+        color: Colors.white,
+        child: ListView.builder(
+          padding: const EdgeInsets.only(bottom: 80),
+          itemCount: _controller.outerProxyPosts.length,
+          itemBuilder: (context, index) {
+            final post = _controller.outerProxyPosts[index];
+            return DiscoverPostCard(post: post);
+          },
+        ),
+      );
+    });
   }
 }

@@ -542,21 +542,21 @@ class PostCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          if ((post.likesCount ?? 0) > 0 || (post.commentsCount ?? 0) > 0)
+          if ((post.likesCount) > 0 || (post.commentsCount) > 0)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
                 children: [
-                  if ((post.likesCount ?? 0) > 0) ...[
+                  if ((post.likesCount) > 0) ...[
                     Text(
-                      '${post.likesCount} ${(post.likesCount ?? 0) == 1 ? 'like' : 'likes'}',
+                      '${post.likesCount} ${(post.likesCount) == 1 ? 'like' : 'likes'}',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.6),
                         fontSize: 13,
                       ),
                     ),
                   ],
-                  if ((post.likesCount ?? 0) > 0 && (post.commentsCount ?? 0) > 0)
+                  if ((post.likesCount) > 0 && (post.commentsCount) > 0)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
@@ -566,9 +566,9 @@ class PostCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if ((post.commentsCount ?? 0) > 0) ...[
+                  if ((post.commentsCount) > 0) ...[
                     Text(
-                      '${post.commentsCount} ${(post.commentsCount ?? 0) == 1 ? 'comment' : 'comments'}',
+                      '${post.commentsCount} ${(post.commentsCount) == 1 ? 'comment' : 'comments'}',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.6),
                         fontSize: 13,

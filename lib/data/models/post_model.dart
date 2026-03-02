@@ -5,9 +5,9 @@ class Post {
   final String? type;
   final String? visibility;
   final List<MediaItem>? media;
-  final int? likesCount;
-  final int? commentsCount;
-  final bool? liked;
+  int likesCount;
+  int commentsCount;
+  bool liked;
   final bool? isModerated;
   final bool? isFlagged;
   final DateTime? createdAt;
@@ -21,9 +21,9 @@ class Post {
     this.type,
     this.visibility,
     this.media,
-    this.likesCount,
-    this.commentsCount,
-    this.liked,
+    this.likesCount = 0,
+    this.commentsCount = 0,
+    this.liked = false,
     this.isModerated,
     this.isFlagged,
     this.createdAt,
@@ -137,20 +137,61 @@ class PostUser {
   final String name;
   final String? displayName;
   final String? avatarUrl;
+  final String? bio;
+  final String? profession;
+  final String? city;
+  final String? state;
+  final List<String>? interests;
+  final List<String>? coreValues;
+  final String? instagramUrl;
+  final String? snapchatUrl;
+  final String? linkedinUrl;
+  final String? facebookUrl;
+  final String? xUrl;
+  final String? tiktokUrl;
+  final String? otherUrl;
 
   PostUser({
     required this.id,
     required this.name,
     this.displayName,
     this.avatarUrl,
+    this.bio,
+    this.profession,
+    this.city,
+    this.state,
+    this.interests,
+    this.coreValues,
+    this.instagramUrl,
+    this.snapchatUrl,
+    this.linkedinUrl,
+    this.facebookUrl,
+    this.xUrl,
+    this.tiktokUrl,
+    this.otherUrl,
   });
 
   factory PostUser.fromJson(Map<String, dynamic> json) {
+    final profile = json['profile'] as Map<String, dynamic>?;
+
     return PostUser(
       id: json['id'],
       name: json['name'],
-      displayName: json['display_name'],
-      avatarUrl: json['avatar_url'],
+      displayName: profile?['display_name'] ?? json['display_name'],
+      avatarUrl: profile?['avatar'] ?? json['avatar_url'] ?? json['avatar'],
+      bio: profile?['bio'],
+      profession: profile?['profession'],
+      city: profile?['city'],
+      state: profile?['state'],
+      interests: profile?['interests'] != null ? List<String>.from(profile!['interests']) : null,
+      coreValues: profile?['core_values'] != null ? List<String>.from(profile!['core_values']) : null,
+      instagramUrl: profile?['instagram_url'],
+      snapchatUrl: profile?['snapchat_url'],
+      linkedinUrl: profile?['linkedin_url'],
+      facebookUrl: profile?['facebook_url'],
+      xUrl: profile?['x_url'],
+      tiktokUrl: profile?['tiktok_url'],
+      otherUrl: profile?['other_url'],
     );
   }
 
@@ -160,6 +201,19 @@ class PostUser {
       'name': name,
       if (displayName != null) 'display_name': displayName,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (bio != null) 'bio': bio,
+      if (profession != null) 'profession': profession,
+      if (city != null) 'city': city,
+      if (state != null) 'state': state,
+      if (interests != null) 'interests': interests,
+      if (coreValues != null) 'core_values': coreValues,
+      if (instagramUrl != null) 'instagram_url': instagramUrl,
+      if (snapchatUrl != null) 'snapchat_url': snapchatUrl,
+      if (linkedinUrl != null) 'linkedin_url': linkedinUrl,
+      if (facebookUrl != null) 'facebook_url': facebookUrl,
+      if (xUrl != null) 'x_url': xUrl,
+      if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
+      if (otherUrl != null) 'other_url': otherUrl,
     };
   }
 }

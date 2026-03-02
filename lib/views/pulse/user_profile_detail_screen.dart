@@ -608,19 +608,20 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white.withOpacity(0.1),
-                  width: 1,
+          if (widget.userData['hide_action_buttons'] != true)
+            Container(
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 1,
+                  ),
                 ),
               ),
+              child: _buildActionButtons(),
             ),
-            child: _buildActionButtons(),
-          ),
         ],
       ),
     );
