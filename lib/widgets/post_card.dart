@@ -11,6 +11,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onLike;
   final VoidCallback? onComment;
   final VoidCallback? onDelete;
+  final bool isLiking;
 
   const PostCard({
     super.key,
@@ -18,6 +19,7 @@ class PostCard extends StatelessWidget {
     this.onLike,
     this.onComment,
     this.onDelete,
+    this.isLiking = false,
   });
 
   @override
@@ -585,7 +587,8 @@ class PostCard extends StatelessWidget {
                   icon: post.liked == true ? Icons.favorite : Icons.favorite_border,
                   label: 'Like',
                   color: post.liked == true ? Colors.red : Colors.white,
-                  onTap: canLike ? onLike : null,
+                  onTap: canLike && !isLiking ? onLike : null,
+                  isLoading: isLiking,
                 ),
               ),
               const SizedBox(width: 8),
@@ -609,13 +612,14 @@ class PostCard extends StatelessWidget {
     required String label,
     required Color color,
     VoidCallback? onTap,
+    bool isLoading = false,
   }) {
     final isEnabled = onTap != null;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -627,11 +631,14 @@ class PostCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: isEnabled ? color.withOpacity(0.9) : color.withOpacity(0.3),
-                size: 20,
-              ),
+              if (isLoading)
+                const _BeatingHeart()
+              else
+                Icon(
+                  icon,
+                  color: isEnabled ? color.withOpacity(0.9) : color.withOpacity(0.3),
+                  size: 20,
+                ),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
@@ -779,6 +786,49 @@ class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> with Autom
           height: _controller!.value.size.height,
           child: VideoPlayer(_controller!),
         ),
+      ),
+    );
+  }
+}
+
+class _BeatingHeart extends StatefulWidget {
+  const _BeatingHeart();
+
+  @override
+  State<_BeatingHeart> createState() => _BeatingHeartState();
+}
+
+class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: const Icon(
+        Icons.favorite,
+        color: Colors.red,
+        size: 20,
       ),
     );
   }

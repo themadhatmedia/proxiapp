@@ -17,6 +17,7 @@ class DiscoverController extends GetxController {
   final RxMap<int, List<CommentModel>> postComments = <int, List<CommentModel>>{}.obs;
   final RxMap<int, bool> showingComments = <int, bool>{}.obs;
   final RxMap<int, bool> loadingComments = <int, bool>{}.obs;
+  final RxMap<int, bool> likingPosts = <int, bool>{}.obs;
 
   @override
   void onInit() {
@@ -92,10 +93,22 @@ class DiscoverController extends GetxController {
   }
 
   Future<void> toggleLike(Post post) async {
-    if (post.liked) {
-      await unlikePost(post);
-    } else {
-      await likePost(post);
+    if (likingPosts[post.id] == true) return;
+
+    likingPosts[post.id!] = true;
+    likingPosts.refresh();
+
+    try {
+      if (post.liked) {
+        await unlikePost(post);
+      } else {
+        await likePost(post);
+      }
+    } catch (e) {
+      ToastHelper.showError('Failed to update like: ${e.toString()}');
+    } finally {
+      likingPosts[post.id!] = false;
+      likingPosts.refresh();
     }
   }
 
@@ -153,6 +166,18 @@ class DiscoverController extends GetxController {
         }
 
         postComments[postId] = rootComments;
+
+        // Update the comment count in the post
+        final post = _findPostById(postId);
+        if (post != null) {
+          // Calculate total comments (root + all replies)
+          int totalComments = rootComments.length;
+          for (var comment in rootComments) {
+            totalComments += comment.replies.length;
+          }
+          post.commentsCount = totalComments;
+          _updatePostInLists(post);
+        }
       }
     } catch (e) {
       ToastHelper.showError('Failed to load comments: ${e.toString()}');

@@ -5,7 +5,9 @@ import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:video_player/video_player.dart';
 
+import '../controllers/auth_controller.dart';
 import '../controllers/discover_controller.dart';
+import '../controllers/navigation_controller.dart';
 import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../utils/progress_dialog_helper.dart';
@@ -58,7 +60,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
           _buildHeader(),
           if (widget.post.content.isNotEmpty) _buildContent(),
           if (widget.post.media != null && widget.post.media!.isNotEmpty) _buildMedia(),
-          _buildActions(controller),
+          Obx(() => _buildActions(controller)),
           Obx(() {
             final showComments = controller.showingComments[widget.post.id] ?? false;
             if (showComments) {
@@ -165,7 +167,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     } else if (mediaList.length == 4) {
       return _buildFourMediaGrid(mediaList);
     } else {
-      return _buildMultiMediaGrid(mediaList);
+      return _buildFiveOrMoreMediaGrid(mediaList);
     }
   }
 
@@ -175,129 +177,237 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
-          aspectRatio: 1.5,
-          child: _buildMediaThumbnail(item),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTwoMediaGrid(List<MediaItem> media) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        height: 250,
-        child: Row(
-          children: [
-            Expanded(child: _buildMediaGridItem(media[0], 0)),
-            const SizedBox(width: 2),
-            Expanded(child: _buildMediaGridItem(media[1], 1)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThreeMediaGrid(List<MediaItem> media) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        height: 300,
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: _buildMediaGridItem(media[0], 0),
-            ),
-            const SizedBox(width: 2),
-            Expanded(
-              child: Column(
-                children: [
-                  Expanded(child: _buildMediaGridItem(media[1], 1)),
-                  const SizedBox(height: 2),
-                  Expanded(child: _buildMediaGridItem(media[2], 2)),
-                ],
+          aspectRatio: 1,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: _buildMediaThumbnail(item),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFourMediaGrid(List<MediaItem> media) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        height: 300,
-        child: Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(child: _buildMediaGridItem(media[0], 0)),
-                  const SizedBox(width: 2),
-                  Expanded(child: _buildMediaGridItem(media[1], 1)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 2),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(child: _buildMediaGridItem(media[2], 2)),
-                  const SizedBox(width: 2),
-                  Expanded(child: _buildMediaGridItem(media[3], 3)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMultiMediaGrid(List<MediaItem> media) {
-    final displayMedia = media.take(4).toList();
-    final remainingCount = media.length - 4;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        height: 300,
-        child: Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(child: _buildMediaGridItem(displayMedia[0], 0)),
-                  const SizedBox(width: 2),
-                  Expanded(child: _buildMediaGridItem(displayMedia[1], 1)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 2),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(child: _buildMediaGridItem(displayMedia[2], 2)),
-                  const SizedBox(width: 2),
-                  Expanded(
-                    child: remainingCount > 0 ? _buildMediaGridItemWithOverlay(displayMedia[3], 3, remainingCount) : _buildMediaGridItem(displayMedia[3], 3),
+              if (item.isVideo)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.3),
+                        ],
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.play_circle_outline,
+                        color: Colors.white,
+                        size: 72,
+                      ),
+                    ),
                   ),
-                ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTwoMediaGrid(List<MediaItem> mediaList) {
+    return Row(
+      children: [
+        Expanded(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: _buildMediaGridItem(mediaList[0], 0),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: _buildMediaGridItem(mediaList[1], 1),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThreeMediaGrid(List<MediaItem> mediaList) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[0], 0),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[1], 1),
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[2], 2),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Expanded(child: SizedBox()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFourMediaGrid(List<MediaItem> mediaList) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[0], 0),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[1], 1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[2], 2),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[3], 3),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFiveOrMoreMediaGrid(List<MediaItem> mediaList) {
+    final remainingCount = mediaList.length > 5 ? mediaList.length - 5 : 0;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[0], 0),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[1], 1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[2], 2),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildMediaGridItem(mediaList[3], 3),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: remainingCount > 0 ? _buildMediaGridItemWithOverlay(mediaList[4], 4, remainingCount) : _buildMediaGridItem(mediaList[4], 4),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: SizedBox(),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildMediaGridItem(MediaItem item, int index) {
     return GestureDetector(
       onTap: () => Get.to(() => MediaViewerScreen(media: widget.post.media!, initialIndex: index)),
-      child: _buildMediaThumbnail(item),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _buildMediaThumbnail(item),
+            ),
+            if (item.isVideo)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.3),
+                      ],
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.play_circle_outline,
+                      color: Colors.white,
+                      size: 56,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -360,24 +470,30 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   Widget _buildMediaGridItemWithOverlay(MediaItem item, int index, int remainingCount) {
     return GestureDetector(
       onTap: () => Get.to(() => MediaViewerScreen(media: widget.post.media!, initialIndex: index)),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildMediaThumbnail(item),
-          Container(
-            color: Colors.black.withOpacity(0.6),
-            child: Center(
-              child: Text(
-                '+$remainingCount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _buildMediaThumbnail(item),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.7),
+                child: Center(
+                  child: Text(
+                    '+$remainingCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -385,6 +501,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   Widget _buildActions(DiscoverController controller) {
     final canLike = widget.post.permissions?.canLike ?? false;
     final canComment = widget.post.permissions?.canComment ?? false;
+    final isLiking = controller.likingPosts[widget.post.id] ?? false;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -411,7 +528,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   icon: widget.post.liked ? Icons.favorite : Icons.favorite_border,
                   label: 'Like',
                   color: widget.post.liked ? Colors.red : Colors.grey,
-                  onTap: canLike ? () => controller.toggleLike(widget.post) : null,
+                  onTap: canLike && !isLiking ? () => controller.toggleLike(widget.post) : null,
+                  isLoading: isLiking,
                 ),
               ),
               const SizedBox(width: 12),
@@ -435,13 +553,14 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     required String label,
     required Color color,
     VoidCallback? onTap,
+    bool isLoading = false,
   }) {
     final isEnabled = onTap != null;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -457,11 +576,14 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: isEnabled ? color : color.withOpacity(0.3),
-                size: 20,
-              ),
+              if (isLoading)
+                const _BeatingHeart()
+              else
+                Icon(
+                  icon,
+                  color: isEnabled ? color : color.withOpacity(0.3),
+                  size: 20,
+                ),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -662,6 +784,18 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   void _showUserProfile() {
     if (widget.post.user == null) return;
 
+    final authController = Get.find<AuthController>();
+    final loggedInUserId = authController.currentUser.value?.id;
+
+    // If it's the logged-in user's post, navigate to profile page
+    if (loggedInUserId == widget.post.user!.id) {
+      // Navigate to profile tab using NavigationController
+      if (Get.isRegistered<NavigationController>()) {
+        Get.find<NavigationController>().navigateToProfile();
+      }
+      return;
+    }
+
     final userData = {
       'id': widget.post.user!.id,
       'name': widget.post.user!.name,
@@ -725,10 +859,14 @@ class _VideoThumbnailWidget extends StatefulWidget {
   State<_VideoThumbnailWidget> createState() => _VideoThumbnailWidgetState();
 }
 
-class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> {
+class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> with AutomaticKeepAliveClientMixin {
+  static final Map<String, VideoPlayerController> _controllerCache = {};
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _hasError = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -738,14 +876,29 @@ class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> {
 
   Future<void> _initializeVideo() async {
     try {
+      if (_controllerCache.containsKey(widget.videoUrl)) {
+        _controller = _controllerCache[widget.videoUrl];
+        if (mounted) {
+          setState(() {
+            _isInitialized = true;
+          });
+        }
+        return;
+      }
+
       _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
       await _controller!.initialize();
+      await _controller!.seekTo(const Duration(milliseconds: 100));
+
+      _controllerCache[widget.videoUrl] = _controller!;
+
       if (mounted) {
         setState(() {
           _isInitialized = true;
         });
       }
     } catch (e) {
+      debugPrint('Error initializing video thumbnail: $e');
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -756,12 +909,12 @@ class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> {
 
   @override
   void dispose() {
-    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_hasError) {
       return Container(
         color: Colors.black,
@@ -775,7 +928,7 @@ class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> {
       );
     }
 
-    if (!_isInitialized) {
+    if (!_isInitialized || _controller == null) {
       return Container(
         color: Colors.black,
         child: const Center(
@@ -787,32 +940,60 @@ class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> {
       );
     }
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _controller!.value.size.width,
-            height: _controller!.value.size.height,
-            child: VideoPlayer(_controller!),
-          ),
+    return SizedBox(
+      width: double.infinity,
+      height: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: _controller!.value.size.width,
+          height: _controller!.value.size.height,
+          child: VideoPlayer(_controller!),
         ),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.play_arrow,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+class _BeatingHeart extends StatefulWidget {
+  const _BeatingHeart();
+
+  @override
+  State<_BeatingHeart> createState() => _BeatingHeartState();
+}
+
+class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: const Icon(
+        Icons.favorite,
+        color: Colors.red,
+        size: 20,
+      ),
     );
   }
 }

@@ -54,18 +54,29 @@ class CommentUser {
   final int id;
   final String name;
   final String? avatar;
+  final Map<String, dynamic>? profile;
 
   CommentUser({
     required this.id,
     required this.name,
     this.avatar,
+    this.profile,
   });
 
   factory CommentUser.fromJson(Map<String, dynamic> json) {
+    // Handle both direct avatar field and nested profile.avatar structure
+    String? avatarUrl;
+    if (json['avatar'] != null) {
+      avatarUrl = json['avatar'];
+    } else if (json['profile'] != null && json['profile']['avatar'] != null) {
+      avatarUrl = json['profile']['avatar'];
+    }
+
     return CommentUser(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      avatar: json['avatar'],
+      avatar: avatarUrl,
+      profile: json['profile'] as Map<String, dynamic>?,
     );
   }
 
@@ -74,6 +85,7 @@ class CommentUser {
       'id': id,
       'name': name,
       'avatar': avatar,
+      'profile': profile,
     };
   }
 }

@@ -30,6 +30,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   final Map<int, List<CommentModel>> _postComments = {};
   final Map<int, bool> _showingComments = {};
   final Map<int, bool> _loadingComments = {};
+  final Map<int, bool> _likingPosts = {};
   final Map<int, TextEditingController> _commentControllers = {};
   final Map<int, FocusNode> _commentFocusNodes = {};
   final Map<int, int?> _replyToCommentIds = {};
@@ -217,10 +218,20 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
   Future<void> _handleLike(Post post) async {
     if (post.id == null) return;
+    if (_likingPosts[post.id] == true) return;
+
+    setState(() {
+      _likingPosts[post.id!] = true;
+    });
 
     try {
       final token = _storageService.getToken();
-      if (token == null) return;
+      if (token == null) {
+        setState(() {
+          _likingPosts[post.id!] = false;
+        });
+        return;
+      }
 
       final isLiked = post.liked;
 
@@ -250,8 +261,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             permissions: post.permissions,
           );
         }
+        _likingPosts[post.id!] = false;
       });
     } catch (e) {
+      setState(() {
+        _likingPosts[post.id!] = false;
+      });
       ToastHelper.showError('Failed to like post');
     }
   }
@@ -325,6 +340,17 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
         setState(() {
           _postComments[postId] = rootComments;
+
+          // Update the comment count in the post
+          final postIndex = _posts.indexWhere((p) => p.id == postId);
+          if (postIndex != -1) {
+            // Calculate total comments (root + all replies)
+            int totalComments = rootComments.length;
+            for (var comment in rootComments) {
+              totalComments += comment.replies.length;
+            }
+            _posts[postIndex].commentsCount = totalComments;
+          }
         });
       }
     } catch (e) {
@@ -783,6 +809,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 onLike: () => _handleLike(post),
                 onComment: () => _handleComment(post),
                 onDelete: post.id != null ? () => _deletePost(post.id!) : null,
+                isLiking: _likingPosts[post.id] ?? false,
               ),
               if (_showingComments[post.id] == true) _buildCommentsSection(post),
               const SizedBox(height: 8),

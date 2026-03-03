@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../controllers/discover_controller.dart';
+import '../../controllers/notification_controller.dart';
 import '../../widgets/discover_post_card.dart';
 import '../posts/create_post_screen.dart';
 import '../posts/my_posts_screen.dart';
+import 'notifications_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -17,6 +18,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   late TabController _tabController;
   bool _isFabExpanded = false;
   final DiscoverController _controller = Get.put(DiscoverController());
+  final NotificationController _notificationController = Get.put(NotificationController());
 
   @override
   void initState() {
@@ -44,15 +46,26 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Wins',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Center(
+                      child: Text(
+                        'Wins',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: _buildNotificationIcon(),
+                    ),
+                  ],
                 ),
               ),
               _buildToggleTabs(),
@@ -71,6 +84,58 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       ),
       floatingActionButton: _buildSpeedDialFab(),
     );
+  }
+
+  Widget _buildNotificationIcon() {
+    return Obx(() {
+      final unreadCount = _notificationController.unreadCount;
+      return GestureDetector(
+        onTap: () => Get.to(() => const NotificationsScreen()),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      unreadCount > 9 ? '9+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildSpeedDialFab() {

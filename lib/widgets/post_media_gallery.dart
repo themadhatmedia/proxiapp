@@ -1,8 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import '../data/models/post_model.dart';
 import '../views/posts/media_viewer_screen.dart';
 
@@ -410,7 +409,7 @@ class PostMediaGallery extends StatelessWidget {
         child: Icon(
           Icons.play_circle_outline,
           color: Colors.white,
-          size: 64,
+          size: 72,
         ),
       ),
     );

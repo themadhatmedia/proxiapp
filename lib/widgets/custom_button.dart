@@ -6,6 +6,7 @@ class CustomButton extends StatelessWidget {
   final bool isLoading;
   final Color? backgroundColor;
   final Color? textColor;
+  final String? loadingText;
 
   const CustomButton({
     super.key,
@@ -14,6 +15,7 @@ class CustomButton extends StatelessWidget {
     this.isLoading = false,
     this.backgroundColor,
     this.textColor,
+    this.loadingText,
   });
 
   @override
@@ -33,25 +35,14 @@ class CustomButton extends StatelessWidget {
           ),
           elevation: 0,
         ),
-        child: isLoading
-            ? SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isWhiteBackground ? Colors.black : Colors.white,
-                  ),
-                ),
-              )
-            : Text(
-                text,
-                style: TextStyle(
-                  color: textColor ?? (isWhiteBackground ? Colors.black : Colors.white),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+        child: Text(
+          isLoading ? (loadingText ?? text) : text,
+          style: TextStyle(
+            color: textColor ?? (isWhiteBackground ? Colors.black : Colors.white),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:comment_tree/comment_tree.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../controllers/auth_controller.dart';
+import '../controllers/navigation_controller.dart';
 import '../data/models/comment_model.dart';
 import '../utils/progress_dialog_helper.dart';
 import '../views/pulse/user_profile_detail_screen.dart';
@@ -41,42 +43,106 @@ class CommentCard extends StatelessWidget {
         preferredSize: const Size.fromRadius(16),
         child: GestureDetector(
           onTap: () => _showUserProfile(context, data),
-          child: CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.grey[800],
-            backgroundImage: data.user.avatar != null ? NetworkImage(data.user.avatar!) : null,
-            child: data.user.avatar == null
-                ? Text(
+          child: data.user.avatar != null
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: data.user.avatar!,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 64,
+                    memCacheHeight: 64,
+                    placeholder: (context, url) => CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey[800],
+                      child: Text(
+                        data.user.name[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey[800],
+                      child: Text(
+                        data.user.name[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.grey[800],
+                  child: Text(
                     data.user.name[0].toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
-                  )
-                : null,
-          ),
+                  ),
+                ),
         ),
       ),
       avatarChild: (context, data) => PreferredSize(
         preferredSize: const Size.fromRadius(12),
         child: GestureDetector(
           onTap: () => _showUserProfile(context, data),
-          child: CircleAvatar(
-            radius: 12,
-            backgroundColor: Colors.grey[800],
-            backgroundImage: data.user.avatar != null ? NetworkImage(data.user.avatar!) : null,
-            child: data.user.avatar == null
-                ? Text(
+          child: data.user.avatar != null
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: data.user.avatar!,
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 48,
+                    memCacheHeight: 48,
+                    placeholder: (context, url) => CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.grey[800],
+                      child: Text(
+                        data.user.name[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.grey[800],
+                      child: Text(
+                        data.user.name[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : CircleAvatar(
+                  radius: 12,
+                  backgroundColor: Colors.grey[800],
+                  child: Text(
                     data.user.name[0].toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
-                  )
-                : null,
-          ),
+                  ),
+                ),
         ),
       ),
       contentRoot: (context, data) {
@@ -258,6 +324,22 @@ class CommentCard extends StatelessWidget {
   }
 
   void _showUserProfile(BuildContext context, CommentModel data) {
+    final authController = Get.find<AuthController>();
+    final loggedInUserId = currentUserId ?? authController.currentUser.value?.id;
+
+    // If it's the logged-in user's comment, navigate to profile page
+    if (loggedInUserId == data.user.id) {
+      // Navigate to profile tab using NavigationController
+      if (Get.isRegistered<NavigationController>()) {
+        Get.find<NavigationController>().navigateToProfile();
+      }
+      // Close any open modal sheets
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    final profile = data.user.profile ?? {};
+
     final userData = {
       'id': data.user.id,
       'name': data.user.name,
@@ -265,26 +347,27 @@ class CommentCard extends StatelessWidget {
         'id': data.user.id,
         'name': data.user.name,
         'profile': {
-          'display_name': data.user.name,
+          'display_name': profile['display_name'] ?? data.user.name,
           'avatar': data.user.avatar,
-          'bio': '',
-          'profession': null,
-          'city': null,
-          'state': null,
-          'interests': [],
-          'core_values': [],
-          'instagram_url': null,
-          'snapchat_url': null,
-          'linkedin_url': null,
-          'facebook_url': null,
-          'x_url': null,
-          'tiktok_url': null,
-          'other_url': null,
+          'bio': profile['bio'] ?? '',
+          'profession': profile['profession'],
+          'city': profile['city'],
+          'state': profile['state'],
+          'interests': profile['interests'] ?? [],
+          'core_values': profile['core_values'] ?? [],
+          'instagram_url': profile['instagram_url'],
+          'snapchat_url': profile['snapchat_url'],
+          'linkedin_url': profile['linkedin_url'],
+          'facebook_url': profile['facebook_url'],
+          'x_url': profile['x_url'],
+          'tiktok_url': profile['tiktok_url'],
+          'other_url': profile['other_url'],
         },
       },
       'in_inner_circle': false,
       'in_outer_circle': false,
       'inner_request_status': 'not_sent',
+      'hide_action_buttons': true,
     };
 
     showModalBottomSheet(

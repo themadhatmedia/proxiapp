@@ -198,7 +198,10 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8.0,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -206,33 +209,44 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                         controller: _searchController,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
-                          hintText: 'Enter name or email...',
-                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                          hintText: 'Enter keywords to search...',
+                          hintStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                          ),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.1),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          prefixIcon: const Icon(Icons.search, color: Colors.white),
+                          // prefixIcon: const Icon(
+                          //   Icons.search,
+                          //   color: Colors.white,
+                          // ),
                         ),
                         onSubmitted: (_) => _performSearch(),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10.0),
                     ElevatedButton(
                       onPressed: _performSearch,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0,
+                          vertical: 16.0,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
                         'Search',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
                   ],

@@ -271,6 +271,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             text: 'Sign In',
             onPressed: _handleSignIn,
             isLoading: authController.isLoading,
+            loadingText: 'Signing in...',
           ),
           const SizedBox(height: 16),
           SocialButton(
@@ -352,6 +353,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             text: 'Create Account',
             onPressed: _handleSignUp,
             isLoading: authController.isLoading,
+            loadingText: 'Signing up...',
           ),
           const SizedBox(height: 16),
           SocialButton(
