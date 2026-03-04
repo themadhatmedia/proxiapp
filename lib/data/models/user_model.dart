@@ -22,6 +22,9 @@ class User {
   final String? tiktokUrl;
   final String? otherUrl;
   final String? accountType;
+  final bool? inInnerCircle;
+  final bool? inOuterCircle;
+  final String? innerRequestStatus;
 
   User({
     required this.id,
@@ -47,6 +50,9 @@ class User {
     this.tiktokUrl,
     this.otherUrl,
     this.accountType,
+    this.inInnerCircle,
+    this.inOuterCircle,
+    this.innerRequestStatus,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -109,6 +115,11 @@ class User {
       membership = Membership.fromJson(userData['membership']);
     }
 
+    // Circle status fields
+    final inInnerCircle = json['in_inner_circle'] ?? false;
+    final inOuterCircle = json['in_outer_circle'] ?? false;
+    final innerRequestStatus = json['inner_request_status'] ?? 'not_sent';
+
     return User(
       id: userData['id'],
       name: userData['name'],
@@ -133,6 +144,9 @@ class User {
       tiktokUrl: tiktokUrl,
       otherUrl: otherUrl,
       accountType: accountType,
+      inInnerCircle: inInnerCircle,
+      inOuterCircle: inOuterCircle,
+      innerRequestStatus: innerRequestStatus,
     );
   }
 
@@ -174,6 +188,9 @@ class User {
       'display_name': displayName,
       'avatar_url': avatarUrl,
       if (membership != null) 'membership': _membershipToJson(membership!),
+      'in_inner_circle': inInnerCircle,
+      'in_outer_circle': inOuterCircle,
+      'inner_request_status': innerRequestStatus,
     };
   }
 
@@ -204,12 +221,14 @@ class Profile {
   final String? displayName;
   final String? bio;
   final String? avatarUrl;
+  final String? avatar;
   final bool? restrictDm;
 
   Profile({
     this.displayName,
     this.bio,
     this.avatarUrl,
+    this.avatar,
     this.restrictDm,
   });
 
@@ -218,6 +237,7 @@ class Profile {
       displayName: json['display_name'],
       bio: json['bio'],
       avatarUrl: json['avatar_url'],
+      avatar: json['avatar'],
       restrictDm: json['restrict_dm'],
     );
   }
@@ -227,6 +247,7 @@ class Profile {
       'display_name': displayName,
       'bio': bio,
       'avatar_url': avatarUrl,
+      'avatar': avatar,
       'restrict_dm': restrictDm,
     };
   }

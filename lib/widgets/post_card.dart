@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../data/models/post_model.dart';
 import '../views/posts/media_viewer_screen.dart';
+import '../views/posts/user_posts_screen.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
@@ -53,67 +54,73 @@ class PostCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.2),
-                  Colors.white.withOpacity(0.1),
-                ],
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.2),
+                    Colors.white.withOpacity(0.1),
+                  ],
+                ),
               ),
+              child: post.user?.avatarUrl != null
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: post.user!.avatarUrl!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 96,
+                        memCacheHeight: 96,
+                        placeholder: (context, url) => _buildDefaultAvatar(),
+                        errorWidget: (context, url, error) => _buildDefaultAvatar(),
+                      ),
+                    )
+                  : _buildDefaultAvatar(),
             ),
-            child: post.user?.avatarUrl != null
-                ? ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: post.user!.avatarUrl!,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 96,
-                      memCacheHeight: 96,
-                      placeholder: (context, url) => _buildDefaultAvatar(),
-                      errorWidget: (context, url, error) => _buildDefaultAvatar(),
-                    ),
-                  )
-                : _buildDefaultAvatar(),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  post.user?.displayName ?? post.user?.name ?? 'Unknown User',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      _formatDate(post.createdAt),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                        fontSize: 13,
-                      ),
+            child: GestureDetector(
+              onTap: () => _navigateToUserProfile(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.user?.displayName ?? post.user?.name ?? 'Unknown User',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
-                    if (post.visibility != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(
-                        post.visibility == 'public' ? Icons.public : Icons.lock_outline,
-                        color: Colors.white.withOpacity(0.5),
-                        size: 14,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        _formatDate(post.createdAt),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 13,
+                        ),
                       ),
+                      if (post.visibility != null) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          post.visibility == 'public' ? Icons.public : Icons.lock_outline,
+                          color: Colors.white.withOpacity(0.5),
+                          size: 14,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
           if (isOwner && onDelete != null)
@@ -596,8 +603,8 @@ class PostCard extends StatelessWidget {
                 child: _buildActionButton(
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
-                  color: Colors.white,
-                  onTap: canComment ? onComment : null,
+                  color: canComment ? Colors.white : Colors.white.withOpacity(0.6),
+                  onTap: onComment, // Always allow viewing comments
                 ),
               ),
             ],
@@ -654,6 +661,17 @@ class PostCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _navigateToUserProfile() {
+    if (post.user == null) return;
+
+    Get.to(
+      () => UserPostsScreen(
+        userId: post.user!.id,
+        userName: post.user!.displayName ?? post.user!.name,
       ),
     );
   }

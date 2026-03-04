@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/models/post_model.dart';
+import '../../data/models/user_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
 import '../../utils/progress_dialog_helper.dart';
@@ -12,14 +13,21 @@ import '../../utils/toast_helper.dart';
 import '../../widgets/comment_card.dart';
 import '../../widgets/post_card.dart';
 
-class MyPostsScreen extends StatefulWidget {
-  const MyPostsScreen({super.key});
+class UserPostsScreen extends StatefulWidget {
+  final int userId;
+  final String userName;
+
+  const UserPostsScreen({
+    super.key,
+    required this.userId,
+    required this.userName,
+  });
 
   @override
-  State<MyPostsScreen> createState() => _MyPostsScreenState();
+  State<UserPostsScreen> createState() => _UserPostsScreenState();
 }
 
-class _MyPostsScreenState extends State<MyPostsScreen> {
+class _UserPostsScreenState extends State<UserPostsScreen> {
   final ApiService _apiService = ApiService();
   final StorageService _storageService = StorageService();
   final AuthController _authController = Get.find<AuthController>();
@@ -27,6 +35,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   bool _isLoading = true;
   List<Post> _posts = [];
   String? _errorMessage;
+  User? _user;
+  String? _relationType;
+  bool _isMutualOuter = false;
   final Map<int, List<CommentModel>> _postComments = {};
   final Map<int, bool> _showingComments = {};
   final Map<int, bool> _loadingComments = {};
@@ -39,7 +50,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMyPosts();
+    _loadUserPosts();
   }
 
   @override
@@ -67,7 +78,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     return _commentFocusNodes[postId]!;
   }
 
-  Future<void> _loadMyPosts() async {
+  Future<void> _loadUserPosts() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -83,41 +94,41 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         return;
       }
 
-      final posts = await _apiService.getMyPosts(token);
+      final response = await _apiService.getUserPosts(token, widget.userId);
 
-      final currentUser = _authController.currentUser.value;
-
-      final postsWithUser = posts.map((post) {
-        if (post.user == null && currentUser != null) {
-          return Post(
-            id: post.id,
-            userId: post.userId,
-            content: post.content,
-            type: post.type,
-            visibility: post.visibility,
-            media: post.media,
-            likesCount: post.likesCount,
-            commentsCount: post.commentsCount,
-            liked: post.liked,
-            isModerated: post.isModerated,
-            isFlagged: post.isFlagged,
-            createdAt: post.createdAt,
-            user: PostUser(
-              id: currentUser.id,
-              name: currentUser.name,
-              displayName: currentUser.displayName,
-              avatarUrl: currentUser.avatarUrl,
-            ),
-            permissions: post.permissions,
-          );
+      if (response['success'] == true) {
+        final userData = response['user'];
+        if (userData != null) {
+          _user = User.fromJson(userData);
         }
-        return post;
-      }).toList();
 
-      setState(() {
-        _posts = postsWithUser;
-        _isLoading = false;
-      });
+        _relationType = response['relation_type'];
+        _isMutualOuter = response['is_mutual_outer'] ?? false;
+
+        final postsData = response['posts'] as List? ?? [];
+        final posts = postsData.map((json) {
+          if (_user != null) {
+            json['user'] = {
+              'id': _user!.id,
+              'name': _user!.name,
+              'display_name': _user!.displayName,
+              'avatar': _user!.avatarUrl,
+              'avatar_url': _user!.avatarUrl,
+            };
+          }
+          return Post.fromJson(json);
+        }).toList();
+
+        setState(() {
+          _posts = posts;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = response['message'] ?? 'Failed to load posts';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -131,94 +142,18 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     _postComments.clear();
     _showingComments.clear();
     _loadingComments.clear();
-    await _loadMyPosts();
-  }
-
-  Future<void> _deletePost(int postId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Delete Post',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          'Are you sure you want to delete this post? This action cannot be undone.',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 15,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 15,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.red.withOpacity(0.1),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      ProgressDialogHelper.show(context);
-
-      try {
-        final token = _storageService.getToken();
-        if (token == null) {
-          ProgressDialogHelper.hide();
-          return;
-        }
-
-        await _apiService.deletePost(token, postId);
-
-        if (mounted) {
-          ProgressDialogHelper.hide();
-          ToastHelper.showSuccess('Post deleted successfully');
-          _loadMyPosts();
-        }
-      } catch (e) {
-        if (mounted) {
-          ProgressDialogHelper.hide();
-          ToastHelper.showError('Failed to delete post: ${e.toString()}');
-        }
-      }
-    }
+    await _loadUserPosts();
   }
 
   Future<void> _handleLike(Post post) async {
     if (post.id == null) return;
     if (_likingPosts[post.id] == true) return;
+
+    final canLike = post.permissions?.canLike ?? false;
+    if (!canLike) {
+      ToastHelper.showInfo('You cannot like this post');
+      return;
+    }
 
     setState(() {
       _likingPosts[post.id!] = true;
@@ -273,6 +208,13 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
   void _handleComment(Post post) {
     if (post.id == null) return;
+
+    final canView = post.permissions?.canView ?? false;
+    if (!canView) {
+      ToastHelper.showInfo('You cannot view comments on this post');
+      return;
+    }
+
     setState(() {
       final isShowing = _showingComments[post.id] ?? false;
       if (!isShowing) {
@@ -342,10 +284,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         setState(() {
           _postComments[postId] = rootComments;
 
-          // Update the comment count in the post
           final postIndex = _posts.indexWhere((p) => p.id == postId);
           if (postIndex != -1) {
-            // Calculate total comments (root + all replies)
             int totalComments = rootComments.length;
             for (var comment in rootComments) {
               totalComments += comment.replies.length;
@@ -367,6 +307,20 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     final controller = _getCommentController(postId);
     final content = controller.text.trim();
     if (content.isEmpty) return;
+
+    final post = _posts.firstWhere((p) => p.id == postId);
+    final canComment = post.permissions?.canComment ?? false;
+    final canReply = post.permissions?.canReply ?? false;
+
+    if (_replyToCommentIds[postId] != null && !canReply) {
+      ToastHelper.showInfo('You cannot reply to comments on this post');
+      return;
+    }
+
+    if (_replyToCommentIds[postId] == null && !canComment) {
+      ToastHelper.showInfo('You cannot comment on this post');
+      return;
+    }
 
     final focusNode = _getCommentFocusNode(postId);
     focusNode.unfocus();
@@ -643,9 +597,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 }
               : null,
           currentUserId: _authController.currentUser.value?.id,
-          controller: _MyPostsCommentController(
+          controller: _UserPostsCommentController(
             deleteComment: _deleteComment,
-            canDeleteAnyComment: true,
+            canDeleteAnyComment: false,
           ),
         ),
       );
@@ -701,16 +655,18 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               color: Colors.white,
             ),
           ),
-          const SizedBox(width: 8),
-          const Text(
-            'My Posts',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          Expanded(
+            child: Text(
+              '${widget.userName}\'s Posts',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           if (!_isLoading)
             Text(
               '${_posts.length} ${_posts.length == 1 ? 'post' : 'posts'}',
@@ -757,7 +713,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _loadMyPosts,
+              onPressed: _loadUserPosts,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
@@ -803,7 +759,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Create your first post to get started',
+              'This user hasn\'t shared any posts',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.4),
                 fontSize: 15,
@@ -829,7 +785,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 post: post,
                 onLike: () => _handleLike(post),
                 onComment: () => _handleComment(post),
-                onDelete: post.id != null ? () => _deletePost(post.id!) : null,
+                onDelete: null,
                 isLiking: _likingPosts[post.id] ?? false,
               ),
               if (_showingComments[post.id] == true) _buildCommentsSection(post),
@@ -842,12 +798,11 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 }
 
-// Controller wrapper for comment deletion
-class _MyPostsCommentController {
+class _UserPostsCommentController {
   final Future<void> Function(int commentId, int postId) deleteComment;
   final bool canDeleteAnyComment;
 
-  _MyPostsCommentController({
+  _UserPostsCommentController({
     required this.deleteComment,
     this.canDeleteAnyComment = false,
   });

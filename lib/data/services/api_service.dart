@@ -1403,6 +1403,50 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> getUserPosts(String token, int userId) async {
+    final url = '$baseUrl/users/$userId/posts';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData;
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to get user posts';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
   Future<void> deletePost(String token, int postId) async {
     final url = '$baseUrl/posts/$postId';
     final headers = {

@@ -537,8 +537,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 child: _buildActionButton(
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
-                  color: Colors.grey,
-                  onTap: canComment ? () => controller.toggleComments(widget.post.id!) : null,
+                  color: canComment ? Colors.grey : Colors.grey.withOpacity(0.5),
+                  onTap: () => controller.toggleComments(widget.post.id!), // Always allow viewing comments
                 ),
               ),
             ],
@@ -659,8 +659,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
             Column(
               children: _buildCommentsList(comments, canReply),
             ),
+          const SizedBox(height: 12),
           if (canComment) ...[
-            const SizedBox(height: 12),
             if (_replyToCommentId != null)
               Container(
                 padding: const EdgeInsets.all(8),
@@ -726,6 +726,26 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
               ],
             ),
           ],
+          if (!canComment) // Show message when user cannot comment
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'You cannot add comments to this post',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

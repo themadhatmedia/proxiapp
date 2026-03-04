@@ -8,6 +8,7 @@ import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/circle_user_card.dart';
 import '../circles/search_users_screen.dart';
+import '../posts/user_posts_screen.dart';
 import '../pulse/user_profile_detail_screen.dart';
 
 class CirclesScreen extends StatefulWidget {
@@ -71,7 +72,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         ToastHelper.showInfo('Messaging feature coming soon');
         break;
       case 'posts':
-        ToastHelper.showInfo('Posts feature coming soon');
+        _navigateToUserPosts(data);
         break;
       case 'cancel':
         _showCancelRequestConfirmation(data);
@@ -148,6 +149,35 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         builder: (context, scrollController) => UserProfileDetailScreen(
           userData: userData,
           scrollController: scrollController,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToUserPosts(dynamic data) {
+    int? userId;
+    String? userName;
+
+    if (data is CircleConnectionModel) {
+      userId = data.connectedUser?.id;
+      userName = data.connectedUser?.name;
+    } else if (data is CircleRequestModel) {
+      final user = data.toUser ?? data.fromUser;
+      userId = user?.id;
+      userName = user?.name;
+    }
+
+    if (userId == null || userName == null) {
+      ToastHelper.showError('Unable to load user posts');
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserPostsScreen(
+          userId: userId!,
+          userName: userName!,
         ),
       ),
     );

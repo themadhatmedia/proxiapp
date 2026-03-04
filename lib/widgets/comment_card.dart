@@ -169,6 +169,7 @@ class CommentCard extends StatelessWidget {
           user: reply.user,
           replies: _flattenReplies(reply),
           replyingToName: reply.replyingToName,
+          canReply: reply.canReply,
         ),
       );
     }
@@ -264,7 +265,7 @@ class CommentCard extends StatelessWidget {
                 fontSize: 12,
               ),
             ),
-            if (onReply != null) ...[
+            if (onReply != null && data.canReply) ...[
               const SizedBox(width: 16),
               InkWell(
                 onTap: () => onReply!(data.id, data.user.name),

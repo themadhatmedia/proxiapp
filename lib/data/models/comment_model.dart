@@ -8,6 +8,7 @@ class CommentModel {
   final CommentUser user;
   List<CommentModel> replies;
   final String? replyingToName;
+  final bool canReply;
 
   CommentModel({
     required this.id,
@@ -19,11 +20,15 @@ class CommentModel {
     required this.user,
     this.replies = const [],
     this.replyingToName,
+    this.canReply = true,
   });
 
   factory CommentModel.fromJson(Map<String, dynamic> json) {
     final repliesList = json['replies'] as List? ?? [];
     final parsedReplies = repliesList.map((replyJson) => CommentModel.fromJson(replyJson)).toList();
+
+    final permissions = json['permissions'] as Map<String, dynamic>? ?? {};
+    final canReply = permissions['can_reply'] as bool? ?? true;
 
     return CommentModel(
       id: json['id'] ?? 0,
@@ -34,6 +39,7 @@ class CommentModel {
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
       user: CommentUser.fromJson(json['user'] ?? {}),
       replies: parsedReplies,
+      canReply: canReply,
     );
   }
 
