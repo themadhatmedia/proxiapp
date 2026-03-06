@@ -44,35 +44,39 @@ class CommentCard extends StatelessWidget {
         child: GestureDetector(
           onTap: () => _showUserProfile(context, data),
           child: data.user.avatar != null
-              ? ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: data.user.avatar!,
-                    width: 32,
-                    height: 32,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 64,
-                    memCacheHeight: 64,
-                    placeholder: (context, url) => CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.grey[800],
-                      child: Text(
-                        data.user.name[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+              ? SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: data.user.avatar!,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.cover,
+                      maxWidthDiskCache: 64,
+                      maxHeightDiskCache: 64,
+                      placeholder: (context, url) => CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.grey[800],
+                        child: Text(
+                          data.user.name[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    errorWidget: (context, url, error) => CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.grey[800],
-                      child: Text(
-                        data.user.name[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                      errorWidget: (context, url, error) => CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.grey[800],
+                        child: Text(
+                          data.user.name[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -97,35 +101,39 @@ class CommentCard extends StatelessWidget {
         child: GestureDetector(
           onTap: () => _showUserProfile(context, data),
           child: data.user.avatar != null
-              ? ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: data.user.avatar!,
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 48,
-                    memCacheHeight: 48,
-                    placeholder: (context, url) => CircleAvatar(
-                      radius: 12,
-                      backgroundColor: Colors.grey[800],
-                      child: Text(
-                        data.user.name[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: data.user.avatar!,
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.cover,
+                      maxWidthDiskCache: 48,
+                      maxHeightDiskCache: 48,
+                      placeholder: (context, url) => CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.grey[800],
+                        child: Text(
+                          data.user.name[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    errorWidget: (context, url, error) => CircleAvatar(
-                      radius: 12,
-                      backgroundColor: Colors.grey[800],
-                      child: Text(
-                        data.user.name[0].toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                      errorWidget: (context, url, error) => CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.grey[800],
+                        child: Text(
+                          data.user.name[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

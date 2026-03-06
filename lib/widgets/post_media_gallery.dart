@@ -277,8 +277,8 @@ class PostMediaGallery extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: item.thumbnail!,
             fit: BoxFit.cover,
-            memCacheWidth: 800,
-            memCacheHeight: 800,
+            maxWidthDiskCache: 800,
+            maxHeightDiskCache: 800,
             placeholder: (context, url) => Container(
               color: Colors.black,
               child: const Center(
@@ -306,8 +306,8 @@ class PostMediaGallery extends StatelessWidget {
       child: CachedNetworkImage(
         imageUrl: item.fullUrl,
         fit: BoxFit.cover,
-        memCacheWidth: 800,
-        memCacheHeight: 800,
+        maxWidthDiskCache: 800,
+        maxHeightDiskCache: 800,
         placeholder: (context, url) => Container(
           color: Colors.black,
           child: const Center(

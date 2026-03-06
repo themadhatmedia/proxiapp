@@ -46,6 +46,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
   final Map<int, FocusNode> _commentFocusNodes = {};
   final Map<int, int?> _replyToCommentIds = {};
   final Map<int, String?> _replyToUserNames = {};
+  final Map<int, bool> _replyToCommentCanReply = {};
 
   @override
   void initState() {
@@ -310,9 +311,8 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
 
     final post = _posts.firstWhere((p) => p.id == postId);
     final canComment = post.permissions?.canComment ?? false;
-    final canReply = post.permissions?.canReply ?? false;
 
-    if (_replyToCommentIds[postId] != null && !canReply) {
+    if (_replyToCommentIds[postId] != null && !(_replyToCommentCanReply[postId] ?? false)) {
       ToastHelper.showInfo('You cannot reply to comments on this post');
       return;
     }
@@ -365,6 +365,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
         setState(() {
           _replyToCommentIds[postId] = null;
           _replyToUserNames[postId] = null;
+          _replyToCommentCanReply[postId] = false;
         });
 
         await _fetchComments(postId);
@@ -485,7 +486,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
               children: _buildCommentsList(postId, comments, canReply),
             ),
           const SizedBox(height: 12),
-          if (canComment) ...[
+          if (canComment || (_replyToCommentIds[postId] != null && (_replyToCommentCanReply[postId] ?? false))) ...[
             if (_replyToCommentIds[postId] != null)
               Container(
                 padding: const EdgeInsets.all(8),
@@ -510,6 +511,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                         setState(() {
                           _replyToCommentIds[postId] = null;
                           _replyToUserNames[postId] = null;
+                          _replyToCommentCanReply[postId] = false;
                         });
                       },
                       child: const Icon(
@@ -551,7 +553,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
               ],
             ),
           ],
-          if (!canComment) // Show message when user cannot comment
+          if (!canComment && _replyToCommentIds[postId] == null) // Show message when user cannot comment directly
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -584,11 +586,12 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
         CommentCard(
           comment: comment,
           postId: postId,
-          onReply: canReply
+          onReply: comment.canReply
               ? (commentId, userName) {
                   setState(() {
                     _replyToCommentIds[postId] = commentId;
                     _replyToUserNames[postId] = userName;
+                    _replyToCommentCanReply[postId] = true;
                   });
                   _getCommentController(postId).clear();
                   Future.delayed(const Duration(milliseconds: 100), () {

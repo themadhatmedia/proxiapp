@@ -21,7 +21,7 @@ class CustomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bgColor = backgroundColor ?? Colors.white;
-    final isWhiteBackground = bgColor == Colors.white;
+    // final isWhiteBackground = bgColor == Colors.white;
 
     return SizedBox(
       width: double.infinity,
@@ -38,7 +38,8 @@ class CustomButton extends StatelessWidget {
         child: Text(
           isLoading ? (loadingText ?? text) : text,
           style: TextStyle(
-            color: textColor ?? (isWhiteBackground ? Colors.black : Colors.white),
+            // color: textColor ?? (isWhiteBackground ? Colors.black : Colors.white),
+            color: isLoading ? Colors.white : Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),

@@ -32,6 +32,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   final FocusNode _commentFocusNode = FocusNode();
   int? _replyToCommentId;
   String? _replyToUserName;
+  bool _replyToCommentCanReply = false;
 
   @override
   void dispose() {
@@ -660,7 +661,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
               children: _buildCommentsList(comments, canReply),
             ),
           const SizedBox(height: 12),
-          if (canComment) ...[
+          if (canComment || (_replyToCommentId != null && _replyToCommentCanReply)) ...[
             if (_replyToCommentId != null)
               Container(
                 padding: const EdgeInsets.all(8),
@@ -685,6 +686,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                         setState(() {
                           _replyToCommentId = null;
                           _replyToUserName = null;
+                          _replyToCommentCanReply = false;
                         });
                       },
                       child: const Icon(
@@ -726,7 +728,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
               ],
             ),
           ],
-          if (!canComment) // Show message when user cannot comment
+          if (!canComment && _replyToCommentId == null) // Show message when user cannot comment directly
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -761,11 +763,12 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
           comment: comment,
           postId: widget.post.id!,
           controller: controller,
-          onReply: canReply
+          onReply: comment.canReply
               ? (commentId, userName) {
                   setState(() {
                     _replyToCommentId = commentId;
                     _replyToUserName = userName;
+                    _replyToCommentCanReply = true;
                   });
                   _commentController.clear();
                   Future.delayed(const Duration(milliseconds: 100), () {
@@ -798,6 +801,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     setState(() {
       _replyToCommentId = null;
       _replyToUserName = null;
+      _replyToCommentCanReply = false;
     });
   }
 

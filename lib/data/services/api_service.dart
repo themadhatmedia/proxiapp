@@ -42,6 +42,7 @@ class ApiService {
     );
   }
 
+  // ignore: unused_element
   Map<String, String> _sanitizeHeaders(Map<String, String> headers) {
     final sanitized = Map<String, String>.from(headers);
     if (sanitized.containsKey('Authorization')) {

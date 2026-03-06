@@ -35,6 +35,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   final Map<int, FocusNode> _commentFocusNodes = {};
   final Map<int, int?> _replyToCommentIds = {};
   final Map<int, String?> _replyToUserNames = {};
+  final Map<int, bool> _replyToCommentCanReply = {};
 
   @override
   void initState() {
@@ -411,6 +412,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         setState(() {
           _replyToCommentIds[postId] = null;
           _replyToUserNames[postId] = null;
+          _replyToCommentCanReply[postId] = false;
         });
 
         await _fetchComments(postId);
@@ -531,7 +533,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               children: _buildCommentsList(postId, comments, canReply),
             ),
           const SizedBox(height: 12),
-          if (canComment) ...[
+          if (canComment || (_replyToCommentIds[postId] != null && (_replyToCommentCanReply[postId] ?? false))) ...[
             if (_replyToCommentIds[postId] != null)
               Container(
                 padding: const EdgeInsets.all(8),
@@ -556,6 +558,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                         setState(() {
                           _replyToCommentIds[postId] = null;
                           _replyToUserNames[postId] = null;
+                          _replyToCommentCanReply[postId] = false;
                         });
                       },
                       child: const Icon(
@@ -597,7 +600,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               ],
             ),
           ],
-          if (!canComment) // Show message when user cannot comment
+          if (!canComment && _replyToCommentIds[postId] == null) // Show message when user cannot comment directly
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -630,11 +633,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         CommentCard(
           comment: comment,
           postId: postId,
-          onReply: canReply
+          onReply: comment.canReply
               ? (commentId, userName) {
                   setState(() {
                     _replyToCommentIds[postId] = commentId;
                     _replyToUserNames[postId] = userName;
+                    _replyToCommentCanReply[postId] = true;
                   });
                   _getCommentController(postId).clear();
                   Future.delayed(const Duration(milliseconds: 100), () {
