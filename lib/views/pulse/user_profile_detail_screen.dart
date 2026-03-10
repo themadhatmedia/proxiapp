@@ -6,6 +6,7 @@ import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
+import '../../widgets/safe_avatar.dart';
 
 class UserProfileDetailScreen extends StatefulWidget {
   final dynamic userData;
@@ -316,25 +317,16 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.2),
                       border: Border.all(
                         color: Colors.white,
                         width: 3,
                       ),
-                      image: avatarUrl != null && avatarUrl.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(avatarUrl),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
                     ),
-                    child: avatarUrl == null || avatarUrl.isEmpty
-                        ? const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Colors.white60,
-                          )
-                        : null,
+                    child: SafeAvatar(
+                      imageUrl: avatarUrl,
+                      size: 120,
+                      fallbackText: name,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(

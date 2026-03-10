@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../controllers/circles_controller.dart';
 import '../../data/models/user_model.dart';
 import '../../utils/progress_dialog_helper.dart';
+import '../../utils/toast_helper.dart';
+import '../../widgets/safe_avatar.dart';
 import '../pulse/user_profile_detail_screen.dart';
 
 class SearchUsersScreen extends StatefulWidget {
@@ -376,135 +378,151 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                  image: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? DecorationImage(
-                          image: NetworkImage(avatarUrl),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: avatarUrl == null || avatarUrl.isEmpty
-                    ? const Icon(
-                        Icons.person,
-                        size: 40,
-                        color: Colors.white60,
-                      )
-                    : null,
+              SafeAvatar(
+                imageUrl: avatarUrl,
+                size: 60,
+                fallbackText: name,
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Status badges
-                    if (inInnerCircle)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 14,
-                              color: Color(0xFF4CAF50),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'In Inner Circle',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF4CAF50),
-                                fontWeight: FontWeight.w500,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Status badges
+                              if (inInnerCircle)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4CAF50).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        size: 14,
+                                        color: Color(0xFF4CAF50),
+                                      ),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'In Inner Circle',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF4CAF50),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (innerRequestStatus == 'pending')
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFA726).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.schedule,
+                                        size: 14,
+                                        color: Color(0xFFFFA726),
+                                      ),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Request Pending',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFFFA726),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (inOuterCircle)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.group,
+                                        size: 14,
+                                        color: Colors.blue,
+                                      ),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'In Outer Circle',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              const SizedBox(height: 5),
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            ToastHelper.showInfo('Message feature is coming soon');
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
                             ),
-                          ],
-                        ),
-                      )
-                    else if (innerRequestStatus == 'pending')
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFA726).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.schedule,
-                              size: 14,
-                              color: Color(0xFFFFA726),
+                            child: const Icon(
+                              Icons.message,
+                              size: 20,
+                              color: Colors.white,
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Request Pending',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFFFFA726),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      )
-                    else if (inOuterCircle)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.group,
-                              size: 14,
-                              color: Colors.blue,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'In Outer Circle',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                      ],
                     ),
                     if (bio.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 5),
                       Text(
                         bio,
                         style: TextStyle(
@@ -520,7 +538,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 15),
           // Check if we have both circle buttons to show
           _buildActionButtons(user, inInnerCircle, inOuterCircle, innerRequestStatus),
         ],

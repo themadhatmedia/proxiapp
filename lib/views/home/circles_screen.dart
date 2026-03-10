@@ -1194,6 +1194,28 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             ),
           ),
           const PopupMenuItem(
+            value: 'message',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.message_outlined,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Send Message',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
             value: 'posts',
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             height: 40,
@@ -1268,6 +1290,28 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                 SizedBox(width: 10),
                 Text(
                   'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'message',
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.message_outlined,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Send Message',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,

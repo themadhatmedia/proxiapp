@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'safe_avatar.dart';
+
 class CircleUserCard extends StatelessWidget {
   final String name;
   final String? bio;
@@ -53,30 +55,16 @@ class CircleUserCard extends StatelessWidget {
                   height: 50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white.withOpacity(0.3),
-                        Colors.white.withOpacity(0.1),
-                      ],
-                    ),
                     border: Border.all(
                       color: Colors.white.withOpacity(0.5),
                       width: 2,
                     ),
-                    image: avatarUrl != null && avatarUrl!.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(avatarUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
                   ),
-                  child: avatarUrl == null || avatarUrl!.isEmpty
-                      ? Icon(
-                          Icons.person,
-                          size: 24,
-                          color: Colors.white.withOpacity(0.8),
-                        )
-                      : null,
+                  child: SafeAvatar(
+                    imageUrl: avatarUrl,
+                    size: 50,
+                    fallbackText: name,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

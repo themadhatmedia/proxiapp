@@ -9,6 +9,8 @@ import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
+import '../../widgets/safe_avatar.dart';
+import 'my_posts_screen.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -346,7 +348,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       await ProgressDialogHelper.hide();
       ToastHelper.showSuccess('Post created successfully');
-      Get.back(result: true);
+
+      // Navigate to MyPostsScreen and close CreatePostScreen
+      Get.back(); // Close CreatePostScreen
+      Get.to(() => const MyPostsScreen()); // Open MyPostsScreen
     } catch (e) {
       await ProgressDialogHelper.hide();
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -416,26 +421,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      image: avatarUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(avatarUrl),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: avatarUrl == null
-                        ? const Icon(
-                            Icons.person,
-                            color: Colors.white60,
-                            size: 30,
-                          )
-                        : null,
+                  SafeAvatar(
+                    imageUrl: avatarUrl,
+                    size: 50,
+                    fallbackText: displayName,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

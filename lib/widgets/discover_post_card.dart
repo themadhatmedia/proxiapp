@@ -14,6 +14,7 @@ import '../utils/progress_dialog_helper.dart';
 import '../views/posts/media_viewer_screen.dart';
 import '../views/pulse/user_profile_detail_screen.dart';
 import '../widgets/comment_card.dart';
+import 'safe_avatar.dart';
 
 class DiscoverPostCard extends StatefulWidget {
   final Post post;
@@ -81,20 +82,10 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
         children: [
           GestureDetector(
             onTap: () => _showUserProfile(),
-            child: CircleAvatar(
-              radius: 24,
-              backgroundColor: Colors.grey[800],
-              backgroundImage: widget.post.user?.avatarUrl != null ? NetworkImage(widget.post.user!.avatarUrl!) : null,
-              child: widget.post.user?.avatarUrl == null
-                  ? Text(
-                      (widget.post.user?.name ?? 'U')[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
+            child: SafeAvatar(
+              imageUrl: widget.post.user?.avatarUrl,
+              size: 48,
+              fallbackText: widget.post.user?.name ?? 'U',
             ),
           ),
           const SizedBox(width: 12),

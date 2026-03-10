@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../data/models/user_model.dart';
+import '../../widgets/safe_avatar.dart';
 import '../profile/edit_core_values_screen.dart';
 import '../profile/edit_interests_screen.dart';
 import '../profile/settings_screen.dart';
@@ -150,26 +151,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                       child: Stack(
                         children: [
-                          Container(
-                            width: 100.0,
-                            height: 100.0,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.2),
-                              image: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(user.avatarUrl!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: Colors.white60,
-                                  )
-                                : null,
+                          SafeAvatar(
+                            imageUrl: user.avatarUrl,
+                            size: 100,
+                            fallbackText: user.name,
                           ),
                           Positioned(
                             bottom: 0,

@@ -167,10 +167,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   setState(() {
                     _isFabExpanded = false;
                   });
-                  final result = await Get.to(() => const CreatePostScreen());
-                  if (result == true) {
-                    _controller.fetchPosts();
-                  }
+                  await Get.to(() => const CreatePostScreen());
+                  // Refresh discover posts when returning
+                  _controller.fetchPosts();
                 },
               ),
               const SizedBox(height: 12),

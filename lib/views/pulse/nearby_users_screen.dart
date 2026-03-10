@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../widgets/safe_avatar.dart';
 import 'user_profile_detail_screen.dart';
 
 class NearbyUsersScreen extends StatelessWidget {
@@ -201,26 +202,10 @@ class NearbyUsersScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                  image: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? DecorationImage(
-                          image: NetworkImage(avatarUrl),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: avatarUrl == null || avatarUrl.isEmpty
-                    ? const Icon(
-                        Icons.person,
-                        size: 40,
-                        color: Colors.white60,
-                      )
-                    : null,
+              SafeAvatar(
+                imageUrl: avatarUrl,
+                size: 80,
+                fallbackText: name,
               ),
               const SizedBox(width: 16),
               Expanded(
