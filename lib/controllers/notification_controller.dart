@@ -49,6 +49,10 @@ class NotificationController extends GetxController {
 
   int get unreadCount => notifications.where((n) => !n.isRead).length;
 
+  void reset() {
+    notifications.clear();
+  }
+
   void markAsRead(String notificationId) {
     final index = notifications.indexWhere((n) => n.id == notificationId);
     if (index != -1) {

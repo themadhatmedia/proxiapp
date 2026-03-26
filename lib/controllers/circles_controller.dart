@@ -92,6 +92,20 @@ class CirclesController extends GetxController {
     super.onInit();
   }
 
+  void reset() {
+    activeConnections.clear();
+    incomingRequests.clear();
+    sentRequests.clear();
+    rejectedRequests.clear();
+    outerConnections.clear();
+    mutualConnections.clear();
+    actionLoadingStates.clear();
+    searchQuery.value = '';
+    isLoadingInner.value = false;
+    isLoadingOuter.value = false;
+    isLoadingMutual.value = false;
+  }
+
   void setActionLoading(int id, bool isLoading) {
     actionLoadingStates[id] = isLoading;
   }

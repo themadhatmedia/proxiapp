@@ -7,7 +7,12 @@ import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/storage_service.dart';
 import '../utils/toast_helper.dart';
+import 'circles_controller.dart';
+import 'discover_controller.dart';
+import 'navigation_controller.dart';
+import 'notification_controller.dart';
 import 'onboarding_controller.dart';
+import 'profile_controller.dart';
 
 class AuthController extends GetxController {
   final ApiService _apiService = ApiService();
@@ -123,9 +128,24 @@ class AuthController extends GetxController {
       _user.value = null;
       _storageService.clearAll();
 
-      // Clear onboarding controller data if it exists
+      // Delete all controllers to ensure fresh data on next login
       if (Get.isRegistered<OnboardingController>()) {
-        Get.find<OnboardingController>().reset();
+        Get.delete<OnboardingController>();
+      }
+      if (Get.isRegistered<DiscoverController>()) {
+        Get.delete<DiscoverController>();
+      }
+      if (Get.isRegistered<CirclesController>()) {
+        Get.delete<CirclesController>();
+      }
+      if (Get.isRegistered<NotificationController>()) {
+        Get.delete<NotificationController>();
+      }
+      if (Get.isRegistered<ProfileController>()) {
+        Get.delete<ProfileController>();
+      }
+      if (Get.isRegistered<NavigationController>()) {
+        Get.delete<NavigationController>();
       }
 
       Get.offAllNamed('/auth');

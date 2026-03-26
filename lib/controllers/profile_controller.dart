@@ -32,6 +32,23 @@ class ProfileController extends GetxController {
   final tiktokUrl = ''.obs;
   final otherUrl = ''.obs;
 
+  void reset() {
+    availableInterests.clear();
+    availableCoreValues.clear();
+    availablePlans.clear();
+    selectedInterestNames.clear();
+    selectedCoreValueNames.clear();
+    customCoreValue.value = null;
+    linkedinUrl.value = '';
+    facebookUrl.value = '';
+    instagramUrl.value = '';
+    xUrl.value = '';
+    snapchatUrl.value = '';
+    tiktokUrl.value = '';
+    otherUrl.value = '';
+    isLoading.value = false;
+  }
+
   Future<void> loadInterests() async {
     try {
       isLoading.value = true;

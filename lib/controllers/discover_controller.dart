@@ -25,6 +25,17 @@ class DiscoverController extends GetxController {
     fetchPosts();
   }
 
+  void reset() {
+    innerProxyPosts.clear();
+    outerProxyPosts.clear();
+    postComments.clear();
+    showingComments.clear();
+    loadingComments.clear();
+    likingPosts.clear();
+    isLoadingInner.value = false;
+    isLoadingOuter.value = false;
+  }
+
   Future<void> fetchPosts() async {
     isLoadingInner.value = true;
     isLoadingOuter.value = true;
