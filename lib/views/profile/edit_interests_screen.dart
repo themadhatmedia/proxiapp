@@ -140,7 +140,7 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isSelected ? Colors.white : Colors.white,
+                                        color: isSelected ? Colors.black : Colors.white,
                                       ),
                                     ),
                                   ),

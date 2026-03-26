@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/navigation_controller.dart';
 import '../../widgets/custom_button.dart';
 
 class ProxiCirclesScreen extends StatelessWidget {
@@ -122,6 +123,11 @@ class ProxiCirclesScreen extends StatelessWidget {
                       CustomButton(
                         text: 'Continue',
                         onPressed: () {
+                          // Reset navigation to home before navigating
+                          if (Get.isRegistered<NavigationController>()) {
+                            final navController = Get.find<NavigationController>();
+                            navController.currentIndex.value = 0;
+                          }
                           Get.offAllNamed('/home');
                         },
                       ),

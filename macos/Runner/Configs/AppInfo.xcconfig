@@ -8,7 +8,7 @@
 PRODUCT_NAME = proxiapp
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.proxiapp
+PRODUCT_BUNDLE_IDENTIFIER = com.app.proxiapp
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.

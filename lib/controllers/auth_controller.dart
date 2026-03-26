@@ -102,7 +102,7 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(response.user.toJson()));
 
       _isLoading.value = false;
-      ToastHelper.showSuccess('Logged in successfully');
+      // ToastHelper.showSuccess('Logged in successfully');
       return true;
     } catch (e) {
       _isLoading.value = false;

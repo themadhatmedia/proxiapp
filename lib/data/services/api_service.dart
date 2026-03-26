@@ -123,6 +123,8 @@ class ApiService {
 
           if (displayName != null && displayName.isNotEmpty) {
             request.fields['display_name'] = displayName;
+          } else {
+            request.fields['display_name'] = name;
           }
           if (bio != null && bio.isNotEmpty) {
             request.fields['bio'] = bio;
@@ -164,7 +166,7 @@ class ApiService {
             if (interests != null && interests.isNotEmpty) 'interests': interests,
             if (preferences != null && preferences.isNotEmpty) 'preferences': preferences,
           };
-          final headers = {'Content-Type': 'application/json'};
+          final headers = {'Accept': 'application/json', 'Content-Type': 'application/json'};
 
           _logApiCall(
             method: 'POST',

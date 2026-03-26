@@ -113,13 +113,16 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: Colors.white,
+                // foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: const Text('Save'),
+              child: Text(
+                'Save',
+                style: TextStyle(color: Colors.black87),
+              ),
             ),
           ],
         );
@@ -251,7 +254,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: hasCustomValue ? Colors.white : Colors.white,
+                                          color: hasCustomValue ? Colors.black : Colors.white,
                                         ),
                                       ),
                                     ),
@@ -284,7 +287,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isSelected ? Colors.white : Colors.white,
+                                        color: isSelected ? Colors.black : Colors.white,
                                       ),
                                     ),
                                   ),

@@ -1,4 +1,4 @@
-package com.example.proxiapp
+package com.app.proxiapp
 
 import io.flutter.embedding.android.FlutterActivity
 

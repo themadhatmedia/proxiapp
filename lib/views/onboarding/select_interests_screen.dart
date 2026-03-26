@@ -139,7 +139,7 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
-                                        color: isCurrentlySelected ? Colors.white : Colors.white,
+                                        color: isCurrentlySelected ? Colors.black : Colors.white,
                                       ),
                                     ),
                                   ),
