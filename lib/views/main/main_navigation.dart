@@ -21,7 +21,7 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  final NavigationController _navigationController = Get.put(NavigationController());
+  late final NavigationController _navigationController;
   final LocationService _locationService = Get.put(LocationService());
   final ApiService _apiService = ApiService();
   final AuthController _authController = Get.find<AuthController>();
@@ -77,6 +77,15 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<NavigationController>()) {
+      _navigationController = Get.find<NavigationController>();
+      // Reset to home screen after build completes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigationController.navigateToHome();
+      });
+    } else {
+      _navigationController = Get.put(NavigationController());
+    }
     _updateStatusBar();
     _updateUserLocation();
   }
@@ -103,66 +112,64 @@ class _MainNavigationState extends State<MainNavigation> {
           }
         }
       },
-      child: Obx(
-        () => Scaffold(
-          body: IndexedStack(
-            index: _navigationController.currentIndex.value,
-            children: [
-              const DiscoverScreen(),
-              PulseScreen(isVisible: _navigationController.currentIndex.value == 1),
-              const CirclesScreen(),
-              const MessagesScreen(),
-              const ProfileScreen(),
-            ],
-          ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white.withOpacity(0.1),
-                  width: 0.5,
-                ),
+      child: Obx(() => Scaffold(
+        body: IndexedStack(
+          index: _navigationController.currentIndex.value,
+          children: [
+            const DiscoverScreen(),
+            PulseScreen(isVisible: _navigationController.currentIndex.value == 1),
+            const CirclesScreen(),
+            const MessagesScreen(),
+            const ProfileScreen(),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withOpacity(0.1),
+                width: 0.5,
               ),
             ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildNavItem(
-                      icon: Icons.home,
-                      label: 'Home',
-                      index: 0,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.near_me,
-                      label: 'Pulse',
-                      index: 1,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.group,
-                      label: 'Circles',
-                      index: 2,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.chat_bubble,
-                      label: 'Messages',
-                      index: 3,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.person,
-                      label: 'Profile',
-                      index: 4,
-                    ),
-                  ],
-                ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    icon: Icons.home,
+                    label: 'Home',
+                    index: 0,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.near_me,
+                    label: 'Pulse',
+                    index: 1,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.group,
+                    label: 'Circles',
+                    index: 2,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.chat_bubble,
+                    label: 'Messages',
+                    index: 3,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.person,
+                    label: 'Profile',
+                    index: 4,
+                  ),
+                ],
               ),
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 

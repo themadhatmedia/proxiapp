@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/theme_controller.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/navigation_controller.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -68,6 +69,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
 
     if (success) {
+      // Reset navigation to home before navigating to MainNavigation
+      if (Get.isRegistered<NavigationController>()) {
+        final navController = Get.find<NavigationController>();
+        navController.currentIndex.value = 0;
+      }
       Get.off(() => const MainNavigation(), transition: Transition.fadeIn);
     }
   }
@@ -151,10 +157,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
-      child: const Icon(
-        Icons.navigation_rounded,
-        size: 60,
-        color: Colors.black,
+      // child: const Icon(
+      //   Icons.navigation_rounded,
+      //   size: 60,
+      //   color: Colors.black,
+      // ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Image.asset('assets/logo-500-black.png'),
       ),
     );
   }

@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-
 import 'config/theme/app_theme.dart';
 import 'config/theme/theme_controller.dart';
 import 'controllers/auth_controller.dart';
+import 'controllers/navigation_controller.dart';
 import 'controllers/onboarding_controller.dart';
 import 'controllers/profile_controller.dart';
 import 'views/auth/auth_screen.dart';
 import 'views/main/main_navigation.dart';
 import 'views/onboarding/profile_creation_screen.dart';
-import 'views/onboarding/proxi_circles_screen.dart';
-import 'views/onboarding/select_core_values_screen.dart';
+import 'views/onboarding/terms_conditions_screen.dart';
 import 'views/onboarding/select_interests_screen.dart';
+import 'views/onboarding/select_core_values_screen.dart';
 import 'views/onboarding/select_plan_screen.dart';
 import 'views/onboarding/setup_permissions_screen.dart';
-import 'views/onboarding/terms_conditions_screen.dart';
+import 'views/onboarding/proxi_circles_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeController themeController = Get.put(ThemeController());
     final AuthController authController = Get.put(AuthController());
+    Get.put(NavigationController());
     Get.put(OnboardingController());
     Get.put(ProfileController());
 

@@ -133,10 +133,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ],
       ),
-      child: const Icon(
-        Icons.lock_reset,
-        size: 50,
-        color: Colors.white,
+      // child: const Icon(
+      //   Icons.navigation_rounded,
+      //   size: 60,
+      //   color: Colors.black,
+      // ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Image.asset('assets/logo-500-black.png'),
       ),
     );
   }
