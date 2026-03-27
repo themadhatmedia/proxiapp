@@ -67,11 +67,11 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.white,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
+            // colorScheme: const ColorScheme.light(
+            //   primary: Colors.white,
+            //   onPrimary: Colors.white,
+            //   onSurface: Colors.black,
+            // ),
           ),
           child: child!,
         );

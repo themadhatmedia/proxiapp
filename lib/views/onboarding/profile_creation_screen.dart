@@ -45,12 +45,12 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.white,
-              onPrimary: Colors.white,
-              surface: Color(0xFF1A1A1A),
-              onSurface: Colors.white,
-            ),
+            // colorScheme: const ColorScheme.dark(
+            //   primary: Colors.white,
+            //   onPrimary: Colors.white,
+            //   surface: Color(0xFF1A1A1A),
+            //   onSurface: Colors.white,
+            // ),
           ),
           child: child!,
         );

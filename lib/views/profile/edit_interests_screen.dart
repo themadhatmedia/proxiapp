@@ -110,8 +110,8 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 5,
+                            mainAxisSpacing: 5,
                             childAspectRatio: 2.5,
                           ),
                           itemCount: controller.availableInterests.length,
@@ -124,7 +124,7 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                                 onTap: () => controller.toggleInterest(interest.name),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
