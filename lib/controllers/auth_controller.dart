@@ -9,6 +9,7 @@ import '../data/services/storage_service.dart';
 import '../utils/toast_helper.dart';
 import 'circles_controller.dart';
 import 'discover_controller.dart';
+import 'favorites_controller.dart';
 import 'navigation_controller.dart';
 import 'notification_controller.dart';
 import 'onboarding_controller.dart';
@@ -146,6 +147,9 @@ class AuthController extends GetxController {
       }
       if (Get.isRegistered<NavigationController>()) {
         Get.delete<NavigationController>();
+      }
+      if (Get.isRegistered<FavoritesController>()) {
+        Get.delete<FavoritesController>();
       }
 
       Get.offAllNamed('/auth');

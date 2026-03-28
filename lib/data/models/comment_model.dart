@@ -61,12 +61,14 @@ class CommentUser {
   final String name;
   final String? avatar;
   final Map<String, dynamic>? profile;
+  final bool? favorited;
 
   CommentUser({
     required this.id,
     required this.name,
     this.avatar,
     this.profile,
+    this.favorited,
   });
 
   factory CommentUser.fromJson(Map<String, dynamic> json) {
@@ -83,6 +85,7 @@ class CommentUser {
       name: json['name'] ?? '',
       avatar: avatarUrl,
       profile: json['profile'] as Map<String, dynamic>?,
+      favorited: json['favorited'],
     );
   }
 
@@ -92,6 +95,7 @@ class CommentUser {
       'name': name,
       'avatar': avatar,
       'profile': profile,
+      'favorited': favorited,
     };
   }
 }

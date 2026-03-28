@@ -150,6 +150,7 @@ class PostUser {
   final String? xUrl;
   final String? tiktokUrl;
   final String? otherUrl;
+  final bool? favorited;
 
   PostUser({
     required this.id,
@@ -169,6 +170,7 @@ class PostUser {
     this.xUrl,
     this.tiktokUrl,
     this.otherUrl,
+    this.favorited,
   });
 
   factory PostUser.fromJson(Map<String, dynamic> json) {
@@ -192,6 +194,7 @@ class PostUser {
       xUrl: profile?['x_url'],
       tiktokUrl: profile?['tiktok_url'],
       otherUrl: profile?['other_url'],
+      favorited: json['favorited'],
     );
   }
 
@@ -214,6 +217,7 @@ class PostUser {
       if (xUrl != null) 'x_url': xUrl,
       if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
       if (otherUrl != null) 'other_url': otherUrl,
+      if (favorited != null) 'favorited': favorited,
     };
   }
 }

@@ -22,7 +22,7 @@ class UserProfileDetailScreen extends StatefulWidget {
   State<UserProfileDetailScreen> createState() => _UserProfileDetailScreenState();
 }
 
-class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
+class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with SingleTickerProviderStateMixin {
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
 
@@ -30,6 +30,8 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
   bool inOuterCircle = false;
   String innerRequestStatus = 'not_sent';
   int? pendingRequestId;
+  bool isFavorited = false;
+  bool _isTogglingFavorite = false;
 
   @override
   void initState() {
@@ -37,6 +39,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     inInnerCircle = widget.userData['in_inner_circle'] ?? false;
     inOuterCircle = widget.userData['in_outer_circle'] ?? false;
     innerRequestStatus = widget.userData['inner_request_status'] ?? 'not_sent';
+
+    final userData = widget.userData['user'] ?? widget.userData;
+    isFavorited = userData['favorited'] ?? false;
 
     if (widget.userData['inner_request_id'] != null) {
       pendingRequestId = widget.userData['inner_request_id'];
@@ -243,12 +248,61 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     }
   }
 
+  Future<void> _toggleFavorite() async {
+    if (_isTogglingFavorite) return;
+
+    final userData = widget.userData['user'] ?? widget.userData;
+    final userId = userData['id'];
+
+    if (userId == null) return;
+
+    final token = authController.token;
+    if (token == null) return;
+
+    setState(() {
+      _isTogglingFavorite = true;
+    });
+
+    try {
+      if (isFavorited) {
+        await apiService.removeFromFavorites(
+          token: token,
+          userId: userId,
+        );
+        setState(() {
+          isFavorited = false;
+        });
+        widget.userData['favorited'] = false;
+        ToastHelper.showSuccess('Removed from favorites');
+      } else {
+        await apiService.addToFavorites(
+          token: token,
+          userId: userId,
+        );
+        setState(() {
+          isFavorited = true;
+        });
+        widget.userData['favorited'] = true;
+        ToastHelper.showSuccess('Added to favorites');
+      }
+    } catch (e) {
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
+      ToastHelper.showError(errorMessage);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTogglingFavorite = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userData = widget.userData['user'] ?? widget.userData;
     final profile = userData['profile'] ?? {};
 
-    final name = userData['name'] ?? profile['display_name'] ?? 'Unknown User';
+    final name = profile['display_name'] ?? userData['name'] ?? 'Unknown User';
     final bio = profile['bio'] ?? '';
     final avatarUrl = profile['avatar'];
     final profession = profile['profession'];
@@ -301,7 +355,15 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(width: 48),
+                IconButton(
+                  onPressed: _isTogglingFavorite ? null : _toggleFavorite,
+                  icon: _isTogglingFavorite
+                      ? const _BeatingHeart()
+                      : Icon(
+                          isFavorited ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorited ? Colors.red : Colors.white,
+                        ),
+                ),
               ],
             ),
           ),
@@ -982,5 +1044,48 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
         ToastHelper.showError('Invalid link');
       }
     }
+  }
+}
+
+class _BeatingHeart extends StatefulWidget {
+  const _BeatingHeart();
+
+  @override
+  State<_BeatingHeart> createState() => _BeatingHeartState();
+}
+
+class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: const Icon(
+        Icons.favorite,
+        color: Colors.red,
+        size: 24,
+      ),
+    );
   }
 }

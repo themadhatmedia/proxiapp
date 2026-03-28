@@ -44,6 +44,7 @@ class ConnectedUser {
   final DateTime? emailVerifiedAt;
   final DateTime? lastLoginAt;
   final UserProfile? profile;
+  final bool? favorited;
 
   ConnectedUser({
     required this.id,
@@ -56,6 +57,7 @@ class ConnectedUser {
     this.emailVerifiedAt,
     this.lastLoginAt,
     this.profile,
+    this.favorited,
   });
 
   factory ConnectedUser.fromJson(Map<String, dynamic> json) {
@@ -70,6 +72,7 @@ class ConnectedUser {
       emailVerifiedAt: json['email_verified_at'] != null ? DateTime.tryParse(json['email_verified_at']) : null,
       lastLoginAt: json['last_login_at'] != null ? DateTime.tryParse(json['last_login_at']) : null,
       profile: json['profile'] != null ? UserProfile.fromJson(json['profile']) : null,
+      favorited: json['favorited'],
     );
   }
 }
