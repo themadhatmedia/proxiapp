@@ -120,7 +120,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         'user': {
           'id': user?.id,
           'name': user?.name,
-          'favorited': user?.favorited ?? false,
+          'isFavorite': user?.isFavorite ?? false,
           'profile': profile != null ? profile.toJson() : {},
         },
         'match_score': 0,
@@ -136,7 +136,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         'user': {
           'id': user?.id,
           'name': user?.name,
-          'favorited': user?.favorited ?? false,
+          'isFavorite': user?.isFavorite ?? false,
           'profile': profile != null ? profile.toJson() : {},
         },
         'match_score': 0,

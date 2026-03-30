@@ -1801,7 +1801,7 @@ class ApiService {
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          return responseData ?? {'success': true, 'favorited': true};
+          return responseData ?? {'success': true, 'isFavorite': true};
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to add to favorites';
           throw Exception(errorMessage);
@@ -1848,7 +1848,7 @@ class ApiService {
         );
 
         if (response.statusCode == 200 || response.statusCode == 204) {
-          return responseData ?? {'success': true, 'favorited': false};
+          return responseData ?? {'success': true, 'isFavorite': false};
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to remove from favorites';
           throw Exception(errorMessage);

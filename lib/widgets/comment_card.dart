@@ -355,7 +355,7 @@ class CommentCard extends StatelessWidget {
       'user': {
         'id': data.user.id,
         'name': data.user.name,
-        'favorited': data.user.favorited ?? false,
+        'isFavorite': data.user.isFavorite ?? false,
         'profile': {
           'display_name': profile['display_name'] ?? data.user.name,
           'avatar': data.user.avatar,

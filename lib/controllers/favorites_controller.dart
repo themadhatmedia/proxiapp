@@ -73,11 +73,11 @@ class FavoritesController extends GetxController {
     }
   }
 
-  Future<bool> toggleFavorite(int userId, bool currentlyFavorited) async {
+  Future<bool> toggleFavorite(int userId, bool currentlyisFavorite) async {
     if (_token == null) return false;
 
     try {
-      if (currentlyFavorited) {
+      if (currentlyisFavorite) {
         final response = await _apiService.removeFromFavorites(
           token: _token!,
           userId: userId,
@@ -103,7 +103,7 @@ class FavoritesController extends GetxController {
       ToastHelper.showError('Failed to update favorites: ${e.toString()}');
     }
 
-    return currentlyFavorited;
+    return currentlyisFavorite;
   }
 
   void removeFavoriteLocally(int userId) {

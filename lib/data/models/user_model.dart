@@ -25,7 +25,7 @@ class User {
   final bool? inInnerCircle;
   final bool? inOuterCircle;
   final String? innerRequestStatus;
-  final bool? favorited;
+  final bool? isFavorite;
 
   User({
     required this.id,
@@ -54,7 +54,7 @@ class User {
     this.inInnerCircle,
     this.inOuterCircle,
     this.innerRequestStatus,
-    this.favorited,
+    this.isFavorite,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -121,7 +121,7 @@ class User {
     final inInnerCircle = json['in_inner_circle'] ?? false;
     final inOuterCircle = json['in_outer_circle'] ?? false;
     final innerRequestStatus = json['inner_request_status'] ?? 'not_sent';
-    final favorited = json['favorited'] ?? false;
+    final isFavorite = json['isFavorite'] ?? false;
 
     return User(
       id: userData['id'],
@@ -150,7 +150,7 @@ class User {
       inInnerCircle: inInnerCircle,
       inOuterCircle: inOuterCircle,
       innerRequestStatus: innerRequestStatus,
-      favorited: favorited,
+      isFavorite: isFavorite,
     );
   }
 
@@ -195,7 +195,7 @@ class User {
       'in_inner_circle': inInnerCircle,
       'in_outer_circle': inOuterCircle,
       'inner_request_status': innerRequestStatus,
-      'favorited': favorited,
+      'isFavorite': isFavorite,
     };
   }
 

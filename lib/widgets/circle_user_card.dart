@@ -54,9 +54,9 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
     final apiService = ApiService();
 
     try {
-      final currentlyFavorited = widget.user!.favorited ?? false;
+      final currentlyisFavorite = widget.user!.isFavorite ?? false;
 
-      if (currentlyFavorited) {
+      if (currentlyisFavorite) {
         await apiService.removeFromFavorites(
           token: token,
           userId: widget.user!.id,
@@ -200,8 +200,8 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                     icon: _isTogglingFavorite
                         ? const _BeatingHeart()
                         : Icon(
-                            (widget.user?.favorited ?? false) ? Icons.favorite : Icons.favorite_border,
-                            color: (widget.user?.favorited ?? false) ? Colors.red : Colors.white.withOpacity(0.9),
+                            (widget.user?.isFavorite ?? false) ? Icons.favorite : Icons.favorite_border,
+                            color: (widget.user?.isFavorite ?? false) ? Colors.red : Colors.white.withOpacity(0.9),
                             size: 24,
                           ),
                   )

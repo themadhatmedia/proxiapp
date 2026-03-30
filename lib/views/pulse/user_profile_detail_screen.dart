@@ -30,7 +30,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   bool inOuterCircle = false;
   String innerRequestStatus = 'not_sent';
   int? pendingRequestId;
-  bool isFavorited = false;
+  bool isisFavorite = false;
   bool _isTogglingFavorite = false;
 
   @override
@@ -41,7 +41,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     innerRequestStatus = widget.userData['inner_request_status'] ?? 'not_sent';
 
     final userData = widget.userData['user'] ?? widget.userData;
-    isFavorited = userData['favorited'] ?? false;
+    isisFavorite = userData['isFavorite'] ?? false;
 
     if (widget.userData['inner_request_id'] != null) {
       pendingRequestId = widget.userData['inner_request_id'];
@@ -264,15 +264,15 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     });
 
     try {
-      if (isFavorited) {
+      if (isisFavorite) {
         await apiService.removeFromFavorites(
           token: token,
           userId: userId,
         );
         setState(() {
-          isFavorited = false;
+          isisFavorite = false;
         });
-        widget.userData['favorited'] = false;
+        widget.userData['isFavorite'] = false;
         ToastHelper.showSuccess('Removed from favorites');
       } else {
         await apiService.addToFavorites(
@@ -280,9 +280,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
           userId: userId,
         );
         setState(() {
-          isFavorited = true;
+          isisFavorite = true;
         });
-        widget.userData['favorited'] = true;
+        widget.userData['isFavorite'] = true;
         ToastHelper.showSuccess('Added to favorites');
       }
     } catch (e) {
@@ -360,8 +360,8 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                   icon: _isTogglingFavorite
                       ? const _BeatingHeart()
                       : Icon(
-                          isFavorited ? Icons.favorite : Icons.favorite_border,
-                          color: isFavorited ? Colors.red : Colors.white,
+                          isisFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isisFavorite ? Colors.red : Colors.white,
                         ),
                 ),
               ],

@@ -817,7 +817,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
       'user': {
         'id': widget.post.user!.id,
         'name': widget.post.user!.name,
-        'favorited': widget.post.user!.favorited ?? false,
+        'isFavorite': widget.post.user!.isFavorite ?? false,
         'profile': {
           'display_name': widget.post.user!.displayName ?? widget.post.user!.name,
           'avatar': widget.post.user!.avatarUrl,
