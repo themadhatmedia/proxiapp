@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/storage_service.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
@@ -22,12 +23,36 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
+  final StorageService _storageService = StorageService();
   final TextEditingController _contentController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
   final List<VideoPlayerController> _videoControllers = [];
   static const int maxMediaSize = 10 * 1024 * 1024; // 10MB per file
   static const int maxTotalSize = 50 * 1024 * 1024; // 50MB total
+
+  static const List<String> _createPostHints = [
+    "What's the good news?",
+    "What's your win today?",
+    "What are you thankful for?",
+    "Where did you level up?",
+    "What's a win - big or small - you're celebrating today?",
+    "Where did you show up strong this week?",
+    "What are you improving this week?",
+    "What lifted your energy?",
+    "Who helped you win?",
+    "What are you building?",
+  ];
+
+  late String _composeHint;
+
+  @override
+  void initState() {
+    super.initState();
+    final idx = _storageService.getCreatePostHintIndex();
+    _composeHint = _createPostHints[idx];
+    _storageService.setCreatePostHintIndex(idx + 1);
+  }
 
   @override
   void dispose() {
@@ -449,7 +474,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   fontSize: 18,
                 ),
                 decoration: InputDecoration(
-                  hintText: "What's on your mind?",
+                  hintText: _composeHint,
                   hintStyle: TextStyle(
                     color: Colors.white.withOpacity(0.5),
                     fontSize: 18,
