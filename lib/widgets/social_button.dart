@@ -4,27 +4,31 @@ class SocialButton extends StatelessWidget {
   final String text;
   final IconData? icon;
   final VoidCallback onPressed;
-  final Color backgroundColor;
-  final Color textColor;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   const SocialButton({
     super.key,
     required this.text,
     this.icon,
     required this.onPressed,
-    this.backgroundColor = Colors.black,
-    this.textColor = Colors.white,
+    this.backgroundColor,
+    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bg = backgroundColor ?? cs.secondary;
+    final fg = textColor ?? cs.onSecondary;
+
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
+          backgroundColor: bg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
@@ -34,13 +38,13 @@ class SocialButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon, color: textColor, size: 20),
+              Icon(icon, color: fg, size: 20),
               const SizedBox(width: 8),
             ],
             Text(
               text,
               style: TextStyle(
-                color: textColor,
+                color: fg,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),

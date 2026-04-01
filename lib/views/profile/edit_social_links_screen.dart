@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
 import '../../controllers/profile_controller.dart';
 import '../../widgets/custom_button.dart';
 
@@ -88,14 +89,11 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -106,15 +104,15 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Social & Service Links',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -131,12 +129,12 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
+                        Text(
                           'Add your social media profiles to connect with others',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white70,
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -215,42 +213,47 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
     required String hint,
     required IconData icon,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return Builder(
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+            Row(
+              children: [
+                Icon(icon, color: cs.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: controller,
+              style: TextStyle(color: cs.onSurface),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.8)),
+                filled: true,
+                fillColor: cs.surfaceContainerHighest.withOpacity(0.65),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(16),
               ),
+              validator: (value) => _validateUrl(value, label),
+              keyboardType: TextInputType.url,
             ),
           ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-            filled: true,
-            fillColor: Colors.white.withOpacity(0.2),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.all(16),
-          ),
-          validator: (value) => _validateUrl(value, label),
-          keyboardType: TextInputType.url,
-        ),
-      ],
+        );
+      },
     );
   }
 }

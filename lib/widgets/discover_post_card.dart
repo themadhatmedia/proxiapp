@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:video_player/video_player.dart';
 
+import '../config/theme/proxi_palette.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/discover_controller.dart';
 import '../controllers/navigation_controller.dart';
@@ -45,28 +46,30 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<DiscoverController>();
+    final proxi = context.proxi;
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: proxi.surfaceCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.05),
+          color: cs.outline.withOpacity(0.35),
           width: 1,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
-          if (widget.post.content.isNotEmpty) _buildContent(),
+          _buildHeader(context),
+          if (widget.post.content.isNotEmpty) _buildContent(context),
           if (widget.post.media != null && widget.post.media!.isNotEmpty) _buildMedia(),
-          Obx(() => _buildActions(controller)),
+          Obx(() => _buildActions(context, controller)),
           Obx(() {
             final showComments = controller.showingComments[widget.post.id] ?? false;
             if (showComments) {
-              return _buildCommentsSection(controller);
+              return _buildCommentsSection(context, controller);
             }
             return const SizedBox.shrink();
           }),
@@ -75,7 +78,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -97,8 +101,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 children: [
                   Text(
                     widget.post.user?.name ?? 'Unknown User',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -107,7 +111,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   Text(
                     timeago.format(widget.post.createdAt ?? DateTime.now()),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: cs.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),
@@ -120,13 +124,14 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         widget.post.content,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: cs.onSurface,
           fontSize: 15,
           height: 1.5,
         ),
@@ -490,10 +495,11 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     );
   }
 
-  Widget _buildActions(DiscoverController controller) {
+  Widget _buildActions(BuildContext context, DiscoverController controller) {
     final canLike = widget.post.permissions?.canLike ?? false;
     final canComment = widget.post.permissions?.canComment ?? false;
     final isLiking = controller.likingPosts[widget.post.id] ?? false;
+    final cs = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -506,7 +512,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
             child: Text(
               '${widget.post.likesCount} ${widget.post.likesCount == 1 ? 'like' : 'likes'} • ${widget.post.commentsCount} ${widget.post.commentsCount == 1 ? 'comment' : 'comments'}',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: cs.onSurfaceVariant,
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
               ),
@@ -517,9 +523,10 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
             children: [
               Expanded(
                 child: _buildActionButton(
+                  context,
                   icon: widget.post.liked ? Icons.favorite : Icons.favorite_border,
                   label: 'Like',
-                  color: widget.post.liked ? Colors.red : Colors.grey,
+                  color: widget.post.liked ? Colors.red : cs.onSurfaceVariant,
                   onTap: canLike && !isLiking ? () => controller.toggleLike(widget.post) : null,
                   isLoading: isLiking,
                 ),
@@ -527,9 +534,10 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton(
+                  context,
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
-                  color: canComment ? Colors.grey : Colors.grey.withOpacity(0.5),
+                  color: canComment ? cs.onSurfaceVariant : cs.onSurfaceVariant.withOpacity(0.45),
                   onTap: () => controller.toggleComments(widget.post.id!), // Always allow viewing comments
                 ),
               ),
@@ -540,7 +548,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildActionButton(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required Color color,
@@ -548,6 +557,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     bool isLoading = false,
   }) {
     final isEnabled = onTap != null;
+    final cs = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.transparent,
@@ -557,10 +567,10 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: cs.primary.withOpacity(0.08),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: cs.outline.withOpacity(0.35),
               width: 1,
             ),
           ),
@@ -580,7 +590,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
               Text(
                 label,
                 style: TextStyle(
-                  color: isEnabled ? Colors.white.withOpacity(0.9) : Colors.white.withOpacity(0.3),
+                  color: isEnabled ? cs.onSurface.withOpacity(0.95) : cs.onSurface.withOpacity(0.35),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -592,7 +602,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     );
   }
 
-  Widget _buildCommentsSection(DiscoverController controller) {
+  Widget _buildCommentsSection(BuildContext context, DiscoverController controller) {
+    final cs = Theme.of(context).colorScheme;
     final comments = controller.postComments[widget.post.id] ?? [];
     final isLoading = controller.loadingComments[widget.post.id] ?? false;
     final canComment = widget.post.permissions?.canComment ?? false;
@@ -606,30 +617,30 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Comments',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               TextButton(
                 onPressed: () => controller.toggleComments(widget.post.id!),
-                child: const Text(
+                child: Text(
                   'Hide',
-                  style: TextStyle(color: Colors.blue),
+                  style: TextStyle(color: cs.primary),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: SpinKitWave(
-                  color: Colors.blue,
+                  color: cs.primary,
                   size: 30.0,
                 ),
               ),
@@ -641,7 +652,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 child: Text(
                   'No comments yet',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    color: cs.onSurfaceVariant,
                     fontSize: 14,
                   ),
                 ),
@@ -658,7 +669,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: cs.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -666,7 +677,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                     Text(
                       'Replying to $_replyToUserName',
                       style: TextStyle(
-                        color: Colors.blue[300],
+                        color: cs.primary,
                         fontSize: 13,
                       ),
                     ),
@@ -680,9 +691,9 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                           _replyToCommentCanReply = false;
                         });
                       },
-                      child: const Icon(
+                      child: Icon(
                         Icons.close,
-                        color: Colors.blue,
+                        color: cs.primary,
                         size: 18,
                       ),
                     ),
@@ -695,12 +706,12 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   child: TextField(
                     controller: _commentController,
                     focusNode: _commentFocusNode,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: InputDecoration(
                       hintText: _replyToCommentId != null ? 'Write a reply...' : 'Write a comment...',
-                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      hintStyle: TextStyle(color: cs.onSurfaceVariant),
                       filled: true,
-                      fillColor: Colors.grey[900],
+                      fillColor: cs.surfaceContainerHighest,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -714,7 +725,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 IconButton(
                   onPressed: () => _submitComment(controller),
                   icon: const Icon(Icons.send),
-                  color: Colors.blue,
+                  color: cs.primary,
                 ),
               ],
             ),
@@ -723,17 +734,17 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[900],
+                color: cs.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                  Icon(Icons.info_outline, color: cs.onSurfaceVariant, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'You cannot add comments to this post',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
                   ),
                 ],
@@ -817,6 +828,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
       'user': {
         'id': widget.post.user!.id,
         'name': widget.post.user!.name,
+        'isFavorite': widget.post.user!.isFavorite ?? false,
         'profile': {
           'display_name': widget.post.user!.displayName ?? widget.post.user!.name,
           'avatar': widget.post.user!.avatarUrl,

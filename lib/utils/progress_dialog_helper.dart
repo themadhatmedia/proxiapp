@@ -7,6 +7,8 @@ class ProgressDialogHelper {
 
   static ProgressDialog create(BuildContext context) {
     _currentContext = context;
+    final cs = Theme.of(context).colorScheme;
+
     _progressDialog = ProgressDialog(
       context,
       type: ProgressDialogType.normal,
@@ -16,17 +18,17 @@ class ProgressDialogHelper {
     _progressDialog!.style(
       message: 'Please wait...',
       borderRadius: 10.0,
-      backgroundColor: Colors.white,
-      progressWidget: const Padding(
-        padding: EdgeInsets.all(16.0),
+      backgroundColor: cs.surfaceContainerHighest,
+      progressWidget: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
         ),
       ),
       elevation: 10.0,
       insetAnimCurve: Curves.easeInOut,
-      messageTextStyle: const TextStyle(
-        color: Colors.black,
+      messageTextStyle: TextStyle(
+        color: cs.onSurface,
         fontSize: 16.0,
         fontWeight: FontWeight.w500,
       ),

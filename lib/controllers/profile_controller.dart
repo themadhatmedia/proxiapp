@@ -32,6 +32,23 @@ class ProfileController extends GetxController {
   final tiktokUrl = ''.obs;
   final otherUrl = ''.obs;
 
+  void reset() {
+    availableInterests.clear();
+    availableCoreValues.clear();
+    availablePlans.clear();
+    selectedInterestNames.clear();
+    selectedCoreValueNames.clear();
+    customCoreValue.value = null;
+    linkedinUrl.value = '';
+    facebookUrl.value = '';
+    instagramUrl.value = '';
+    xUrl.value = '';
+    snapchatUrl.value = '';
+    tiktokUrl.value = '';
+    otherUrl.value = '';
+    isLoading.value = false;
+  }
+
   Future<void> loadInterests() async {
     try {
       isLoading.value = true;
@@ -183,24 +200,28 @@ class ProfileController extends GetxController {
   }
 
   void showImageSourceDialog(Function(ImageSource) onSourceSelected) {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final cs = Theme.of(ctx).colorScheme;
+
     Get.dialog(
       AlertDialog(
-        backgroundColor: const Color(0xFF3D5A80),
+        backgroundColor: cs.surfaceContainerHighest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text(
+        title: Text(
           'Choose Image Source',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: cs.onSurface),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text(
+              leading: Icon(Icons.camera_alt, color: cs.primary),
+              title: Text(
                 'Camera',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
               ),
               onTap: () {
                 Get.back();
@@ -208,10 +229,10 @@ class ProfileController extends GetxController {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: const Text(
+              leading: Icon(Icons.photo_library, color: cs.primary),
+              title: Text(
                 'Gallery',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
               ),
               onTap: () {
                 Get.back();

@@ -5,8 +5,11 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/storage_service.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
@@ -22,12 +25,36 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
+  final StorageService _storageService = StorageService();
   final TextEditingController _contentController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
   final List<VideoPlayerController> _videoControllers = [];
   static const int maxMediaSize = 10 * 1024 * 1024; // 10MB per file
   static const int maxTotalSize = 50 * 1024 * 1024; // 50MB total
+
+  static const List<String> _createPostHints = [
+    "What's the good news?",
+    "What's your win today?",
+    "What are you thankful for?",
+    "Where did you level up?",
+    "What's a win - big or small - you're celebrating today?",
+    "Where did you show up strong this week?",
+    "What are you improving this week?",
+    "What lifted your energy?",
+    "Who helped you win?",
+    "What are you building?",
+  ];
+
+  late String _composeHint;
+
+  @override
+  void initState() {
+    super.initState();
+    final idx = _storageService.getCreatePostHintIndex();
+    _composeHint = _createPostHints[idx];
+    _storageService.setCreatePostHintIndex(idx + 1);
+  }
 
   @override
   void dispose() {
@@ -42,81 +69,52 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       showModalBottomSheet(
         context: context,
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library,
-                  color: Colors.white,
+        builder: (ctx) {
+          final cs = Theme.of(ctx).colorScheme;
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.photo_library, color: cs.primary),
+                  title: Text('Photo', style: TextStyle(color: cs.onSurface)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage();
+                  },
                 ),
-                title: const Text(
-                  'Photo',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
+                ListTile(
+                  leading: Icon(Icons.gif_box, color: cs.primary),
+                  title: Text('GIF', style: TextStyle(color: cs.onSurface)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickGif();
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.gif_box,
-                  color: Colors.white,
+                ListTile(
+                  leading: Icon(Icons.videocam, color: cs.primary),
+                  title: Text('Video', style: TextStyle(color: cs.onSurface)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickVideo();
+                  },
                 ),
-                title: const Text(
-                  'GIF',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
+                ListTile(
+                  leading: Icon(Icons.camera_alt, color: cs.primary),
+                  title: Text('Camera', style: TextStyle(color: cs.onSurface)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickFromCamera();
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickGif();
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.videocam,
-                  color: Colors.white,
-                ),
-                title: const Text(
-                  'Video',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickVideo();
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
-                ),
-                title: const Text(
-                  'Camera',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickFromCamera();
-                },
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       );
     } catch (e) {
       ToastHelper.showError('Failed to pick media');
@@ -184,32 +182,35 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       await showModalBottomSheet(
         context: context,
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (context) => SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Colors.white),
-                title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _capturePhoto();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.videocam, color: Colors.white),
-                title: const Text('Record Video', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _captureVideo();
-                },
-              ),
-            ],
-          ),
-        ),
+        builder: (ctx) {
+          final cs = Theme.of(ctx).colorScheme;
+          return SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.camera_alt, color: cs.primary),
+                  title: Text('Take Photo', style: TextStyle(color: cs.onSurface)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _capturePhoto();
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.videocam, color: cs.primary),
+                  title: Text('Record Video', style: TextStyle(color: cs.onSurface)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _captureVideo();
+                  },
+                ),
+              ],
+            ),
+          );
+        },
       );
     } catch (e) {
       ToastHelper.showError('Failed to open camera options');
@@ -364,20 +365,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final user = authController.currentUser.value;
     final displayName = user?.displayName ?? user?.name ?? 'User';
     final avatarUrl = user?.avatarUrl;
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: cs.surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: context.proxi.surfaceCard,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: cs.onSurface),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Create Post',
           style: TextStyle(
-            color: Colors.white,
+            color: cs.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -388,8 +390,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             child: ElevatedButton(
               onPressed: _createPost,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -407,12 +409,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -430,8 +428,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   Expanded(
                     child: Text(
                       displayName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: cs.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -444,14 +442,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 controller: _contentController,
                 maxLines: null,
                 minLines: 3,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 18,
                 ),
                 decoration: InputDecoration(
-                  hintText: "What's on your mind?",
+                  hintText: _composeHint,
                   hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: cs.onSurfaceVariant.withOpacity(0.85),
                     fontSize: 18,
                   ),
                   border: InputBorder.none,
@@ -485,10 +483,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Widget _buildMediaPreview() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: context.proxi.surfaceCard,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -503,8 +502,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   children: [
                     Text(
                       'Media (${_mediaFiles.length})',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: cs.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -519,7 +518,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           return Text(
                             '${_formatFileSize(totalSize)} / ${_formatFileSize(maxTotalSize)}',
                             style: TextStyle(
-                              color: isNearLimit ? Colors.orange : Colors.white60,
+                              color: isNearLimit ? Colors.orange : cs.onSurfaceVariant,
                               fontSize: 12,
                             ),
                           );
@@ -532,10 +531,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               TextButton.icon(
                 onPressed: _pickMedia,
-                icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                label: const Text(
+                icon: Icon(Icons.add, color: cs.primary, size: 20),
+                label: Text(
                   'Add More',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: cs.primary),
                 ),
               ),
             ],
@@ -553,6 +552,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             itemBuilder: (context, index) {
               final file = _mediaFiles[index];
               final isVideo = _isVideoFile(file);
+              final cs = Theme.of(context).colorScheme;
 
               return Stack(
                 children: [
@@ -564,9 +564,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         width: double.infinity,
                         height: double.infinity,
                         child: Container(
-                          color: isVideo ? Colors.black : Colors.black45,
+                          color: isVideo
+                              ? cs.scrim
+                              : cs.surfaceContainerHighest,
                           child: isVideo
-                              ? _buildVideoPreview(file)
+                              ? _buildVideoPreview(context, file)
                               : Image.file(
                                   file,
                                   fit: BoxFit.cover,
@@ -584,13 +586,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       onTap: () => _removeMedia(index),
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.black87,
+                        decoration: BoxDecoration(
+                          color: cs.inverseSurface,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close,
-                          color: Colors.white,
+                          color: cs.onInverseSurface,
                           size: 18,
                         ),
                       ),
@@ -602,7 +604,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       child: Center(
                         child: Icon(
                           Icons.play_circle_outline,
-                          color: Colors.white,
+                          color: cs.onPrimary,
                           size: 40,
                         ),
                       ),
@@ -614,13 +616,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.black87,
+                          color: cs.inverseSurface,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
+                        child: Text(
                           'GIF',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: cs.onInverseSurface,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -636,7 +638,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
   }
 
-  Widget _buildVideoPreview(File file) {
+  Widget _buildVideoPreview(BuildContext context, File file) {
+    final cs = Theme.of(context).colorScheme;
     try {
       // Find the controller by matching the file index
       final fileIndex = _mediaFiles.indexOf(file);
@@ -651,10 +654,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       if (videoIndex >= _videoControllers.length) {
         return Container(
-          color: Colors.black,
-          child: const Center(
+          color: cs.scrim,
+          child: Center(
             child: CircularProgressIndicator(
-              color: Colors.white,
+              color: cs.primary,
               strokeWidth: 2,
             ),
           ),
@@ -667,9 +670,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         valueListenable: controller,
         builder: (context, VideoPlayerValue value, child) {
           if (!value.isInitialized) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                color: Colors.white,
+                color: cs.primary,
                 strokeWidth: 2,
               ),
             );
@@ -688,11 +691,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       );
     } catch (e) {
       return Container(
-        color: Colors.black,
-        child: const Center(
+        color: cs.scrim,
+        child: Center(
           child: Icon(
             Icons.error_outline,
-            color: Colors.white54,
+            color: cs.onSurfaceVariant,
             size: 40,
           ),
         ),
@@ -715,7 +718,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: Theme.of(context).colorScheme.scrim,
       builder: (context) => VideoReviewDialog(
         controller: controller,
       ),
@@ -723,15 +726,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Widget _buildAddMediaButton() {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: _pickMedia,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withOpacity(0.2),
+            color: cs.outlineVariant,
             width: 1,
           ),
         ),
@@ -740,21 +744,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: cs.primary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.photo_library,
-                color: Colors.white,
+                color: cs.primary,
                 size: 24,
               ),
             ),
             const SizedBox(width: 16),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Add Photos/Videos/GIFs',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -762,7 +766,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white.withOpacity(0.5),
+              color: cs.onSurfaceVariant,
               size: 16,
             ),
           ],
@@ -825,6 +829,7 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return PopScope(
       canPop: false,
       child: Dialog(
@@ -835,7 +840,7 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
             maxHeight: MediaQuery.of(context).size.height - 120,
           ),
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: cs.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(16),
           ),
           child: SingleChildScrollView(
@@ -846,7 +851,7 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.8),
+                    color: cs.surfaceContainerHighest,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
@@ -854,10 +859,10 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Video Preview',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: cs.onSurface,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -871,7 +876,7 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                           }
                           Navigator.of(context).pop();
                         },
-                        icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                        icon: Icon(Icons.close, color: cs.onSurface, size: 24),
                       ),
                     ],
                   ),
@@ -882,7 +887,10 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      VideoPlayer(widget.controller),
+                      ColoredBox(
+                        color: cs.scrim,
+                        child: VideoPlayer(widget.controller),
+                      ),
                       // Play/Pause overlay
                       GestureDetector(
                         onTap: _togglePlayPause,
@@ -894,13 +902,13 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                               duration: const Duration(milliseconds: 300),
                               child: Container(
                                 padding: const EdgeInsets.all(16),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
+                                decoration: BoxDecoration(
+                                  color: cs.scrim.withOpacity(0.65),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.play_arrow,
-                                  color: Colors.white,
+                                  color: cs.onPrimary,
                                   size: 48,
                                 ),
                               ),
@@ -915,7 +923,7 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.8),
+                    color: cs.surfaceContainerHighest,
                     borderRadius: const BorderRadius.vertical(
                       bottom: Radius.circular(16),
                     ),
@@ -927,10 +935,10 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                       VideoProgressIndicator(
                         widget.controller,
                         allowScrubbing: true,
-                        colors: const VideoProgressColors(
-                          playedColor: Colors.white,
-                          bufferedColor: Colors.white30,
-                          backgroundColor: Colors.white10,
+                        colors: VideoProgressColors(
+                          playedColor: cs.primary,
+                          bufferedColor: cs.primary.withOpacity(0.35),
+                          backgroundColor: cs.outlineVariant,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -943,7 +951,7 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                             onPressed: _togglePlayPause,
                             icon: Icon(
                               _isPlaying ? Icons.pause : Icons.play_arrow,
-                              color: Colors.white,
+                              color: cs.onSurface,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -952,8 +960,8 @@ class _VideoReviewDialogState extends State<VideoReviewDialog> {
                             builder: (context, VideoPlayerValue value, child) {
                               return Text(
                                 '${_formatDuration(value.position)} / ${_formatDuration(value.duration)}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
                                   fontSize: 14,
                                 ),
                               );

@@ -31,12 +31,13 @@ class CommentCard extends StatelessWidget {
     final authController = Get.find<AuthController>();
     final userId = currentUserId ?? authController.currentUser.value?.id;
     final isOwnComment = userId == comment.userId;
+    final cs = Theme.of(context).colorScheme;
 
     return CommentTreeWidget<CommentModel, dynamic>(
       comment,
       _flattenReplies(comment),
       treeThemeData: TreeThemeData(
-        lineColor: Colors.grey[700]!,
+        lineColor: cs.outline.withOpacity(0.6),
         lineWidth: 2,
       ),
       avatarRoot: (context, data) => PreferredSize(
@@ -57,11 +58,11 @@ class CommentCard extends StatelessWidget {
                       maxHeightDiskCache: 64,
                       placeholder: (context, url) => CircleAvatar(
                         radius: 16,
-                        backgroundColor: Colors.grey[800],
+                        backgroundColor: cs.primary.withOpacity(0.85),
                         child: Text(
                           data.user.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -69,11 +70,11 @@ class CommentCard extends StatelessWidget {
                       ),
                       errorWidget: (context, url, error) => CircleAvatar(
                         radius: 16,
-                        backgroundColor: Colors.grey[800],
+                        backgroundColor: cs.primary.withOpacity(0.85),
                         child: Text(
                           data.user.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -84,11 +85,11 @@ class CommentCard extends StatelessWidget {
                 )
               : CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.grey[800],
+                  backgroundColor: cs.primary.withOpacity(0.85),
                   child: Text(
                     data.user.name[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -114,11 +115,11 @@ class CommentCard extends StatelessWidget {
                       maxHeightDiskCache: 48,
                       placeholder: (context, url) => CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.grey[800],
+                        backgroundColor: cs.primary.withOpacity(0.85),
                         child: Text(
                           data.user.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -126,11 +127,11 @@ class CommentCard extends StatelessWidget {
                       ),
                       errorWidget: (context, url, error) => CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.grey[800],
+                        backgroundColor: cs.primary.withOpacity(0.85),
                         child: Text(
                           data.user.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onPrimary,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -141,11 +142,11 @@ class CommentCard extends StatelessWidget {
                 )
               : CircleAvatar(
                   radius: 12,
-                  backgroundColor: Colors.grey[800],
+                  backgroundColor: cs.primary.withOpacity(0.85),
                   child: Text(
                     data.user.name[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onPrimary,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
@@ -194,6 +195,7 @@ class CommentCard extends StatelessWidget {
       canDeleteAnyComment = false;
     }
     final canDelete = controller != null && (isOwn || canDeleteAnyComment);
+    final cs = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,7 +203,7 @@ class CommentCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: cs.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -215,8 +217,8 @@ class CommentCard extends StatelessWidget {
                       onTap: () => _showUserProfile(context, data),
                       child: Text(
                         data.user.name,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -229,7 +231,7 @@ class CommentCard extends StatelessWidget {
                       child: Icon(
                         Icons.delete_outline,
                         size: 18,
-                        color: Colors.grey[400],
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
                 ],
@@ -243,8 +245,8 @@ class CommentCard extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: '@${data.replyingToName} ',
-                          style: const TextStyle(
-                            color: Colors.blue,
+                          style: TextStyle(
+                            color: cs.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -255,8 +257,8 @@ class CommentCard extends StatelessWidget {
                 ),
               Text(
                 data.content,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 14,
                 ),
               ),
@@ -269,7 +271,7 @@ class CommentCard extends StatelessWidget {
             Text(
               timeago.format(data.createdAt),
               style: TextStyle(
-                color: Colors.grey[500],
+                color: cs.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
@@ -280,7 +282,7 @@ class CommentCard extends StatelessWidget {
                 child: Text(
                   'Reply',
                   style: TextStyle(
-                    color: Colors.grey[400],
+                    color: cs.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -294,28 +296,29 @@ class CommentCard extends StatelessWidget {
   }
 
   Future<void> _deleteComment(BuildContext context, dynamic controller) async {
+    final dialogCs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text(
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dialogCs.surfaceContainerHighest,
+        title: Text(
           'Delete Comment',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: dialogCs.onSurface),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to delete this comment?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: dialogCs.onSurfaceVariant),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Cancel',
-              style: TextStyle(color: Colors.grey[400]),
+              style: TextStyle(color: dialogCs.onSurfaceVariant),
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               'Delete',
               style: TextStyle(color: Colors.red),
@@ -355,6 +358,7 @@ class CommentCard extends StatelessWidget {
       'user': {
         'id': data.user.id,
         'name': data.user.name,
+        'isFavorite': data.user.isFavorite ?? false,
         'profile': {
           'display_name': profile['display_name'] ?? data.user.name,
           'avatar': data.user.avatar,

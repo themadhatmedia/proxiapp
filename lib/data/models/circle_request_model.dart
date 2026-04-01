@@ -45,6 +45,7 @@ class RequestUser {
   final String email;
   final bool isActive;
   final RequestUserProfile? profile;
+  final bool? isFavorite;
 
   RequestUser({
     required this.id,
@@ -52,6 +53,7 @@ class RequestUser {
     required this.email,
     required this.isActive,
     this.profile,
+    this.isFavorite,
   });
 
   factory RequestUser.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,7 @@ class RequestUser {
       email: json['email'] ?? '',
       isActive: json['is_active'] ?? true,
       profile: json['profile'] != null ? RequestUserProfile.fromJson(json['profile']) : null,
+      isFavorite: json['isFavorite'],
     );
   }
 }

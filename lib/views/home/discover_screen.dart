@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/discover_controller.dart';
 import '../../controllers/notification_controller.dart';
 import '../../widgets/discover_post_card.dart';
@@ -34,14 +37,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -51,13 +52,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    const Center(
+                    Center(
                       child: Text(
                         'Wins',
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                     ),
@@ -89,6 +90,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   Widget _buildNotificationIcon() {
     return Obx(() {
       final unreadCount = _notificationController.unreadCount;
+      final cs = Theme.of(context).colorScheme;
       return GestureDetector(
         onTap: () => Get.to(() => const NotificationsScreen()),
         child: Stack(
@@ -97,12 +99,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: cs.primary.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.notifications,
-                color: Colors.white,
+                color: cs.onSurface,
                 size: 24,
               ),
             ),
@@ -124,7 +126,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     child: Text(
                       unreadCount > 9 ? '9+' : '$unreadCount',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: ProxiPalette.pureWhite,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -150,7 +152,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
               });
             },
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.transparent,
               width: double.infinity,
               height: double.infinity,
             ),
@@ -192,13 +194,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   _isFabExpanded = !_isFabExpanded;
                 });
               },
-              backgroundColor: Colors.white,
+              backgroundColor: ProxiPalette.electricBlue,
               child: AnimatedRotation(
                 turns: _isFabExpanded ? 0.250 : 0,
                 duration: const Duration(milliseconds: 200),
                 child: Icon(
                   _isFabExpanded ? Icons.close : Icons.add,
-                  color: Colors.black,
+                  color: ProxiPalette.pureWhite,
                   size: 28.0,
                 ),
               ),
@@ -214,6 +216,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     required String label,
     required VoidCallback onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
+    final proxi = context.proxi;
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -222,13 +226,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
+              color: proxi.speedDialLabelBackground,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 15.0,
                 fontWeight: FontWeight.w500,
               ),
@@ -238,13 +242,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           Container(
             width: 48,
             height: 48,
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: ProxiPalette.electricBlue,
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              color: Colors.black,
+              color: ProxiPalette.pureWhite,
               size: 28,
             ),
           ),
@@ -254,24 +258,25 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   }
 
   Widget _buildToggleTabs() {
+    final proxi = context.proxi;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: proxi.tabBarTrack,
           borderRadius: BorderRadius.circular(28.0),
         ),
         child: TabBar(
           controller: _tabController,
           indicator: BoxDecoration(
-            color: Colors.white.withOpacity(0.25),
+            color: proxi.tabIndicator,
             borderRadius: BorderRadius.circular(28.0),
             shape: BoxShape.rectangle,
           ),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.6),
+          labelColor: proxi.tabLabelSelected,
+          unselectedLabelColor: proxi.tabLabelUnselected,
           labelStyle: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -288,9 +293,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   Widget _buildInnerProxiList() {
     return Obx(() {
       if (_controller.isLoadingInner.value) {
-        return const Center(
+        return Center(
           child: CircularProgressIndicator(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -298,7 +303,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       if (_controller.innerProxyPosts.isEmpty) {
         return RefreshIndicator(
           onRefresh: _controller.refreshInnerPosts,
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.primary,
           child: ListView(
             padding: const EdgeInsets.only(bottom: 80),
             children: [
@@ -308,7 +313,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   child: Text(
                     'No posts yet',
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 16,
                     ),
                   ),
@@ -321,7 +326,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
       return RefreshIndicator(
         onRefresh: _controller.refreshInnerPosts,
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primary,
         child: ListView.builder(
           padding: const EdgeInsets.only(bottom: 80),
           itemCount: _controller.innerProxyPosts.length,
@@ -337,9 +342,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   Widget _buildOuterProxiList() {
     return Obx(() {
       if (_controller.isLoadingOuter.value) {
-        return const Center(
+        return Center(
           child: CircularProgressIndicator(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -347,7 +352,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       if (_controller.outerProxyPosts.isEmpty) {
         return RefreshIndicator(
           onRefresh: _controller.refreshOuterPosts,
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.primary,
           child: ListView(
             padding: const EdgeInsets.only(bottom: 80),
             children: [
@@ -357,7 +362,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   child: Text(
                     'No posts yet',
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 16,
                     ),
                   ),
@@ -370,7 +375,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
       return RefreshIndicator(
         onRefresh: _controller.refreshOuterPosts,
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primary,
         child: ListView.builder(
           padding: const EdgeInsets.only(bottom: 80),
           itemCount: _controller.outerProxyPosts.length,

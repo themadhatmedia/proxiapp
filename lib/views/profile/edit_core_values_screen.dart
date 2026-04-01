@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/selection_styles.dart';
 import '../../controllers/profile_controller.dart';
 import '../../widgets/custom_button.dart';
 
@@ -28,18 +30,19 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext ctx) {
+        final cs = Theme.of(ctx).colorScheme;
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: cs.surfaceContainerHighest,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
             controller.customCoreValue.value == null ? 'Add Custom Core Value' : 'Edit Custom Core Value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: cs.onSurface,
             ),
           ),
           content: SingleChildScrollView(
@@ -47,34 +50,34 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Enter a core value that is important to you:',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black87,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: customValueController,
                   autofocus: true,
-                  style: const TextStyle(color: Colors.black87),
+                  style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     hintText: 'e.g., Sustainability',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.8)),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: cs.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderSide: BorderSide(color: cs.outline.withOpacity(0.5)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderSide: BorderSide(color: cs.outline.withOpacity(0.45)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white, width: 2),
+                      borderSide: BorderSide(color: cs.primary, width: 2),
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -87,7 +90,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
               TextButton(
                 onPressed: () {
                   controller.customCoreValue.value = null;
-                  Navigator.of(context).pop();
+                  Navigator.of(ctx).pop();
                 },
                 child: const Text(
                   'Remove',
@@ -96,11 +99,11 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
               ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
               },
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
@@ -109,20 +112,17 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                 if (value.isNotEmpty) {
                   controller.customCoreValue.value = value;
                 }
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                // foregroundColor: Colors.white,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: Text(
-                'Save',
-                style: TextStyle(color: Colors.black87),
-              ),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -135,7 +135,8 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
   }
 
   Future<void> _handleSave() async {
-    if (controller.selectedCoreValueNames.isEmpty && (controller.customCoreValue.value == null || controller.customCoreValue.value!.isEmpty)) {
+    if (controller.selectedCoreValueNames.isEmpty &&
+        (controller.customCoreValue.value == null || controller.customCoreValue.value!.isEmpty)) {
       return;
     }
 
@@ -150,14 +151,12 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -168,15 +167,15 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Edit Core Values',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -192,28 +191,29 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Obx(() {
-                        final selectedCount = controller.selectedCoreValueNames.length + (controller.customCoreValue.value != null && controller.customCoreValue.value!.isNotEmpty ? 1 : 0);
+                        final selectedCount = controller.selectedCoreValueNames.length +
+                            (controller.customCoreValue.value != null && controller.customCoreValue.value!.isNotEmpty ? 1 : 0);
                         return Text(
                           'Choose 3-5 values that define who you are${selectedCount > 0 ? ' ($selectedCount/5 selected)' : ''}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white70,
+                            color: cs.onSurfaceVariant,
                           ),
                         );
                       }),
                       const SizedBox(height: 24),
                       Obx(() {
                         if (controller.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                          return Center(
+                            child: CircularProgressIndicator(color: cs.primary),
                           );
                         }
 
                         if (controller.availableCoreValues.isEmpty) {
-                          return const Center(
+                          return Center(
                             child: Text(
                               'No core values available',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: cs.onSurfaceVariant),
                             ),
                           );
                         }
@@ -223,39 +223,29 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 5,
+                            mainAxisSpacing: 5,
                             childAspectRatio: 2.5,
                           ),
                           itemCount: controller.availableCoreValues.length + 1,
                           itemBuilder: (context, index) {
                             if (index == controller.availableCoreValues.length) {
                               return Obx(() {
-                                final hasCustomValue = controller.customCoreValue.value != null && controller.customCoreValue.value!.isNotEmpty;
+                                final hasCustomValue =
+                                    controller.customCoreValue.value != null && controller.customCoreValue.value!.isNotEmpty;
                                 return GestureDetector(
                                   onTap: _showCustomValueDialog,
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: hasCustomValue ? Colors.white : Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: hasCustomValue ? Colors.white : Colors.white.withOpacity(0.3),
-                                        width: 2,
-                                      ),
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                    decoration: SelectionStyles.chipBox(context, hasCustomValue),
                                     child: Center(
                                       child: Text(
                                         hasCustomValue ? controller.customCoreValue.value! : 'Custom',
                                         textAlign: TextAlign.center,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: hasCustomValue ? Colors.black : Colors.white,
-                                        ),
+                                        style: SelectionStyles.chipLabel(context, hasCustomValue),
                                       ),
                                     ),
                                   ),
@@ -272,23 +262,12 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                  ),
+                                  decoration: SelectionStyles.chipBox(context, isSelected),
                                   child: Center(
                                     child: Text(
                                       coreValue.name,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: isSelected ? Colors.black : Colors.white,
-                                      ),
+                                      style: SelectionStyles.chipLabel(context, isSelected),
                                     ),
                                   ),
                                 ),

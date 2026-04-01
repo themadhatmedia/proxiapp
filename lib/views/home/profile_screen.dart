@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../data/models/user_model.dart';
@@ -43,34 +45,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text(
+        title: Text(
           'Logout',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: cs.onSurface),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to logout?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: cs.onSurfaceVariant),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
               'Cancel',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: cs.onSurfaceVariant),
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              foregroundColor: ProxiPalette.pureWhite,
             ),
             child: const Text('Logout'),
           ),
@@ -87,26 +90,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('token: ${authController.token}');
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
-            color: Colors.white,
+            color: cs.primary,
             child: Obx(() {
               final user = authController.currentUser.value;
               if (user == null) {
-                return const Center(
+                return Center(
                   child: CircularProgressIndicator(
-                    color: Colors.white,
+                    color: cs.primary,
                   ),
                 );
               }
@@ -121,12 +121,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Expanded(child: SizedBox()),
-                          const Text(
+                          Text(
                             'Profile',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: cs.onSurface,
                             ),
                           ),
                           Expanded(
@@ -134,9 +134,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               alignment: Alignment.centerRight,
                               child: IconButton(
                                 onPressed: () => Get.to(() => const SettingsScreen()),
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.settings,
-                                  color: Colors.white,
+                                  color: cs.onSurface,
                                   size: 28,
                                 ),
                               ),
@@ -164,13 +164,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             right: 0,
                             child: Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: cs.primary,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.edit,
-                                color: Colors.black,
+                                color: cs.onPrimary,
                                 size: 20,
                               ),
                             ),
@@ -181,10 +181,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 24),
                     Text(
                       user.displayName ?? user.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -194,9 +194,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Text(
                           user.profile!.bio!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white70,
+                            color: cs.onSurfaceVariant,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -204,9 +204,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _getMemberSinceText(user.createdAt),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white70,
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 25.0),
@@ -251,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: cs.onSurface,
                                   ),
                                 ),
                                 SizedBox(
@@ -261,7 +261,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   onTap: () => Get.to(() => const EditInterestsScreen()),
                                   child: Icon(
                                     Icons.edit,
-                                    color: Colors.white,
+                                    color: cs.primary,
                                   ),
                                 ),
                               ],
@@ -277,23 +277,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: ProxiPalette.skyBlue.withOpacity(0.25),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.home,
-                                        // color: Colors.white,
-                                        color: Colors.white,
+                                        color: cs.primary,
                                         size: 18,
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         interest,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: cs.onSurface,
                                           fontSize: 14,
                                         ),
                                       ),
@@ -320,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: cs.onSurface,
                                   ),
                                 ),
                                 SizedBox(
@@ -330,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   onTap: () => Get.to(() => const EditCoreValuesScreen()),
                                   child: Icon(
                                     Icons.edit,
-                                    color: Colors.white,
+                                    color: cs.primary,
                                   ),
                                 ),
                               ],
@@ -346,22 +345,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.2),
+                                    color: ProxiPalette.vibrantPurple.withOpacity(0.18),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.check_circle,
-                                        color: Colors.green,
+                                        color: ProxiPalette.vibrantPurple,
                                         size: 18,
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         value,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: cs.onSurface,
                                           fontSize: 14,
                                         ),
                                       ),
@@ -386,8 +385,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               icon: const Icon(Icons.delete_forever),
                               label: const Text('Delete Account'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey.withOpacity(0.3),
-                                foregroundColor: Colors.white70,
+                                backgroundColor: cs.surfaceContainerHighest,
+                                foregroundColor: cs.onSurfaceVariant,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -405,24 +404,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: ElevatedButton.icon(
                               onPressed: _isLoggingOut ? null : _handleLogout,
                               icon: _isLoggingOut
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: ProxiPalette.pureWhite,
                                       ),
                                     )
                                   : const Icon(Icons.logout),
                               label: Text(
                                 _isLoggingOut ? 'Logging out...' : 'Logout',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: ProxiPalette.pureWhite,
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.withOpacity(0.8),
-                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.red.withOpacity(0.85),
+                                foregroundColor: ProxiPalette.pureWhite,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -442,7 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Proxi v.0.1.0.1205.2',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withOpacity(0.5),
+                        color: cs.onSurfaceVariant.withOpacity(0.85),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -457,22 +456,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatItem({required int count, required String label}) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
         Text(
           count.toString(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 30.0,
             fontWeight: FontWeight.bold,
-            // color: Colors.white,
-            color: Colors.white,
+            color: cs.primary,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: Colors.white54,
+            color: cs.onSurfaceVariant,
           ),
         ),
       ],

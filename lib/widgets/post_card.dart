@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
+import '../config/theme/proxi_palette.dart';
 import '../data/models/post_model.dart';
 import '../views/posts/media_viewer_screen.dart';
 import '../views/posts/user_posts_screen.dart';
@@ -25,13 +26,15 @@ class PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final proxi = context.proxi;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: proxi.surfaceCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.05),
+          color: cs.outline.withOpacity(0.25),
           width: 1,
         ),
       ),
@@ -39,15 +42,16 @@ class PostCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          if (post.content.isNotEmpty) _buildContent(),
-          if (post.media != null && post.media!.isNotEmpty) _buildMedia(),
-          _buildActions(),
+          if (post.content.isNotEmpty) _buildContent(context),
+          if (post.media != null && post.media!.isNotEmpty) _buildMedia(context),
+          _buildActions(context),
         ],
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isOwner = post.permissions?.relationType == 'owner';
 
     return Padding(
@@ -63,8 +67,8 @@ class PostCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white.withOpacity(0.2),
-                    Colors.white.withOpacity(0.1),
+                    cs.surfaceContainerHighest.withOpacity(0.9),
+                    cs.surfaceContainerHighest.withOpacity(0.5),
                   ],
                 ),
               ),
@@ -77,11 +81,11 @@ class PostCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         maxWidthDiskCache: 96,
                         maxHeightDiskCache: 96,
-                        placeholder: (context, url) => _buildDefaultAvatar(),
-                        errorWidget: (context, url, error) => _buildDefaultAvatar(),
+                        placeholder: (ctx, url) => _buildDefaultAvatar(ctx),
+                        errorWidget: (ctx, url, error) => _buildDefaultAvatar(ctx),
                       ),
                     )
-                  : _buildDefaultAvatar(),
+                  : _buildDefaultAvatar(context),
             ),
           ),
           const SizedBox(width: 12),
@@ -93,8 +97,8 @@ class PostCard extends StatelessWidget {
                 children: [
                   Text(
                     post.user?.displayName ?? post.user?.name ?? 'Unknown User',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -105,7 +109,7 @@ class PostCard extends StatelessWidget {
                       Text(
                         _formatDate(post.createdAt),
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: cs.onSurfaceVariant,
                           fontSize: 13,
                         ),
                       ),
@@ -113,7 +117,7 @@ class PostCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Icon(
                           post.visibility == 'public' ? Icons.public : Icons.lock_outline,
-                          color: Colors.white.withOpacity(0.5),
+                          color: cs.onSurfaceVariant,
                           size: 14,
                         ),
                       ],
@@ -127,9 +131,9 @@ class PostCard extends StatelessWidget {
             PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert,
-                color: Colors.white.withOpacity(0.6),
+                color: cs.onSurfaceVariant,
               ),
-              color: const Color(0xFF2A2A2A),
+              color: context.proxi.surfaceCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -159,23 +163,25 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDefaultAvatar() {
+  Widget _buildDefaultAvatar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Icon(
         Icons.person,
-        color: Colors.white.withOpacity(0.6),
+        color: cs.onSurfaceVariant,
         size: 28,
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         post.content,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: cs.onSurface,
           fontSize: 15,
           height: 1.5,
         ),
@@ -183,36 +189,36 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMedia() {
+  Widget _buildMedia(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
         top: post.content.isNotEmpty ? 12 : 0,
       ),
-      child: _buildMediaGrid(),
+      child: _buildMediaGrid(context),
     );
   }
 
-  Widget _buildMediaGrid() {
+  Widget _buildMediaGrid(BuildContext context) {
     final mediaList = post.media!;
 
     if (mediaList.isEmpty) return const SizedBox.shrink();
 
     if (mediaList.length == 1) {
-      return _buildSingleMediaItem(mediaList[0], 0);
+      return _buildSingleMediaItem(context, mediaList[0], 0);
     } else if (mediaList.length == 2) {
-      return _buildTwoMediaGrid(mediaList);
+      return _buildTwoMediaGrid(context, mediaList);
     } else if (mediaList.length == 3) {
-      return _buildThreeMediaGrid(mediaList);
+      return _buildThreeMediaGrid(context, mediaList);
     } else if (mediaList.length == 4) {
-      return _buildFourMediaGrid(mediaList);
+      return _buildFourMediaGrid(context, mediaList);
     } else {
-      return _buildFiveOrMoreMediaGrid(mediaList);
+      return _buildFiveOrMoreMediaGrid(context, mediaList);
     }
   }
 
-  Widget _buildSingleMediaItem(MediaItem item, int index) {
+  Widget _buildSingleMediaItem(BuildContext context, MediaItem item, int index) {
     return GestureDetector(
       onTap: () => Get.to(() => MediaViewerScreen(media: post.media!, initialIndex: index)),
       child: ClipRRect(
@@ -253,27 +259,27 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTwoMediaGrid(List<MediaItem> mediaList) {
+  Widget _buildTwoMediaGrid(BuildContext context, List<MediaItem> mediaList) {
     return Row(
       children: [
         Expanded(
           child: AspectRatio(
             aspectRatio: 1,
-            child: _buildMediaGridItem(mediaList[0], 0),
+            child: _buildMediaGridItem(context, mediaList[0], 0),
           ),
         ),
         const SizedBox(width: 4),
         Expanded(
           child: AspectRatio(
             aspectRatio: 1,
-            child: _buildMediaGridItem(mediaList[1], 1),
+            child: _buildMediaGridItem(context, mediaList[1], 1),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildThreeMediaGrid(List<MediaItem> mediaList) {
+  Widget _buildThreeMediaGrid(BuildContext context, List<MediaItem> mediaList) {
     return Column(
       children: [
         Row(
@@ -281,14 +287,14 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[0], 0),
+                child: _buildMediaGridItem(context, mediaList[0], 0),
               ),
             ),
             const SizedBox(width: 4),
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[1], 1),
+                child: _buildMediaGridItem(context, mediaList[1], 1),
               ),
             ),
           ],
@@ -299,7 +305,7 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[2], 2),
+                child: _buildMediaGridItem(context, mediaList[2], 2),
               ),
             ),
             const SizedBox(width: 4),
@@ -310,7 +316,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFourMediaGrid(List<MediaItem> mediaList) {
+  Widget _buildFourMediaGrid(BuildContext context, List<MediaItem> mediaList) {
     return Column(
       children: [
         Row(
@@ -318,14 +324,14 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[0], 0),
+                child: _buildMediaGridItem(context, mediaList[0], 0),
               ),
             ),
             const SizedBox(width: 4),
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[1], 1),
+                child: _buildMediaGridItem(context, mediaList[1], 1),
               ),
             ),
           ],
@@ -336,14 +342,14 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[2], 2),
+                child: _buildMediaGridItem(context, mediaList[2], 2),
               ),
             ),
             const SizedBox(width: 4),
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[3], 3),
+                child: _buildMediaGridItem(context, mediaList[3], 3),
               ),
             ),
           ],
@@ -352,7 +358,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFiveOrMoreMediaGrid(List<MediaItem> mediaList) {
+  Widget _buildFiveOrMoreMediaGrid(BuildContext context, List<MediaItem> mediaList) {
     final remainingCount = mediaList.length > 5 ? mediaList.length - 5 : 0;
 
     return Column(
@@ -362,14 +368,14 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[0], 0),
+                child: _buildMediaGridItem(context, mediaList[0], 0),
               ),
             ),
             const SizedBox(width: 4),
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[1], 1),
+                child: _buildMediaGridItem(context, mediaList[1], 1),
               ),
             ),
           ],
@@ -380,14 +386,14 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[2], 2),
+                child: _buildMediaGridItem(context, mediaList[2], 2),
               ),
             ),
             const SizedBox(width: 4),
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _buildMediaGridItem(mediaList[3], 3),
+                child: _buildMediaGridItem(context, mediaList[3], 3),
               ),
             ),
           ],
@@ -398,7 +404,7 @@ class PostCard extends StatelessWidget {
             Expanded(
               child: AspectRatio(
                 aspectRatio: 1,
-                child: remainingCount > 0 ? _buildMediaGridItemWithOverlay(mediaList[4], 4, remainingCount) : _buildMediaGridItem(mediaList[4], 4),
+                child: remainingCount > 0 ? _buildMediaGridItemWithOverlay(context, mediaList[4], 4, remainingCount) : _buildMediaGridItem(context, mediaList[4], 4),
               ),
             ),
             const SizedBox(width: 4),
@@ -414,7 +420,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMediaGridItem(MediaItem item, int index) {
+  Widget _buildMediaGridItem(BuildContext context, MediaItem item, int index) {
     return GestureDetector(
       onTap: () => Get.to(() => MediaViewerScreen(media: post.media!, initialIndex: index)),
       child: ClipRRect(
@@ -512,7 +518,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMediaGridItemWithOverlay(MediaItem item, int index, int remainingCount) {
+  Widget _buildMediaGridItemWithOverlay(BuildContext context, MediaItem item, int index, int remainingCount) {
     return GestureDetector(
       onTap: () => Get.to(() => MediaViewerScreen(media: post.media!, initialIndex: index)),
       child: ClipRRect(
@@ -543,7 +549,8 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final canLike = post.permissions?.canLike ?? true;
     final canComment = post.permissions?.canComment ?? true;
 
@@ -560,7 +567,7 @@ class PostCard extends StatelessWidget {
                     Text(
                       '${post.likesCount} ${(post.likesCount) == 1 ? 'like' : 'likes'}',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: cs.onSurfaceVariant,
                         fontSize: 13,
                       ),
                     ),
@@ -571,7 +578,7 @@ class PostCard extends StatelessWidget {
                       child: Text(
                         '•',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -579,7 +586,7 @@ class PostCard extends StatelessWidget {
                     Text(
                       '${post.commentsCount} ${(post.commentsCount) == 1 ? 'comment' : 'comments'}',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: cs.onSurfaceVariant,
                         fontSize: 13,
                       ),
                     ),
@@ -591,9 +598,10 @@ class PostCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildActionButton(
+                  context: context,
                   icon: post.liked == true ? Icons.favorite : Icons.favorite_border,
                   label: 'Like',
-                  color: post.liked == true ? Colors.red : Colors.white,
+                  color: post.liked == true ? Colors.red : cs.onSurface,
                   onTap: canLike && !isLiking ? onLike : null,
                   isLoading: isLiking,
                 ),
@@ -601,9 +609,10 @@ class PostCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _buildActionButton(
+                  context: context,
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
-                  color: canComment ? Colors.white : Colors.white.withOpacity(0.6),
+                  color: canComment ? cs.onSurface : cs.onSurfaceVariant,
                   onTap: onComment, // Always allow viewing comments
                 ),
               ),
@@ -615,6 +624,7 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildActionButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color color,
@@ -622,6 +632,7 @@ class PostCard extends StatelessWidget {
     bool isLoading = false,
   }) {
     final isEnabled = onTap != null;
+    final cs = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.transparent,
@@ -631,7 +642,7 @@ class PostCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: cs.surfaceContainerHighest.withOpacity(0.35),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -651,7 +662,7 @@ class PostCard extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isEnabled ? Colors.white.withOpacity(0.9) : Colors.white.withOpacity(0.3),
+                    color: isEnabled ? cs.onSurface.withOpacity(0.95) : cs.onSurfaceVariant.withOpacity(0.45),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),

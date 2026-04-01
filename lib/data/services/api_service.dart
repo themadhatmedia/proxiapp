@@ -123,8 +123,6 @@ class ApiService {
 
           if (displayName != null && displayName.isNotEmpty) {
             request.fields['display_name'] = displayName;
-          } else {
-            request.fields['display_name'] = name;
           }
           if (bio != null && bio.isNotEmpty) {
             request.fields['bio'] = bio;
@@ -166,7 +164,7 @@ class ApiService {
             if (interests != null && interests.isNotEmpty) 'interests': interests,
             if (preferences != null && preferences.isNotEmpty) 'preferences': preferences,
           };
-          final headers = {'Accept': 'application/json', 'Content-Type': 'application/json'};
+          final headers = {'Content-Type': 'application/json'};
 
           _logApiCall(
             method: 'POST',
@@ -1761,6 +1759,151 @@ class ApiService {
         }
 
         return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> addToFavorites({
+    required String token,
+    required int userId,
+  }) async {
+    final url = '$baseUrl/users/$userId/favorite';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .post(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return responseData ?? {'success': true, 'isFavorite': true};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to add to favorites';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> removeFromFavorites({
+    required String token,
+    required int userId,
+  }) async {
+    final url = '$baseUrl/users/$userId/unfavorite';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .delete(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 204) {
+          return responseData ?? {'success': true, 'isFavorite': false};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to remove from favorites';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getFavorites({
+    required String token,
+    int page = 1,
+  }) async {
+    // final url = '$baseUrl/favorites?page=$page';
+    final url = '$baseUrl/favorites';
+    final headers = {
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          return responseData ??
+              {
+                'success': true,
+                'data': {'favorites': [], 'pagination': {}},
+              };
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to get favorites';
+          throw Exception(errorMessage);
+        }
       },
     );
   }

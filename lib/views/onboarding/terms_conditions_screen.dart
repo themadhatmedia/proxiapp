@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
@@ -39,14 +41,11 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -57,15 +56,15 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Terms and Conditions',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -80,29 +79,29 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Please review and accept',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white70,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: context.proxi.surfaceCard,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'By using Proxi, you agree to the following terms:',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.white,
+                                color: cs.onSurface,
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -129,9 +128,9 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                                     Expanded(
                                       child: Text(
                                         term,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.white,
+                                          color: cs.onSurface,
                                           height: 1.4,
                                         ),
                                       ),
@@ -153,10 +152,10 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: context.proxi.surfaceCard,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
@@ -169,7 +168,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                                   'I accept the Terms and Conditions',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: Colors.white,
+                                    color: cs.onSurface,
                                   ),
                                 ),
                               ),
@@ -179,7 +178,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                                 height: 30,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(15),
-                                  color: acceptedTerms ? Colors.green : Colors.white.withOpacity(0.3),
+                                  color: acceptedTerms ? Colors.green : cs.surfaceContainerHighest,
                                 ),
                                 child: AnimatedAlign(
                                   duration: const Duration(milliseconds: 200),
@@ -188,9 +187,9 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
                                     width: 26,
                                     height: 26,
                                     margin: const EdgeInsets.symmetric(horizontal: 2),
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: Colors.white,
+                                      color: acceptedTerms ? Colors.white : cs.onSurface,
                                     ),
                                   ),
                                 ),

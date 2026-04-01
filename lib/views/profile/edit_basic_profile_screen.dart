@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/toast_helper.dart';
@@ -67,11 +69,11 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.white,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
+            // colorScheme: const ColorScheme.light(
+            //   primary: Colors.white,
+            //   onPrimary: Colors.white,
+            //   onSurface: Colors.black,
+            // ),
           ),
           child: child!,
         );
@@ -88,63 +90,69 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
   void _showStatePicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: context.proxi.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SafeArea(
-        child: SizedBox(
-          height: 400,
-          child: ListView.builder(
-            itemCount: stateOptions.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(
-                  stateOptions[index],
-                  style: const TextStyle(color: Colors.white),
-                  textAlign: TextAlign.center,
-                ),
-                onTap: () {
-                  setState(() {
-                    selectedState = stateOptions[index];
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            },
+      builder: (sheetContext) {
+        final cs = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: SizedBox(
+            height: 400,
+            child: ListView.builder(
+              itemCount: stateOptions.length,
+              itemBuilder: (listContext, index) {
+                return ListTile(
+                  title: Text(
+                    stateOptions[index],
+                    style: TextStyle(color: cs.onSurface),
+                    textAlign: TextAlign.center,
+                  ),
+                  onTap: () {
+                    setState(() {
+                      selectedState = stateOptions[index];
+                    });
+                    Navigator.pop(sheetContext);
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   void _showAccountTypePicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: context.proxi.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: accountTypes.map((type) {
-            return ListTile(
-              title: Text(
-                type.capitalize.toString(),
-                style: const TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              onTap: () {
-                setState(() {
-                  selectedAccountType = type;
-                });
-                Navigator.pop(context);
-              },
-            );
-          }).toList(),
-        ),
-      ),
+      builder: (sheetContext) {
+        final cs = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: accountTypes.map((type) {
+              return ListTile(
+                title: Text(
+                  type.capitalize.toString(),
+                  style: TextStyle(color: cs.onSurface),
+                  textAlign: TextAlign.center,
+                ),
+                onTap: () {
+                  setState(() {
+                    selectedAccountType = type;
+                  });
+                  Navigator.pop(sheetContext);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 
@@ -192,14 +200,11 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -210,15 +215,15 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Edit Profile',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -233,12 +238,12 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Basic Information',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -253,10 +258,10 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: cs.surfaceContainerHighest.withOpacity(0.65),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
@@ -266,13 +271,13 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                               Text(
                                 selectedAccountType.toString().capitalize ?? 'Account Type',
                                 style: TextStyle(
-                                  color: selectedAccountType != null ? Colors.white : Colors.white60,
+                                  color: selectedAccountType != null ? cs.onSurface : cs.onSurfaceVariant,
                                   fontSize: 16,
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_drop_down,
-                                color: Colors.white70,
+                                color: cs.onSurfaceVariant,
                                 size: 24,
                               ),
                             ],
@@ -284,35 +289,35 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         controller: bioController,
                         maxLines: 4,
                         maxLength: 200,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: cs.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Bio',
-                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                          hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.85)),
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.1),
+                          fillColor: cs.surfaceContainerHighest.withOpacity(0.65),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.3),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.3),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Colors.white,
+                            borderSide: BorderSide(
+                              color: cs.primary,
                               width: 2,
                             ),
                           ),
                           contentPadding: const EdgeInsets.all(16),
-                          counterStyle: const TextStyle(color: Colors.white70),
+                          counterStyle: TextStyle(color: cs.onSurfaceVariant),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -321,10 +326,10 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: cs.surfaceContainerHighest.withOpacity(0.65),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
@@ -334,13 +339,13 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                               Text(
                                 selectedDate != null ? DateFormat('MMM dd, yyyy').format(selectedDate!) : 'Date of Birth',
                                 style: TextStyle(
-                                  color: selectedDate != null ? Colors.white : Colors.white60,
+                                  color: selectedDate != null ? cs.onSurface : cs.onSurfaceVariant,
                                   fontSize: 16,
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.calendar_today,
-                                color: Colors.white70,
+                                color: cs.onSurfaceVariant,
                                 size: 20,
                               ),
                             ],
@@ -351,29 +356,29 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: cs.surfaceContainerHighest.withOpacity(0.65),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: cs.outline.withOpacity(0.45),
                             width: 1,
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: selectedGender,
-                            hint: const Text(
+                            hint: Text(
                               'Gender',
-                              style: TextStyle(color: Colors.white60),
+                              style: TextStyle(color: cs.onSurfaceVariant),
                             ),
                             isExpanded: true,
-                            dropdownColor: const Color(0xFF1A1A1A),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            dropdownColor: context.proxi.surfaceCard,
+                            style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 16,
                             ),
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_drop_down,
-                              color: Colors.white70,
+                              color: cs.onSurfaceVariant,
                             ),
                             items: genders.map((String gender) {
                               return DropdownMenuItem<String>(
@@ -390,12 +395,12 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'Location',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -410,10 +415,10 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: cs.surfaceContainerHighest.withOpacity(0.65),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
@@ -423,13 +428,13 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                               Text(
                                 selectedState ?? 'State',
                                 style: TextStyle(
-                                  color: selectedState != null ? Colors.white : Colors.white60,
+                                  color: selectedState != null ? cs.onSurface : cs.onSurfaceVariant,
                                   fontSize: 16,
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_drop_down,
-                                color: Colors.white70,
+                                color: cs.onSurfaceVariant,
                                 size: 24,
                               ),
                             ],
@@ -437,12 +442,12 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'Professional',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),

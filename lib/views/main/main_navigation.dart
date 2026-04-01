@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/circles_controller.dart';
 import '../../controllers/navigation_controller.dart';
@@ -26,17 +28,6 @@ class _MainNavigationState extends State<MainNavigation> {
   final ApiService _apiService = ApiService();
   final AuthController _authController = Get.find<AuthController>();
   final GlobalKey<NavigatorState> _circlesKey = GlobalKey<NavigatorState>();
-
-  void _updateStatusBar() {
-    // All screens now have dark background, so use light status bar icons
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-    );
-  }
 
   Future<void> _updateUserLocation() async {
     try {
@@ -86,7 +77,6 @@ class _MainNavigationState extends State<MainNavigation> {
     } else {
       _navigationController = Get.put(NavigationController());
     }
-    _updateStatusBar();
     _updateUserLocation();
   }
 
@@ -112,59 +102,67 @@ class _MainNavigationState extends State<MainNavigation> {
           }
         }
       },
-      child: Obx(() => Scaffold(
-        body: IndexedStack(
-          index: _navigationController.currentIndex.value,
-          children: [
-            const DiscoverScreen(),
-            PulseScreen(isVisible: _navigationController.currentIndex.value == 1),
-            const CirclesScreen(),
-            const MessagesScreen(),
-            const ProfileScreen(),
-          ],
-        ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withOpacity(0.1),
-                width: 0.5,
+      child: Obx(() => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: AppTheme.systemUiOverlayFor(context),
+        child: Scaffold(
+          body: IndexedStack(
+            index: _navigationController.currentIndex.value,
+            children: [
+              const DiscoverScreen(),
+              PulseScreen(isVisible: _navigationController.currentIndex.value == 1),
+              const CirclesScreen(),
+              const MessagesScreen(),
+              const ProfileScreen(),
+            ],
+          ),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: context.proxi.bottomNavBackground,
+              border: Border(
+                top: BorderSide(
+                  color: ProxiPalette.pureWhite.withOpacity(0.12),
+                  width: 0.5,
+                ),
               ),
             ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    icon: Icons.home,
-                    label: 'Home',
-                    index: 0,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.near_me,
-                    label: 'Pulse',
-                    index: 1,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.group,
-                    label: 'Circles',
-                    index: 2,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.chat_bubble,
-                    label: 'Messages',
-                    index: 3,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.person,
-                    label: 'Profile',
-                    index: 4,
-                  ),
-                ],
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.home,
+                      label: 'Home',
+                      index: 0,
+                    ),
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.near_me,
+                      label: 'Pulse',
+                      index: 1,
+                    ),
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.group,
+                      label: 'Circles',
+                      index: 2,
+                    ),
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.chat_bubble,
+                      label: 'Messages',
+                      index: 3,
+                    ),
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.person,
+                      label: 'Profile',
+                      index: 4,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -174,16 +172,18 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   Widget _buildNavItem({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required int index,
   }) {
     final isSelected = _navigationController.currentIndex.value == index;
+    final selectedBg = ProxiPalette.electricBlue.withOpacity(0.35);
+    final unselectedIcon = ProxiPalette.skyBlue.withOpacity(0.85);
     return Expanded(
       child: GestureDetector(
         onTap: () {
           _navigationController.navigateToTab(index);
-          _updateStatusBar();
 
           // Refresh circles data when navigating to circles screen
           if (index == 2) {
@@ -193,7 +193,7 @@ class _MainNavigationState extends State<MainNavigation> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+            color: isSelected ? selectedBg : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -201,14 +201,14 @@ class _MainNavigationState extends State<MainNavigation> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : Colors.white60,
+                color: isSelected ? ProxiPalette.pureWhite : unselectedIcon,
                 size: 24,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white60,
+                  color: isSelected ? ProxiPalette.pureWhite : unselectedIcon,
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),

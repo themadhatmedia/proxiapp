@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../widgets/safe_avatar.dart';
 import 'user_profile_detail_screen.dart';
 
@@ -30,17 +32,14 @@ class NearbyUsersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final rawUsers = nearbyUsersData['users'] as List<dynamic>? ?? [];
     final users = _sortUsersByMatchScore(rawUsers);
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1A1A2E), Color(0xFF0F0F1E)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        gradient: AppTheme.scaffoldGradient(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -49,7 +48,7 @@ class NearbyUsersScreen extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: cs.onSurfaceVariant.withOpacity(0.35),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -59,15 +58,15 @@ class NearbyUsersScreen extends StatelessWidget {
               children: [
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: Icon(Icons.close, color: cs.onSurface),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Nearby Users',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: cs.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -81,10 +80,10 @@ class NearbyUsersScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: context.proxi.surfaceCard,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: cs.outline.withOpacity(0.35),
                   width: 1,
                 ),
               ),
@@ -98,15 +97,15 @@ class NearbyUsersScreen extends StatelessWidget {
                         'Users Found',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         users.length.toString(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
-                          color: Colors.white,
+                          color: cs.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -119,15 +118,15 @@ class NearbyUsersScreen extends StatelessWidget {
                         'Search Radius',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '$selectedRadius YDS',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
-                          color: Colors.white,
+                          color: cs.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -147,14 +146,14 @@ class NearbyUsersScreen extends StatelessWidget {
                         Icon(
                           Icons.people_outline,
                           size: 80,
-                          color: Colors.white.withOpacity(0.3),
+                          color: cs.onSurfaceVariant.withOpacity(0.35),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'No users found nearby',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.white.withOpacity(0.7),
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -176,6 +175,7 @@ class NearbyUsersScreen extends StatelessWidget {
   }
 
   Widget _buildUserCard(BuildContext context, dynamic user) {
+    final cs = Theme.of(context).colorScheme;
     final userData = user['user'] ?? user;
     final profile = userData['profile'] ?? {};
 
@@ -189,10 +189,10 @@ class NearbyUsersScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: context.proxi.surfaceCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: cs.outline.withOpacity(0.35),
           width: 1,
         ),
       ),
@@ -247,10 +247,10 @@ class NearbyUsersScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: cs.onSurface,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -260,7 +260,7 @@ class NearbyUsersScreen extends StatelessWidget {
                         bio,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -272,14 +272,14 @@ class NearbyUsersScreen extends StatelessWidget {
                         Icon(
                           Icons.location_on,
                           size: 16,
-                          color: Colors.white.withOpacity(0.5),
+                          color: cs.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${distance.toStringAsFixed(0)} yards away',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.white.withOpacity(0.5),
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -306,8 +306,8 @@ class NearbyUsersScreen extends StatelessWidget {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: cs.surfaceContainerHighest,
+                    foregroundColor: cs.onSurface,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -347,8 +347,8 @@ class NearbyUsersScreen extends StatelessWidget {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../config/theme/theme_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/navigation_controller.dart';
@@ -109,11 +110,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isDark = themeController.isDarkMode;
+      themeController.isDarkMode;
       return Scaffold(
         body: Container(
           decoration: BoxDecoration(
-            gradient: AppTheme.getGradient(isDark),
+            gradient: AppTheme.scaffoldGradient(context),
           ),
           child: SafeArea(
             child: SingleChildScrollView(
@@ -143,6 +144,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildLogo() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: 100.0,
       height: 100.0,
@@ -151,7 +153,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: cs.shadow.withOpacity(0.25),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -170,10 +172,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildTitle() {
-    return const Text(
+    final cs = Theme.of(context).colorScheme;
+    return Text(
       'Proxi',
       style: TextStyle(
-        color: Colors.white,
+        color: cs.onSurface,
         fontSize: 48,
         fontWeight: FontWeight.bold,
       ),
@@ -181,32 +184,34 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildSubtitle() {
-    return const Text(
+    final cs = Theme.of(context).colorScheme;
+    return Text(
       'Proximity-based networking efficiency',
       style: TextStyle(
-        color: Colors.white,
+        color: cs.onSurfaceVariant,
         fontSize: 14,
       ),
     );
   }
 
   Widget _buildTabBar() {
+    final proxi = context.proxi;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: proxi.tabBarTrack,
         borderRadius: BorderRadius.circular(28.0),
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: Colors.white.withOpacity(0.25),
+          color: proxi.tabIndicator,
           borderRadius: BorderRadius.circular(28.0),
           shape: BoxShape.rectangle,
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white.withOpacity(0.6),
+        labelColor: proxi.tabLabelSelected,
+        unselectedLabelColor: proxi.tabLabelUnselected,
         labelStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -269,7 +274,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               child: Text(
                 'Forgot Password?',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -298,16 +303,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             onPressed: () {
               ToastHelper.showInfo('Biometric authentication will be available soon');
             },
-            backgroundColor: Colors.white.withOpacity(0.2),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            textColor: Theme.of(context).colorScheme.onSurface,
           ),
-          // const Spacer(),
-          // const Text(
-          //   'Proxi v.0.1.0.1205.2',
-          //   style: TextStyle(
-          //     color: Colors.white60,
-          //     fontSize: 12,
-          //   ),
-          // ),
         ],
       ),
     );
@@ -380,14 +378,15 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             onPressed: () {
               ToastHelper.showInfo('Biometric authentication will be available soon');
             },
-            backgroundColor: Colors.white.withOpacity(0.2),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            textColor: Theme.of(context).colorScheme.onSurface,
           ),
           const SizedBox(height: 16),
           Text(
             'By creating an account, you agree to our Terms of Service and Privacy Policy',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 14,
             ),
           ),

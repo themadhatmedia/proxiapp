@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/models/post_model.dart';
@@ -422,15 +424,16 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
     final isLoading = _loadingComments[postId] ?? false;
     final canComment = post.permissions?.canComment ?? false;
     final canReply = post.permissions?.canReply ?? false;
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
+        color: context.proxi.surfaceCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.05),
+          color: cs.outline.withOpacity(0.25),
           width: 1,
         ),
       ),
@@ -440,30 +443,30 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Comments',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               TextButton(
                 onPressed: () => _handleComment(post),
-                child: const Text(
+                child: Text(
                   'Hide',
-                  style: TextStyle(color: Colors.blue),
+                  style: TextStyle(color: cs.primary),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: SpinKitWave(
-                  color: Colors.blue,
+                  color: cs.primary,
                   size: 30.0,
                 ),
               ),
@@ -475,7 +478,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                 child: Text(
                   'No comments yet',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    color: cs.onSurfaceVariant,
                     fontSize: 14,
                   ),
                 ),
@@ -492,7 +495,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: cs.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -500,7 +503,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                     Text(
                       'Replying to ${_replyToUserNames[postId]}',
                       style: TextStyle(
-                        color: Colors.blue[300],
+                        color: cs.primary,
                         fontSize: 13,
                       ),
                     ),
@@ -514,9 +517,9 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                           _replyToCommentCanReply[postId] = false;
                         });
                       },
-                      child: const Icon(
+                      child: Icon(
                         Icons.close,
-                        color: Colors.blue,
+                        color: cs.primary,
                         size: 18,
                       ),
                     ),
@@ -529,12 +532,12 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                   child: TextField(
                     controller: _getCommentController(postId),
                     focusNode: _getCommentFocusNode(postId),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: InputDecoration(
                       hintText: _replyToCommentIds[postId] != null ? 'Write a reply...' : 'Write a comment...',
-                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      hintStyle: TextStyle(color: cs.onSurfaceVariant),
                       filled: true,
-                      fillColor: Colors.grey[900],
+                      fillColor: cs.surfaceContainerHighest.withOpacity(0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -548,7 +551,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                 IconButton(
                   onPressed: () => _submitComment(postId),
                   icon: const Icon(Icons.send),
-                  color: Colors.blue,
+                  color: cs.primary,
                 ),
               ],
             ),
@@ -557,17 +560,17 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[900],
+                color: cs.surfaceContainerHighest.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                  Icon(Icons.info_outline, color: cs.onSurfaceVariant, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'You cannot add comments to this post',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
                   ),
                 ],
@@ -615,19 +618,15 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              _buildHeader(context),
               Expanded(
-                child: _buildBody(),
+                child: _buildBody(context),
               ),
             ],
           ),
@@ -636,35 +635,27 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.black.withOpacity(0.5),
-            Colors.transparent,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      color: context.proxi.surfaceCard,
       child: Row(
         children: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back,
-              color: Colors.white,
+              color: cs.onSurface,
             ),
           ),
           Expanded(
             child: Text(
               '${widget.userName}\'s Posts',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: cs.onSurface,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -675,7 +666,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
               '${_posts.length} ${_posts.length == 1 ? 'post' : 'posts'}',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.6),
+                color: cs.onSurfaceVariant,
               ),
             ),
         ],
@@ -683,11 +674,12 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          color: Colors.white,
+          color: cs.primary,
         ),
       );
     }
@@ -699,7 +691,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
           children: [
             Icon(
               Icons.error_outline,
-              color: Colors.white.withOpacity(0.4),
+              color: cs.onSurfaceVariant.withOpacity(0.5),
               size: 64,
             ),
             const SizedBox(height: 16),
@@ -708,7 +700,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
               child: Text(
                 _errorMessage!,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: cs.onSurfaceVariant,
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -718,8 +710,8 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
             ElevatedButton(
               onPressed: _loadUserPosts,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 12,
@@ -728,11 +720,12 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Retry',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
+                  color: cs.onPrimary,
                 ),
               ),
             ),
@@ -748,14 +741,14 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
           children: [
             Icon(
               Icons.article_outlined,
-              color: Colors.white.withOpacity(0.2),
+              color: cs.onSurfaceVariant.withOpacity(0.35),
               size: 80,
             ),
             const SizedBox(height: 16),
             Text(
               'No posts yet',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: cs.onSurfaceVariant,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
@@ -764,7 +757,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
             Text(
               'This user hasn\'t shared any posts',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
+                color: cs.onSurfaceVariant.withOpacity(0.85),
                 fontSize: 15,
               ),
             ),
@@ -775,8 +768,8 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
 
     return RefreshIndicator(
       onRefresh: _handleRefresh,
-      color: Colors.white,
-      backgroundColor: const Color(0xFF1A1A1A),
+      color: cs.primary,
+      backgroundColor: context.proxi.surfaceCard,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 16, top: 8),
         itemCount: _posts.length,

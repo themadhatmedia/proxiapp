@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/progress_dialog_helper.dart';
@@ -22,7 +24,7 @@ class UserProfileDetailScreen extends StatefulWidget {
   State<UserProfileDetailScreen> createState() => _UserProfileDetailScreenState();
 }
 
-class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
+class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with SingleTickerProviderStateMixin {
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
 
@@ -30,6 +32,8 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
   bool inOuterCircle = false;
   String innerRequestStatus = 'not_sent';
   int? pendingRequestId;
+  bool isisFavorite = false;
+  bool _isTogglingFavorite = false;
 
   @override
   void initState() {
@@ -37,6 +41,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     inInnerCircle = widget.userData['in_inner_circle'] ?? false;
     inOuterCircle = widget.userData['in_outer_circle'] ?? false;
     innerRequestStatus = widget.userData['inner_request_status'] ?? 'not_sent';
+
+    final userData = widget.userData['user'] ?? widget.userData;
+    isisFavorite = userData['isFavorite'] ?? false;
 
     if (widget.userData['inner_request_id'] != null) {
       pendingRequestId = widget.userData['inner_request_id'];
@@ -49,38 +56,39 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: Colors.black,
+          backgroundColor: cs.surfaceContainerHighest,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Send Inner Circle Request?',
             style: TextStyle(
-              color: Colors.white,
+              color: cs.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
+          content: Text(
             'This will send a request to add this user to your inner circle. They will need to accept your request.',
             style: TextStyle(
-              color: Colors.white70,
+              color: cs.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -146,38 +154,39 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: Colors.black,
+          backgroundColor: cs.surfaceContainerHighest,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Add to Outer Circle?',
             style: TextStyle(
-              color: Colors.white,
+              color: cs.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             innerRequestStatus == 'pending' ? 'Your inner circle request will be cancelled and this user will be added to your outer circle instead.' : 'This will add the user to your outer circle immediately without requiring their approval.',
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -243,12 +252,62 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     }
   }
 
+  Future<void> _toggleFavorite() async {
+    if (_isTogglingFavorite) return;
+
+    final userData = widget.userData['user'] ?? widget.userData;
+    final userId = userData['id'];
+
+    if (userId == null) return;
+
+    final token = authController.token;
+    if (token == null) return;
+
+    setState(() {
+      _isTogglingFavorite = true;
+    });
+
+    try {
+      if (isisFavorite) {
+        await apiService.removeFromFavorites(
+          token: token,
+          userId: userId,
+        );
+        setState(() {
+          isisFavorite = false;
+        });
+        widget.userData['isFavorite'] = false;
+        ToastHelper.showSuccess('Removed from favorites');
+      } else {
+        await apiService.addToFavorites(
+          token: token,
+          userId: userId,
+        );
+        setState(() {
+          isisFavorite = true;
+        });
+        widget.userData['isFavorite'] = true;
+        ToastHelper.showSuccess('Added to favorites');
+      }
+    } catch (e) {
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
+      ToastHelper.showError(errorMessage);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTogglingFavorite = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final userData = widget.userData['user'] ?? widget.userData;
     final profile = userData['profile'] ?? {};
 
-    final name = userData['name'] ?? profile['display_name'] ?? 'Unknown User';
+    final name = profile['display_name'] ?? userData['name'] ?? 'Unknown User';
     final bio = profile['bio'] ?? '';
     final avatarUrl = profile['avatar'];
     final profession = profile['profession'];
@@ -260,18 +319,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     final coreValues = profile['core_values'] as List<dynamic>? ?? [];
 
     return Container(
-      decoration: const BoxDecoration(
-        // gradient: LinearGradient(
-        //   colors: [Colors.white, Color(0xFF3D5A80)],
-        //   begin: Alignment.topCenter,
-        //   end: Alignment.bottomCenter,
-        // ),
-        gradient: LinearGradient(
-          colors: [Color(0xFF1A1A2E), Color(0xFF0F0F1E)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        gradient: AppTheme.scaffoldGradient(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -280,7 +330,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: cs.onSurfaceVariant.withOpacity(0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -291,17 +341,25 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               children: [
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: Icon(Icons.close, color: cs.onSurface),
                 ),
-                const Text(
+                Text(
                   'Profile',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: cs.onSurface,
                   ),
                 ),
-                const SizedBox(width: 48),
+                IconButton(
+                  onPressed: _isTogglingFavorite ? null : _toggleFavorite,
+                  icon: _isTogglingFavorite
+                      ? const _BeatingHeart()
+                      : Icon(
+                          isisFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isisFavorite ? Colors.red : cs.onSurface,
+                        ),
+                ),
               ],
             ),
           ),
@@ -318,7 +376,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white,
+                        color: cs.primary,
                         width: 3,
                       ),
                     ),
@@ -331,10 +389,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   const SizedBox(height: 16),
                   Text(
                     name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: cs.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -385,27 +443,27 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: cs.primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
+                              color: cs.outline.withOpacity(0.45),
                               width: 1,
                             ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.location_on,
                                 size: 16,
-                                color: Colors.white,
+                                color: cs.primary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${distance.toStringAsFixed(0)} yds',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: cs.onSurface,
                                 ),
                               ),
                             ],
@@ -418,9 +476,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     Text(
                       bio,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
-                        color: Colors.white70,
+                        color: cs.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -430,10 +488,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: cs.surfaceContainerHighest.withOpacity(0.85),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: cs.outline.withOpacity(0.35),
                           width: 1,
                         ),
                       ),
@@ -442,16 +500,16 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                           if (profession != null) ...[
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.work,
-                                  color: Colors.white70,
+                                  color: cs.onSurfaceVariant,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   profession,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: cs.onSurface,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -465,16 +523,16 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                           if (city != null || state != null) ...[
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.location_city,
-                                  color: Colors.white70,
+                                  color: cs.onSurfaceVariant,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   _formatLocation(city, state),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: cs.onSurface,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -487,14 +545,14 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   ],
                   if (interests.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Interests',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                     ),
@@ -511,23 +569,22 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: ProxiPalette.skyBlue.withOpacity(0.22),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.home,
-                                  // color: Colors.white,
-                                  color: Colors.white,
+                                  color: cs.primary,
                                   size: 16.0,
                                 ),
                                 const SizedBox(width: 5.0),
                                 Text(
                                   interest,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: cs.onSurface,
                                     fontSize: 14.0,
                                   ),
                                 ),
@@ -540,14 +597,14 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   ],
                   if (coreValues.isNotEmpty) ...[
                     const SizedBox(height: 20),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Core Values',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                     ),
@@ -564,13 +621,13 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.2),
+                              color: ProxiPalette.vibrantPurple.withOpacity(0.18),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               value.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: cs.onSurface,
                                 fontSize: 14,
                               ),
                             ),
@@ -581,19 +638,19 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   ],
                   if (_hasSocialLinks(profile)) ...[
                     const SizedBox(height: 20),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Social & Service Links',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildSocialLinks(profile),
+                    _buildSocialLinks(context, profile),
                   ],
                   const SizedBox(height: 24),
                 ],
@@ -604,22 +661,24 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
             Container(
               padding: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
+                color: cs.surfaceContainerHighest.withOpacity(0.9),
                 border: Border(
                   top: BorderSide(
-                    color: Colors.white.withOpacity(0.1),
+                    color: cs.outline.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
               ),
-              child: _buildActionButtons(),
+              child: _buildActionButtons(context),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     if (inInnerCircle) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -634,7 +693,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle,
               color: Colors.green,
               size: 20,
@@ -645,7 +704,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.green,
+                color: Colors.green.shade700,
               ),
             ),
           ],
@@ -657,10 +716,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: cs.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: cs.outline.withOpacity(0.4),
             width: 1,
           ),
         ),
@@ -669,7 +728,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
           children: [
             Icon(
               Icons.group,
-              color: Colors.white.withOpacity(0.7),
+              color: cs.primary,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -678,7 +737,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.7),
+                color: cs.onSurface,
               ),
             ),
           ],
@@ -692,28 +751,28 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: cs.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.white.withOpacity(0.5),
+                color: cs.outline.withOpacity(0.45),
                 width: 1,
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.hourglass_empty,
-                  color: Colors.white,
+                  color: cs.primary,
                   size: 20,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Inner Circle Request Sent',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white,
+                    color: cs.onSurface,
                   ),
                 ),
               ],
@@ -722,11 +781,11 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: OutlinedButton(
               onPressed: _addToOuterCircle,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.2),
-                foregroundColor: Colors.white,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: cs.primary,
+                side: BorderSide(color: cs.primary),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -760,7 +819,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle,
               color: Colors.green,
               size: 20,
@@ -771,7 +830,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.green,
+                color: Colors.green.shade700,
               ),
             ),
           ],
@@ -787,8 +846,8 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               child: ElevatedButton(
                 onPressed: _sendInnerCircleRequest,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -806,11 +865,11 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton(
+              child: OutlinedButton(
                 onPressed: _addToOuterCircle,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  foregroundColor: Colors.white,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.primary,
+                  side: BorderSide(color: cs.primary),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -858,7 +917,8 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
     return (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) || (profile['snapchat_url'] != null && profile['snapchat_url'].toString().isNotEmpty) || (profile['linkedin_url'] != null && profile['linkedin_url'].toString().isNotEmpty) || (profile['facebook_url'] != null && profile['facebook_url'].toString().isNotEmpty) || (profile['x_url'] != null && profile['x_url'].toString().isNotEmpty) || (profile['tiktok_url'] != null && profile['tiktok_url'].toString().isNotEmpty) || (profile['other_url'] != null && profile['other_url'].toString().isNotEmpty);
   }
 
-  Widget _buildSocialLinks(Map<String, dynamic> profile) {
+  Widget _buildSocialLinks(BuildContext context, Map<String, dynamic> profile) {
+    final cs = Theme.of(context).colorScheme;
     final links = <Map<String, String>>[];
 
     print('profile: $profile');
@@ -898,10 +958,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
+                    color: cs.outline.withOpacity(0.35),
                     width: 1,
                   ),
                 ),
@@ -909,15 +969,15 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                   children: [
                     Icon(
                       _getSocialIcon(link['title']!),
-                      color: Colors.white,
+                      color: cs.primary,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         link['title']!,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -925,7 +985,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
                     ),
                     Icon(
                       Icons.open_in_new,
-                      color: Colors.white.withOpacity(0.5),
+                      color: cs.onSurfaceVariant,
                       size: 18,
                     ),
                   ],
@@ -982,5 +1042,48 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> {
         ToastHelper.showError('Invalid link');
       }
     }
+  }
+}
+
+class _BeatingHeart extends StatefulWidget {
+  const _BeatingHeart();
+
+  @override
+  State<_BeatingHeart> createState() => _BeatingHeartState();
+}
+
+class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: const Icon(
+        Icons.favorite,
+        color: Colors.red,
+        size: 24,
+      ),
+    );
   }
 }

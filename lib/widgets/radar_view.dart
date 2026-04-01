@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../config/theme/proxi_palette.dart';
+
 class RadarView extends StatefulWidget {
   final int userCount;
   final VoidCallback onTap;
@@ -29,6 +31,8 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   final List<UserDot> _userDots = [];
+  Color? _matchColorHigh;
+  Color? _matchColorMid;
 
   @override
   void initState() {
@@ -58,8 +62,19 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
       _animationController.repeat();
       _pulseController.repeat(reverse: true);
     }
+  }
 
-    _generateUserDots();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final cs = Theme.of(context).colorScheme;
+    final high = cs.primary;
+    final mid = cs.onSurface;
+    if (_matchColorHigh != high || _matchColorMid != mid) {
+      _matchColorHigh = high;
+      _matchColorMid = mid;
+      _generateUserDots();
+    }
   }
 
   @override
@@ -82,10 +97,12 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
   }
 
   Color _getColorForMatchScore(int matchScore) {
+    final high = _matchColorHigh ?? Colors.white;
+    final mid = _matchColorMid ?? Colors.white;
     if (matchScore > 80) {
-      return Colors.white;
+      return high;
     } else if (matchScore >= 50) {
-      return Colors.white;
+      return mid;
     } else {
       return const Color(0xFFE74C3C);
     }
@@ -95,6 +112,7 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
     _userDots.clear();
 
     if (!widget.hasSearched || widget.usersData == null) {
+      _userDots.clear();
       return;
     }
 
@@ -130,6 +148,10 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final lineColor = cs.onSurface.withOpacity(0.35);
+    final centerFill = cs.primary;
+    final dotBorderColor = cs.onSurface.withOpacity(0.8);
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
@@ -139,8 +161,8 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              Colors.white.withOpacity(0.1),
-              const Color(0xFF3D5A80).withOpacity(0.05),
+              cs.primary.withOpacity(0.12),
+              context.proxi.surfaceCard.withOpacity(0.4),
               Colors.transparent,
             ],
             stops: const [0.0, 0.5, 1.0],
@@ -154,6 +176,9 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
                 userDots: _userDots,
                 animationValue: _animationController.value,
                 pulseValue: _pulseAnimation.value,
+                lineColor: lineColor,
+                centerFill: centerFill,
+                dotBorderColor: dotBorderColor,
               ),
               size: const Size(320, 320),
             );
@@ -182,11 +207,17 @@ class RadarPainter extends CustomPainter {
   final List<UserDot> userDots;
   final double animationValue;
   final double pulseValue;
+  final Color lineColor;
+  final Color centerFill;
+  final Color dotBorderColor;
 
   RadarPainter({
     required this.userDots,
     required this.animationValue,
     required this.pulseValue,
+    required this.lineColor,
+    required this.centerFill,
+    required this.dotBorderColor,
   });
 
   @override
@@ -195,13 +226,13 @@ class RadarPainter extends CustomPainter {
     final maxRadius = size.width / 2;
 
     final circlePaint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = lineColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
     final pulseOpacity = 0.1 + (0.15 * ((pulseValue - 0.95) / 0.1));
     final pulseGlowPaint = Paint()
-      ..color = Colors.white.withOpacity(pulseOpacity)
+      ..color = lineColor.withOpacity(pulseOpacity * 1.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
@@ -215,14 +246,14 @@ class RadarPainter extends CustomPainter {
     canvas.drawCircle(center, maxRadius * pulseValue, circlePaint);
 
     final centerIconPaint = Paint()
-      ..color = Colors.white
+      ..color = centerFill
       ..style = PaintingStyle.fill;
 
     final centerPulseSize = 8 * pulseValue;
     canvas.drawCircle(center, centerPulseSize, centerIconPaint);
 
     final centerBorderPaint = Paint()
-      ..color = Colors.white
+      ..color = dotBorderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -250,7 +281,7 @@ class RadarPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), 6, dotPaint);
 
       final dotBorderPaint = Paint()
-        ..color = Colors.white.withOpacity(0.8)
+        ..color = dotBorderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
 
@@ -260,6 +291,11 @@ class RadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(RadarPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue || oldDelegate.pulseValue != pulseValue || oldDelegate.userDots != userDots;
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.pulseValue != pulseValue ||
+        oldDelegate.userDots != userDots ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.centerFill != centerFill ||
+        oldDelegate.dotBorderColor != dotBorderColor;
   }
 }

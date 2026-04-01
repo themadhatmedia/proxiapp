@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../widgets/custom_button.dart';
 
 class SetupPermissionsScreen extends StatefulWidget {
@@ -55,14 +57,11 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -73,15 +72,15 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Setup Permissions',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -96,11 +95,11 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Proxi needs these permissions to work properly',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white70,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -154,12 +153,13 @@ class _PermissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: isGranted ? null : onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: context.proxi.surfaceCard,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -168,12 +168,12 @@ class _PermissionCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isGranted ? Colors.green : Colors.white.withOpacity(0.3),
+                color: isGranted ? Colors.green : cs.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: Colors.white,
+                color: isGranted ? Colors.white : cs.onSurface,
                 size: 24,
               ),
             ),
@@ -184,10 +184,10 @@ class _PermissionCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: cs.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -195,7 +195,7 @@ class _PermissionCard extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.7),
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
                 ],

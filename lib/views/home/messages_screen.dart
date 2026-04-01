@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../config/theme/app_theme.dart';
+
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
 
@@ -8,63 +10,64 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  bool _isRefreshing = false;
-
   Future<void> _handleRefresh() async {
-    setState(() => _isRefreshing = true);
     await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isRefreshing = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   'Messages',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: cs.onSurface,
                   ),
                 ),
               ),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _handleRefresh,
-                  color: Colors.white,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble,
-                          size: 80,
-                          color: Colors.white.withOpacity(0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Messages Coming Soon',
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.white.withOpacity(0.7),
-                            fontWeight: FontWeight.w500,
+                  color: cs.primary,
+                  child: ListView(
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.5,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble,
+                                size: 80,
+                                color: cs.onSurfaceVariant.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Messages Coming Soon',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
