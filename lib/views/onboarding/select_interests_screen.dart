@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/selection_styles.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../../utils/toast_helper.dart';
@@ -36,14 +38,12 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -54,15 +54,15 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Select Your Interests',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -80,26 +80,28 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
                       Obx(() {
                         final selectedCount = controller.selectedInterestIds.length;
                         return Text(
-                          selectedCount > 0 ? 'Choose activities you enjoy ($selectedCount selected, at least 1 required)' : 'Choose activities you enjoy (at least 1 required)',
-                          style: const TextStyle(
+                          selectedCount > 0
+                              ? 'Choose activities you enjoy ($selectedCount selected, at least 1 required)'
+                              : 'Choose activities you enjoy (at least 1 required)',
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white70,
+                            color: cs.onSurfaceVariant,
                           ),
                         );
                       }),
                       const SizedBox(height: 32),
                       Obx(() {
                         if (controller.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                          return Center(
+                            child: CircularProgressIndicator(color: cs.primary),
                           );
                         }
 
                         if (controller.availableInterests.isEmpty) {
-                          return const Center(
+                          return Center(
                             child: Text(
                               'No interests available',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: cs.onSurfaceVariant),
                             ),
                           );
                         }
@@ -123,25 +125,13 @@ class _SelectInterestsScreenState extends State<SelectInterestsScreen> {
                                 onTap: () => controller.toggleInterest(interest.id),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  // padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: isCurrentlySelected ? Colors.white : Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isCurrentlySelected ? Colors.white : Colors.white.withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                  ),
+                                  decoration: SelectionStyles.chipBox(context, isCurrentlySelected),
                                   child: Center(
                                     child: Text(
                                       interest.name,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: isCurrentlySelected ? Colors.black : Colors.white,
-                                      ),
+                                      style: SelectionStyles.chipLabel(context, isCurrentlySelected),
                                     ),
                                   ),
                                 ),

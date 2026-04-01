@@ -16,41 +16,43 @@ class SafeAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.grey[800],
+        color: cs.primary.withOpacity(0.85),
       ),
       child: ClipOval(
-        child: _buildContent(),
+        child: _buildContent(cs),
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(ColorScheme cs) {
     if (imageUrl == null || imageUrl!.isEmpty) {
-      return _buildFallback();
+      return _buildFallback(cs);
     }
 
     return Image.network(
       imageUrl!,
       fit: fit,
-      errorBuilder: (context, error, stackTrace) => _buildFallback(),
+      errorBuilder: (context, error, stackTrace) => _buildFallback(Theme.of(context).colorScheme),
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        return _buildFallback();
+        return _buildFallback(Theme.of(context).colorScheme);
       },
     );
   }
 
-  Widget _buildFallback() {
+  Widget _buildFallback(ColorScheme cs) {
     return Center(
       child: Text(
         fallbackText.isNotEmpty ? fallbackText[0].toUpperCase() : 'U',
         style: TextStyle(
-          color: Colors.white,
+          color: cs.onPrimary,
           fontSize: size * 0.4,
           fontWeight: FontWeight.bold,
         ),

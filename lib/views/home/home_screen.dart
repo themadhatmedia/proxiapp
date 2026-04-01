@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../auth/auth_screen.dart';
 
@@ -32,35 +34,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   'Home',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
-              _buildToggleTabs(),
+              _buildToggleTabs(context),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildWelcomeTab(authController),
-                    _buildActivityTab(),
-                    _buildSettingsTab(authController),
+                    _buildWelcomeTab(context, authController),
+                    _buildActivityTab(context),
+                    _buildSettingsTab(context, authController),
                   ],
                 ),
               ),
@@ -71,25 +69,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildToggleTabs() {
+  Widget _buildToggleTabs(BuildContext context) {
+    final proxi = context.proxi;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: proxi.tabBarTrack,
           borderRadius: BorderRadius.circular(28.0),
         ),
         child: TabBar(
           controller: _tabController,
           indicator: BoxDecoration(
-            color: Colors.white.withOpacity(0.25),
+            color: proxi.tabIndicator,
             borderRadius: BorderRadius.circular(28.0),
             shape: BoxShape.rectangle,
           ),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.6),
+          labelColor: proxi.tabLabelSelected,
+          unselectedLabelColor: proxi.tabLabelUnselected,
           labelStyle: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -104,7 +103,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildWelcomeTab(AuthController authController) {
+  Widget _buildWelcomeTab(BuildContext context, AuthController authController) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -118,17 +118,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.navigation_rounded,
                 size: 50,
-                color: Colors.white,
+                color: cs.primary,
               ),
             ),
             const SizedBox(height: 30),
-            const Text(
+            Text(
               'Welcome to Proxi!',
               style: TextStyle(
-                color: Colors.white,
+                color: cs.onSurface,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
@@ -136,8 +136,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             const SizedBox(height: 20),
             Text(
               'Hello, ${authController.user?.name ?? "User"}',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 20,
               ),
             ),
@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Text(
               authController.user?.email ?? '',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: cs.onSurfaceVariant,
                 fontSize: 16,
               ),
             ),
@@ -155,7 +155,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildActivityTab() {
+  Widget _buildActivityTab(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -165,14 +166,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Icon(
               Icons.timeline,
               size: 80,
-              color: Colors.white.withOpacity(0.3),
+              color: cs.onSurfaceVariant.withOpacity(0.4),
             ),
             const SizedBox(height: 16),
             Text(
               'Activity Feed Coming Soon',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.white.withOpacity(0.7),
+                color: cs.onSurfaceVariant,
               ),
             ),
           ],
@@ -181,23 +182,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildSettingsTab(AuthController authController) {
+  Widget _buildSettingsTab(BuildContext context, AuthController authController) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.settings,
               size: 60,
-              color: Colors.white,
+              color: cs.onSurface,
             ),
             const SizedBox(height: 30),
-            const Text(
+            Text(
               'Settings',
               style: TextStyle(
-                color: Colors.white,
+                color: cs.onSurface,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -212,15 +214,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Get.offAll(() => const AuthScreen());
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: cs.surfaceContainerHighest,
+                  foregroundColor: cs.onSurface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Logout',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: cs.onSurface,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),

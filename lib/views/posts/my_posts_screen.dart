@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/models/post_model.dart';
@@ -138,57 +140,60 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   Future<void> _deletePost(int postId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Delete Post',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+      builder: (dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          backgroundColor: dialogContext.proxi.surfaceCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-        content: const Text(
-          'Are you sure you want to delete this post? This action cannot be undone.',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 15,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 15,
-              ),
+          title: Text(
+            'Delete Post',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.red.withOpacity(0.1),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+          content: Text(
+            'Are you sure you want to delete this post? This action cannot be undone.',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 15,
             ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
@@ -469,15 +474,16 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     final isLoading = _loadingComments[postId] ?? false;
     final canComment = post.permissions?.canComment ?? false;
     final canReply = post.permissions?.canReply ?? false;
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
+        color: context.proxi.surfaceCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.05),
+          color: cs.outline.withOpacity(0.25),
           width: 1,
         ),
       ),
@@ -487,30 +493,30 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Comments',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: cs.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               TextButton(
                 onPressed: () => _handleComment(post),
-                child: const Text(
+                child: Text(
                   'Hide',
-                  style: TextStyle(color: Colors.blue),
+                  style: TextStyle(color: cs.primary),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: SpinKitWave(
-                  color: Colors.blue,
+                  color: cs.primary,
                   size: 30.0,
                 ),
               ),
@@ -522,7 +528,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 child: Text(
                   'No comments yet',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    color: cs.onSurfaceVariant,
                     fontSize: 14,
                   ),
                 ),
@@ -539,7 +545,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: cs.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -547,7 +553,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                     Text(
                       'Replying to ${_replyToUserNames[postId]}',
                       style: TextStyle(
-                        color: Colors.blue[300],
+                        color: cs.primary,
                         fontSize: 13,
                       ),
                     ),
@@ -561,9 +567,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                           _replyToCommentCanReply[postId] = false;
                         });
                       },
-                      child: const Icon(
+                      child: Icon(
                         Icons.close,
-                        color: Colors.blue,
+                        color: cs.primary,
                         size: 18,
                       ),
                     ),
@@ -576,12 +582,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                   child: TextField(
                     controller: _getCommentController(postId),
                     focusNode: _getCommentFocusNode(postId),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: cs.onSurface),
                     decoration: InputDecoration(
                       hintText: _replyToCommentIds[postId] != null ? 'Write a reply...' : 'Write a comment...',
-                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      hintStyle: TextStyle(color: cs.onSurfaceVariant),
                       filled: true,
-                      fillColor: Colors.grey[900],
+                      fillColor: cs.surfaceContainerHighest.withOpacity(0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -595,7 +601,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 IconButton(
                   onPressed: () => _submitComment(postId),
                   icon: const Icon(Icons.send),
-                  color: Colors.blue,
+                  color: cs.primary,
                 ),
               ],
             ),
@@ -604,17 +610,17 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[900],
+                color: cs.surfaceContainerHighest.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
+                  Icon(Icons.info_outline, color: cs.onSurfaceVariant, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'You cannot add comments to this post',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
                   ),
                 ],
@@ -662,19 +668,15 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              _buildHeader(context),
               Expanded(
-                child: _buildBody(),
+                child: _buildBody(context),
               ),
             ],
           ),
@@ -683,35 +685,27 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.black.withOpacity(0.5),
-            Colors.transparent,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      color: context.proxi.surfaceCard,
       child: Row(
         children: [
           IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back,
-              color: Colors.white,
+              color: cs.onSurface,
             ),
           ),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'My Posts',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: cs.onSurface,
             ),
           ),
           const Spacer(),
@@ -720,7 +714,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               '${_posts.length} ${_posts.length == 1 ? 'post' : 'posts'}',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.6),
+                color: cs.onSurfaceVariant,
               ),
             ),
         ],
@@ -728,11 +722,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          color: Colors.white,
+          color: cs.primary,
         ),
       );
     }
@@ -744,7 +739,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           children: [
             Icon(
               Icons.error_outline,
-              color: Colors.white.withOpacity(0.4),
+              color: cs.onSurfaceVariant.withOpacity(0.5),
               size: 64,
             ),
             const SizedBox(height: 16),
@@ -753,7 +748,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               child: Text(
                 _errorMessage!,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: cs.onSurfaceVariant,
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -763,8 +758,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             ElevatedButton(
               onPressed: _loadMyPosts,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 12,
@@ -773,11 +768,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Retry',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
+                  color: cs.onPrimary,
                 ),
               ),
             ),
@@ -793,14 +789,14 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           children: [
             Icon(
               Icons.article_outlined,
-              color: Colors.white.withOpacity(0.2),
+              color: cs.onSurfaceVariant.withOpacity(0.35),
               size: 80,
             ),
             const SizedBox(height: 16),
             Text(
               'No posts yet',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: cs.onSurfaceVariant,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
@@ -809,7 +805,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             Text(
               'Create your first post to get started',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
+                color: cs.onSurfaceVariant.withOpacity(0.85),
                 fontSize: 15,
               ),
             ),
@@ -820,8 +816,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
     return RefreshIndicator(
       onRefresh: _handleRefresh,
-      color: Colors.white,
-      backgroundColor: const Color(0xFF1A1A1A),
+      color: cs.primary,
+      backgroundColor: context.proxi.surfaceCard,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 16, top: 8),
         itemCount: _posts.length,

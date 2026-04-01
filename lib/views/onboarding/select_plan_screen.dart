@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../../utils/toast_helper.dart';
@@ -52,14 +54,11 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -70,15 +69,15 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Choose Your Plan',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -93,27 +92,27 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Select the subscription that works best for you',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white70,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 32),
                       Obx(() {
                         if (onboardingController.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                          return Center(
+                            child: CircularProgressIndicator(color: cs.primary),
                           );
                         }
 
                         if (onboardingController.availablePlans.isEmpty) {
-                          return const Center(
+                          return Center(
                             child: Text(
                               'No plans available',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: cs.onSurface),
                             ),
                           );
                         }
@@ -130,10 +129,10 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                   margin: const EdgeInsets.only(bottom: 16),
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
+                                    color: isSelected ? cs.primary : context.proxi.surfaceCard,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                                      color: isSelected ? cs.primary : cs.outline.withOpacity(0.45),
                                       width: 2,
                                     ),
                                   ),
@@ -148,7 +147,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                             style: TextStyle(
                                               fontSize: 20,
                                               fontWeight: FontWeight.bold,
-                                              color: isSelected ? Colors.black : Colors.white,
+                                              color: isSelected ? cs.onPrimary : cs.onSurface,
                                             ),
                                           ),
                                           Text(
@@ -156,7 +155,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.w600,
-                                              color: isSelected ? Colors.black : Colors.white,
+                                              color: isSelected ? cs.onPrimary : cs.onSurface,
                                             ),
                                           ),
                                         ],
@@ -166,7 +165,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                         plan.description,
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: isSelected ? Colors.black.withOpacity(0.7) : Colors.white60,
+                                          color: isSelected ? cs.onPrimary.withOpacity(0.85) : cs.onSurfaceVariant,
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -174,7 +173,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                                         plan.displayLimits,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: isSelected ? Colors.black.withOpacity(0.8) : Colors.white70,
+                                          color: isSelected ? cs.onPrimary.withOpacity(0.95) : cs.onSurfaceVariant,
                                         ),
                                       ),
                                     ],

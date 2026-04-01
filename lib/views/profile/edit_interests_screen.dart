@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/selection_styles.dart';
 import '../../controllers/profile_controller.dart';
 import '../../widgets/custom_button.dart';
 
@@ -37,14 +39,12 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -55,15 +55,15 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Edit Interests',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -81,26 +81,28 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                       Obx(() {
                         final selectedCount = controller.selectedInterestNames.length;
                         return Text(
-                          selectedCount > 0 ? 'Choose activities you enjoy ($selectedCount selected)' : 'Choose activities you enjoy',
-                          style: const TextStyle(
+                          selectedCount > 0
+                              ? 'Choose activities you enjoy ($selectedCount selected)'
+                              : 'Choose activities you enjoy',
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white70,
+                            color: cs.onSurfaceVariant,
                           ),
                         );
                       }),
                       const SizedBox(height: 24),
                       Obx(() {
                         if (controller.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                          return Center(
+                            child: CircularProgressIndicator(color: cs.primary),
                           );
                         }
 
                         if (controller.availableInterests.isEmpty) {
-                          return const Center(
+                          return Center(
                             child: Text(
                               'No interests available',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: cs.onSurfaceVariant),
                             ),
                           );
                         }
@@ -125,23 +127,12 @@ class _EditInterestsScreenState extends State<EditInterestsScreen> {
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                  ),
+                                  decoration: SelectionStyles.chipBox(context, isSelected),
                                   child: Center(
                                     child: Text(
                                       interest.name,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: isSelected ? Colors.black : Colors.white,
-                                      ),
+                                      style: SelectionStyles.chipLabel(context, isSelected),
                                     ),
                                   ),
                                 ),

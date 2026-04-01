@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/circles_controller.dart';
 import '../../data/models/user_model.dart';
 import '../../utils/progress_dialog_helper.dart';
@@ -82,44 +84,45 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
         return AlertDialog(
-          backgroundColor: Colors.black,
+          backgroundColor: dialogContext.proxi.surfaceCard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Send Inner Circle Request?',
             style: TextStyle(
-              color: Colors.white,
+              color: cs.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
+          content: Text(
             'This will send a request to add this user to your inner circle. They will need to accept your request.',
             style: TextStyle(
-              color: Colors.white70,
+              color: cs.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Send Request'),
+              child: Text('Send Request', style: TextStyle(color: cs.onPrimary)),
             ),
           ],
         );
@@ -138,44 +141,45 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
         return AlertDialog(
-          backgroundColor: Colors.black,
+          backgroundColor: dialogContext.proxi.surfaceCard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Add to Outer Circle?',
             style: TextStyle(
-              color: Colors.white,
+              color: cs.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
+          content: Text(
             'This will add the user to your outer circle immediately without requiring their approval.',
             style: TextStyle(
-              color: Colors.white70,
+              color: cs.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Add to Circle'),
+              child: Text('Add to Circle', style: TextStyle(color: cs.onPrimary)),
             ),
           ],
         );
@@ -191,14 +195,11 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
@@ -208,16 +209,16 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: cs.onSurface),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Search Users',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                     ),
@@ -235,14 +236,14 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                       child: TextField(
                         controller: _searchController,
                         focusNode: _searchFocusNode,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: cs.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Enter keywords to search...',
                           hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
+                            color: cs.onSurfaceVariant,
                           ),
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.1),
+                          fillColor: context.proxi.surfaceCard,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -259,8 +260,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                     ElevatedButton(
                       onPressed: _performSearch,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.white,
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20.0,
                           vertical: 16.0,
@@ -269,11 +270,11 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Search',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: cs.onPrimary,
                         ),
                       ),
                     ),
@@ -283,8 +284,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
               Expanded(
                 child: Obx(() {
                   if (isSearching.value) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
+                    return Center(
+                      child: CircularProgressIndicator(color: cs.primary),
                     );
                   }
 
@@ -296,14 +297,14 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                           Icon(
                             Icons.search,
                             size: 80,
-                            color: Colors.white.withOpacity(0.3),
+                            color: cs.onSurfaceVariant.withOpacity(0.35),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Search for users to connect',
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.white.withOpacity(0.7),
+                              color: cs.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -319,14 +320,14 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                           Icon(
                             Icons.person_search,
                             size: 80,
-                            color: Colors.white.withOpacity(0.3),
+                            color: cs.onSurfaceVariant.withOpacity(0.35),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'No users found',
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.white.withOpacity(0.7),
+                              color: cs.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -352,6 +353,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
   }
 
   Widget _buildUserCard(BuildContext context, User user) {
+    final cs = Theme.of(context).colorScheme;
     final name = user.name;
     final bio = user.profile?.bio ?? '';
     final avatarUrl = user.profile?.avatar;
@@ -365,10 +367,10 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: context.proxi.surfaceCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: cs.outline.withOpacity(0.35),
           width: 1,
         ),
       ),
@@ -489,10 +491,10 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                               const SizedBox(height: 5),
                               Text(
                                 name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: cs.onSurface,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -509,13 +511,13 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: cs.surfaceContainerHighest,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.message,
                               size: 20,
-                              color: Colors.white,
+                              color: cs.primary,
                             ),
                           ),
                         ),
@@ -527,7 +529,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                         bio,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -574,8 +576,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -597,8 +599,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -623,8 +625,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -653,8 +655,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.2),
-                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -677,8 +679,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.2),
-                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -700,8 +702,8 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),

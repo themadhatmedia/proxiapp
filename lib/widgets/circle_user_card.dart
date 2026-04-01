@@ -19,6 +19,7 @@ class CircleUserCard extends StatefulWidget {
   final bool isLoading;
   final User? user;
   final bool showFavoriteButton;
+  final bool requireUnfavoriteConfirmation;
 
   const CircleUserCard({
     super.key,
@@ -31,6 +32,7 @@ class CircleUserCard extends StatefulWidget {
     this.isLoading = false,
     this.user,
     this.showFavoriteButton = false,
+    this.requireUnfavoriteConfirmation = false,
   });
 
   @override
@@ -57,6 +59,12 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
       final currentlyisFavorite = widget.user!.isFavorite ?? false;
 
       if (currentlyisFavorite) {
+        if (widget.requireUnfavoriteConfirmation) {
+          final confirm = await _showUnfavoriteConfirmation(context);
+          if (confirm != true) {
+            return;
+          }
+        }
         await apiService.removeFromFavorites(
           token: token,
           userId: widget.user!.id,
@@ -86,6 +94,44 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
     }
   }
 
+  Future<bool?> _showUnfavoriteConfirmation(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        title: Text(
+          'Remove favorite?',
+          style: TextStyle(color: cs.onSurface),
+        ),
+        content: Text(
+          'Are you sure you want to remove this user from favorites?',
+          style: TextStyle(color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _openUserProfile(BuildContext context) {
     if (widget.user == null) return;
 
@@ -107,6 +153,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final displayName = widget.user?.displayName ?? widget.user?.name ?? widget.name ?? 'Unknown';
     final displayBio = widget.user?.profile?.bio ?? widget.bio;
     final displayAvatar = widget.user?.avatarUrl ?? widget.avatarUrl;
@@ -116,15 +163,15 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.2),
-            Colors.white.withOpacity(0.1),
+            cs.primary.withOpacity(0.12),
+            cs.primary.withOpacity(0.06),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
+          color: cs.outline.withOpacity(0.4),
           width: 1,
         ),
       ),
@@ -143,7 +190,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.5),
+                      color: cs.primary.withOpacity(0.45),
                       width: 2,
                     ),
                   ),
@@ -160,10 +207,10 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                     children: [
                       Text(
                         displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -174,7 +221,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                           displayBio,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.white.withOpacity(0.7),
+                            color: cs.onSurfaceVariant,
                             height: 1.3,
                           ),
                           maxLines: 2,
@@ -186,12 +233,12 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                 ),
                 const SizedBox(width: 8),
                 if (widget.isLoading)
-                  const SizedBox(
+                  SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
                     ),
                   )
                 else if (widget.showFavoriteButton && widget.user != null)
@@ -201,7 +248,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                         ? const _BeatingHeart()
                         : Icon(
                             (widget.user?.isFavorite ?? false) ? Icons.favorite : Icons.favorite_border,
-                            color: (widget.user?.isFavorite ?? false) ? Colors.red : Colors.white.withOpacity(0.9),
+                            color: (widget.user?.isFavorite ?? false) ? Colors.red : cs.onSurface,
                             size: 24,
                           ),
                   )
@@ -212,14 +259,14 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                     padding: EdgeInsets.zero,
                     icon: Icon(
                       Icons.more_vert,
-                      color: Colors.white.withOpacity(0.9),
+                      color: cs.onSurface,
                       size: 20,
                     ),
-                    color: const Color(0xFF1A1A1A),
+                    color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(
-                        color: Colors.white.withOpacity(0.1),
+                        color: cs.outline.withOpacity(0.35),
                         width: 1,
                       ),
                     ),

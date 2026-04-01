@@ -1861,7 +1861,8 @@ class ApiService {
     required String token,
     int page = 1,
   }) async {
-    final url = '$baseUrl/favorites?page=$page';
+    // final url = '$baseUrl/favorites?page=$page';
+    final url = '$baseUrl/favorites';
     final headers = {
       'Authorization': 'Bearer $token',
     };

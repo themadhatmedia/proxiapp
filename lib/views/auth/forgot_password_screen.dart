@@ -76,11 +76,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isDark = themeController.isDarkMode;
+      themeController.isDarkMode;
+      final cs = Theme.of(context).colorScheme;
       return Scaffold(
         body: Container(
           decoration: BoxDecoration(
-            gradient: AppTheme.getGradient(isDark),
+            gradient: AppTheme.scaffoldGradient(context),
           ),
           child: SafeArea(
             child: SingleChildScrollView(
@@ -92,9 +93,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back,
-                            color: Colors.white,
+                            color: cs.onSurface,
                           ),
                           onPressed: () => Get.back(),
                         ),
@@ -146,10 +147,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildTitle() {
-    return const Text(
+    final cs = Theme.of(context).colorScheme;
+    return Text(
       'Forgot Password?',
       style: TextStyle(
-        color: Colors.white,
+        color: cs.onSurface,
         fontSize: 32,
         fontWeight: FontWeight.bold,
       ),
@@ -157,13 +159,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildSubtitle() {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Text(
         'Enter your email address and we\'ll send you a link to reset your password',
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: Colors.white.withOpacity(0.8),
+          color: cs.onSurfaceVariant,
           fontSize: 16,
           height: 1.5,
         ),
@@ -188,10 +191,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 16),
         TextButton(
           onPressed: () => Get.back(),
-          child: const Text(
+          child: Text(
             'Back to Sign In',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

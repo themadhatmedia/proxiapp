@@ -4,7 +4,7 @@ import 'package:get_storage/get_storage.dart';
 
 class ThemeController extends GetxController {
   final _storage = GetStorage();
-  final _isDarkMode = false.obs;
+  final _isDarkMode = true.obs;
   bool get isDarkMode => _isDarkMode.value;
 
   @override
@@ -14,7 +14,7 @@ class ThemeController extends GetxController {
   }
 
   void loadThemePreference() {
-    _isDarkMode.value = _storage.read('isDarkMode') ?? false;
+    _isDarkMode.value = _storage.read('isDarkMode') ?? true;
   }
 
   void toggleTheme() {

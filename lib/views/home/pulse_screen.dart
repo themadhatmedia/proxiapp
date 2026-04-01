@@ -6,6 +6,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
@@ -156,20 +157,14 @@ class _PulseScreenState extends State<PulseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
+      value: AppTheme.systemUiOverlayFor(context),
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.black, Color(0xFF0A0A0A)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+          decoration: BoxDecoration(
+            gradient: AppTheme.scaffoldGradient(context),
           ),
           child: SafeArea(
             child: Column(
@@ -179,12 +174,12 @@ class _PulseScreenState extends State<PulseScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Pulse',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: cs.onSurface,
                         ),
                       ),
                     ],
@@ -196,7 +191,7 @@ class _PulseScreenState extends State<PulseScreen> {
                     'Nearby Users',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.7),
+                      color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -204,8 +199,8 @@ class _PulseScreenState extends State<PulseScreen> {
                 if (isSearching)
                   Column(
                     children: [
-                      const SpinKitPulse(
-                        color: Colors.white,
+                      SpinKitPulse(
+                        color: cs.primary,
                         size: 25.0,
                       ),
                       const SizedBox(height: 5),
@@ -213,7 +208,7 @@ class _PulseScreenState extends State<PulseScreen> {
                         'Searching...',
                         style: TextStyle(
                           fontSize: 15.0,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -222,9 +217,9 @@ class _PulseScreenState extends State<PulseScreen> {
                 else if (hasSearched)
                   Text(
                     nearbyUserCount.toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 42,
-                      color: Colors.white,
+                      color: cs.onSurface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -233,7 +228,7 @@ class _PulseScreenState extends State<PulseScreen> {
                     'Send pulse to discover people nearby',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.6),
+                      color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -253,7 +248,7 @@ class _PulseScreenState extends State<PulseScreen> {
                   'Search Radius',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                    color: cs.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -262,10 +257,10 @@ class _PulseScreenState extends State<PulseScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: cs.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
+                      color: cs.outline.withOpacity(0.45),
                       width: 1,
                     ),
                   ),
@@ -282,7 +277,7 @@ class _PulseScreenState extends State<PulseScreen> {
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : Colors.transparent,
+                              color: isSelected ? cs.primary : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -290,7 +285,7 @@ class _PulseScreenState extends State<PulseScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isSelected ? Colors.black : Colors.white.withOpacity(0.6),
+                                color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                 height: 1.2,
                               ),
@@ -310,13 +305,13 @@ class _PulseScreenState extends State<PulseScreen> {
                       child: ElevatedButton(
                         onPressed: _showNearbyUsersSheet,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
+                          backgroundColor: cs.primary,
+                          foregroundColor: cs.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 8,
+                          elevation: 4,
                         ),
                         child: const Text(
                           'View Nearby Users',

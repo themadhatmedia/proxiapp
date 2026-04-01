@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../config/theme/proxi_palette.dart';
+
 class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -20,8 +22,9 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = backgroundColor ?? Colors.white;
-    // final isWhiteBackground = bgColor == Colors.white;
+    final cs = Theme.of(context).colorScheme;
+    final bgColor = backgroundColor ?? cs.primary;
+    final fgColor = textColor ?? cs.onPrimary;
 
     return SizedBox(
       width: double.infinity,
@@ -30,6 +33,7 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
+          disabledBackgroundColor: bgColor.withOpacity(0.6),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
@@ -38,8 +42,7 @@ class CustomButton extends StatelessWidget {
         child: Text(
           isLoading ? (loadingText ?? text) : text,
           style: TextStyle(
-            // color: textColor ?? (isWhiteBackground ? Colors.black : Colors.white),
-            color: isLoading ? Colors.white : Colors.black,
+            color: isLoading ? ProxiPalette.pureWhite.withOpacity(0.9) : fgColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),

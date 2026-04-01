@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
+
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/notification_controller.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -11,20 +13,21 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NotificationController controller = Get.put(NotificationController());
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: cs.surface,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: context.proxi.surfaceCard,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: cs.onSurface),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Notifications',
           style: TextStyle(
-            color: Colors.white,
+            color: cs.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -32,10 +35,10 @@ class NotificationsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => controller.markAllAsRead(),
-            child: const Text(
+            child: Text(
               'Mark all as read',
               style: TextStyle(
-                color: Colors.blue,
+                color: cs.primary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -52,13 +55,13 @@ class NotificationsScreen extends StatelessWidget {
                 Icon(
                   Icons.notifications_none,
                   size: 80,
-                  color: Colors.grey[700],
+                  color: cs.onSurfaceVariant.withOpacity(0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No notifications yet',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    color: cs.onSurfaceVariant,
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
                   ),
@@ -74,7 +77,7 @@ class NotificationsScreen extends StatelessWidget {
           separatorBuilder: (context, index) => Divider(
             height: 1,
             thickness: 0.5,
-            color: Colors.white.withOpacity(0.1),
+            color: cs.outline.withOpacity(0.35),
           ),
           itemBuilder: (context, index) {
             final notification = controller.notifications[index];
@@ -118,7 +121,7 @@ class _NotificationItem extends StatelessWidget {
       case 'like':
         return Colors.red;
       case 'comment':
-        return Colors.blue;
+        return ProxiPalette.electricBlue;
       case 'circle_request':
         return Colors.green;
       case 'mutual_connection':
@@ -130,8 +133,9 @@ class _NotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      color: notification.isRead ? Colors.black : const Color(0xFF1A1A1A),
+      color: notification.isRead ? cs.surface : cs.surfaceContainerHighest,
       child: InkWell(
         onTap: () {},
         child: Padding(
@@ -143,7 +147,7 @@ class _NotificationItem extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.grey[800],
+                  color: cs.primary.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
                 child: notification.userProfileImage != null
@@ -156,8 +160,8 @@ class _NotificationItem extends StatelessWidget {
                     : Center(
                         child: Text(
                           notification.userName[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.primary,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -174,8 +178,8 @@ class _NotificationItem extends StatelessWidget {
                         children: [
                           TextSpan(
                             text: notification.userName,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -183,7 +187,7 @@ class _NotificationItem extends StatelessWidget {
                           TextSpan(
                             text: ' ${notification.message}',
                             style: TextStyle(
-                              color: Colors.grey[300],
+                              color: cs.onSurfaceVariant,
                               fontSize: 15,
                             ),
                           ),
@@ -202,7 +206,7 @@ class _NotificationItem extends StatelessWidget {
                         Text(
                           timeago.format(notification.timestamp),
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: cs.onSurfaceVariant,
                             fontSize: 13,
                           ),
                         ),
@@ -212,14 +216,14 @@ class _NotificationItem extends StatelessWidget {
                       const SizedBox(height: 8),
                       InkWell(
                         onTap: onMarkAsRead,
-                        child: const Text(
+                        child: Text(
                           'Mark as read',
                           style: TextStyle(
-                            color: Colors.blue,
+                            color: cs.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
-                            decorationColor: Colors.blue,
+                            decorationColor: cs.primary,
                           ),
                         ),
                       ),
@@ -232,8 +236,8 @@ class _NotificationItem extends StatelessWidget {
                   width: 10,
                   height: 10,
                   margin: const EdgeInsets.only(top: 4),
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
                     shape: BoxShape.circle,
                   ),
                 ),

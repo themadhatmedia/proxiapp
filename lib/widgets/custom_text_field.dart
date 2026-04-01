@@ -20,12 +20,14 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: cs.outline.withOpacity(0.45),
           width: 1,
         ),
       ),
@@ -33,19 +35,19 @@ class CustomTextField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
-        cursorColor: Colors.white,
-        style: const TextStyle(
-          color: Colors.white,
+        cursorColor: cs.primary,
+        style: TextStyle(
+          color: cs.onSurface,
           fontSize: 16,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: Colors.white.withOpacity(0.4),
+            color: cs.onSurfaceVariant.withOpacity(0.85),
             fontSize: 16,
           ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: 12.0,
             vertical: 12.0,
           ),
@@ -53,7 +55,7 @@ class CustomTextField extends StatelessWidget {
               ? IconButton(
                   icon: Icon(
                     obscureText ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.white.withOpacity(0.6),
+                    color: cs.onSurfaceVariant,
                     size: 22.0,
                   ),
                   onPressed: onToggleVisibility,

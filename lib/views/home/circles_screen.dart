@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/theme/app_theme.dart';
+import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/circles_controller.dart';
 import '../../data/models/circle_connection_model.dart';
@@ -452,26 +454,24 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.black, Color(0xFF0A0A0A)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   'Circles',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: cs.onSurface,
                   ),
                 ),
               ),
@@ -506,7 +506,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
               });
             },
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.transparent,
               width: double.infinity,
               height: double.infinity,
             ),
@@ -546,13 +546,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   _isFabExpanded = !_isFabExpanded;
                 });
               },
-              backgroundColor: Colors.white,
+              backgroundColor: ProxiPalette.electricBlue,
               child: AnimatedRotation(
                 turns: _isFabExpanded ? 0.250 : 0,
                 duration: const Duration(milliseconds: 200),
                 child: Icon(
                   _isFabExpanded ? Icons.close : Icons.add,
-                  color: Colors.black,
+                  color: ProxiPalette.pureWhite,
                   size: 28.0,
                 ),
               ),
@@ -568,6 +568,8 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     required String label,
     required VoidCallback onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
+    final proxi = context.proxi;
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -576,13 +578,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
+              color: proxi.speedDialLabelBackground,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 15.0,
                 fontWeight: FontWeight.w500,
               ),
@@ -592,13 +594,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           Container(
             width: 48,
             height: 48,
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: ProxiPalette.electricBlue,
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              color: Colors.black,
+              color: ProxiPalette.pureWhite,
               size: 28,
             ),
           ),
@@ -608,24 +610,25 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
   }
 
   Widget _buildToggleTabs() {
+    final proxi = context.proxi;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: proxi.tabBarTrack,
           borderRadius: BorderRadius.circular(28.0),
         ),
         child: TabBar(
           controller: _tabController,
           indicator: BoxDecoration(
-            color: Colors.white.withOpacity(0.25),
+            color: proxi.tabIndicator,
             borderRadius: BorderRadius.circular(28.0),
             shape: BoxShape.rectangle,
           ),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.6),
+          labelColor: proxi.tabLabelSelected,
+          unselectedLabelColor: proxi.tabLabelUnselected,
           labelStyle: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -642,9 +645,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
   Widget _buildInnerCircleTab() {
     return Obx(() {
+      final cs = Theme.of(context).colorScheme;
+
       if (controller.isLoadingInner.value) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.white),
+        return Center(
+          child: CircularProgressIndicator(color: cs.primary),
         );
       }
 
@@ -655,17 +660,17 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
       return RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: Colors.white,
+        color: cs.primary,
         child: ListView(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
                 'Active Connections (${activeConnections.length})',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: cs.onSurface,
                 ),
               ),
             ),
@@ -678,14 +683,14 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                       Icon(
                         Icons.people_outline,
                         size: 60,
-                        color: Colors.white.withOpacity(0.3),
+                        color: cs.onSurfaceVariant.withOpacity(0.5),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'No active connections yet',
                         style: TextStyle(
                           fontSize: 15,
-                          color: Colors.white.withOpacity(0.6),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -702,10 +707,10 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: cs.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: cs.outline.withOpacity(0.4),
                       width: 1,
                     ),
                   ),
@@ -713,16 +718,16 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                     children: [
                       Icon(
                         showIncomingRequests.value ? Icons.expand_less : Icons.expand_more,
-                        color: Colors.white,
+                        color: cs.onSurface,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Pending Requests (${incomingRequests.length})',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: cs.onSurface,
                           ),
                         ),
                       ),
@@ -747,10 +752,10 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: cs.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: cs.outline.withOpacity(0.4),
                       width: 1,
                     ),
                   ),
@@ -758,16 +763,16 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                     children: [
                       Icon(
                         showSentRequests.value ? Icons.expand_less : Icons.expand_more,
-                        color: Colors.white,
+                        color: cs.onSurface,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Sent Requests (${sentRequests.length})',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: cs.onSurface,
                           ),
                         ),
                       ),
@@ -792,10 +797,10 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: cs.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: cs.outline.withOpacity(0.4),
                       width: 1,
                     ),
                   ),
@@ -803,16 +808,16 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                     children: [
                       Icon(
                         showRejectedRequests.value ? Icons.expand_less : Icons.expand_more,
-                        color: Colors.white,
+                        color: cs.onSurface,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Rejected Requests (${rejectedRequests.length})',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: cs.onSurface,
                           ),
                         ),
                       ),
@@ -838,9 +843,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
   Widget _buildOuterCircleTab() {
     return Obx(() {
+      final cs = Theme.of(context).colorScheme;
+
       if (controller.isLoadingOuter.value) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.white),
+        return Center(
+          child: CircularProgressIndicator(color: cs.primary),
         );
       }
 
@@ -849,7 +856,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
       if (connections.isEmpty) {
         return RefreshIndicator(
           onRefresh: _handleRefresh,
-          color: Colors.white,
+          color: cs.primary,
           child: ListView(
             children: [
               SizedBox(
@@ -861,14 +868,14 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                       Icon(
                         Icons.group_add,
                         size: 80,
-                        color: Colors.white.withOpacity(0.3),
+                        color: cs.onSurfaceVariant.withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'No outer circle connections yet',
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -882,7 +889,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
       return RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: Colors.white,
+        color: cs.primary,
         child: ListView(
           children: connections.map((connection) => _buildOuterConnectionCard(connection)).toList(),
         ),
@@ -892,9 +899,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
   Widget _buildMutualTab() {
     return Obx(() {
+      final cs = Theme.of(context).colorScheme;
+
       if (controller.isLoadingMutual.value) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.white),
+        return Center(
+          child: CircularProgressIndicator(color: cs.primary),
         );
       }
 
@@ -903,7 +912,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
       if (connections.isEmpty) {
         return RefreshIndicator(
           onRefresh: _handleRefresh,
-          color: Colors.white,
+          color: cs.primary,
           child: ListView(
             children: [
               SizedBox(
@@ -915,14 +924,14 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                       Icon(
                         Icons.people_outline,
                         size: 80,
-                        color: Colors.white.withOpacity(0.3),
+                        color: cs.onSurfaceVariant.withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'No mutual connections yet',
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.white.withOpacity(0.7),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -936,7 +945,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
       return RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: Colors.white,
+        color: cs.primary,
         child: ListView(
           children: connections.map((connection) => _buildMutualConnectionCard(connection)).toList(),
         ),
@@ -957,7 +966,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           avatarUrl: profile?.avatar,
           isLoading: controller.isActionLoading(connection.id),
           menuItems: [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'view_profile',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -966,20 +975,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'message',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -988,20 +997,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.message_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'Send Message',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'posts',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1010,13 +1019,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.article_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Posts',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -1065,7 +1074,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           avatarUrl: profile?.avatar,
           isLoading: controller.isActionLoading(request.id),
           menuItems: [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'view_profile',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1074,20 +1083,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'accept',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1151,7 +1160,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           avatarUrl: profile?.avatar,
           isLoading: controller.isActionLoading(request.id),
           menuItems: [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'view_profile',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1160,13 +1169,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -1214,7 +1223,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           bio: profile?.bio,
           avatarUrl: profile?.avatar,
           isLoading: controller.isActionLoading(request.id),
-          menuItems: const [
+          menuItems: [
             PopupMenuItem(
               value: 'view_profile',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1224,13 +1233,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -1246,13 +1255,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_add,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'Send Inner Circle Request',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -1274,7 +1283,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Text(
                     'Add to Outer Circle',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -1301,7 +1310,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           avatarUrl: profile?.avatar,
           isLoading: controller.isActionLoading(connection.id),
           menuItems: [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'view_profile',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1310,20 +1319,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'message',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1332,20 +1341,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.message_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'Send Message',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'posts',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1354,13 +1363,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.article_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Posts',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -1409,7 +1418,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           avatarUrl: profile?.avatar,
           isLoading: controller.isActionLoading(connection.id),
           menuItems: [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'view_profile',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1418,20 +1427,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.person_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'message',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1440,20 +1449,20 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.message_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'Send Message',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'posts',
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               height: 40,
@@ -1462,13 +1471,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                   Icon(
                     Icons.article_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   SizedBox(width: 10),
                   Text(
                     'View Posts',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
