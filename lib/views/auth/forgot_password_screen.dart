@@ -79,7 +79,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       themeController.isDarkMode;
       final cs = Theme.of(context).colorScheme;
       return Scaffold(
+        backgroundColor: Colors.transparent,
         body: Container(
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
             gradient: AppTheme.scaffoldGradient(context),
           ),
