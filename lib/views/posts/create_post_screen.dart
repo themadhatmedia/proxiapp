@@ -15,6 +15,28 @@ import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
 import 'my_posts_screen.dart';
 
+enum _ShareFeed {
+  inner,
+  outer,
+  mutual,
+}
+
+extension on _ShareFeed {
+  String get apiKey => name;
+
+  String get chipHint => switch (this) {
+    _ShareFeed.inner => 'Inner connection',
+    _ShareFeed.outer => 'Outer connection',
+    _ShareFeed.mutual => 'Mutual connection',
+  };
+
+  IconData get chipIcon => switch (this) {
+    _ShareFeed.inner => Icons.bolt_rounded,
+    _ShareFeed.outer => Icons.hub_outlined,
+    _ShareFeed.mutual => Icons.handshake_outlined,
+  };
+}
+
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
 
@@ -30,6 +52,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
   final List<VideoPlayerController> _videoControllers = [];
+  static const List<_ShareFeed> _shareFeedOrder = [
+    _ShareFeed.inner,
+    _ShareFeed.outer,
+    _ShareFeed.mutual,
+  ];
+  final Set<_ShareFeed> _selectedShareFeeds = {
+    _ShareFeed.inner,
+    _ShareFeed.outer,
+    _ShareFeed.mutual,
+  };
   static const int maxMediaSize = 10 * 1024 * 1024; // 10MB per file
   static const int maxTotalSize = 50 * 1024 * 1024; // 50MB total
 
@@ -333,6 +365,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
+    if (_selectedShareFeeds.isEmpty) {
+      ToastHelper.showError('Choose at least one connection to share with');
+      return;
+    }
+
     await ProgressDialogHelper.show(context);
 
     try {
@@ -341,10 +378,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         throw Exception('Authentication required');
       }
 
+      final audiences = _shareFeedOrder.where((f) => _selectedShareFeeds.contains(f)).map((f) => f.apiKey).toList();
+
       await apiService.createPost(
         token: token,
         content: content,
         mediaFiles: _mediaFiles.isNotEmpty ? _mediaFiles : null,
+        connectionAudiences: audiences,
       );
 
       await ProgressDialogHelper.hide();
@@ -368,7 +408,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: context.proxi.surfaceCard,
         elevation: 0,
@@ -408,59 +448,196 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ],
       ),
-      body: Container(
+      body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: AppTheme.scaffoldGradient(context),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  SafeAvatar(
-                    imageUrl: avatarUrl,
-                    size: 50,
-                    fallbackText: displayName,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      displayName,
-                      style: TextStyle(
-                        color: cs.onSurface,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+        child: SizedBox.expand(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SafeAvatar(
+                      imageUrl: avatarUrl,
+                      size: 50,
+                      fallbackText: displayName,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        displayName,
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _contentController,
-                maxLines: null,
-                minLines: 3,
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: 18,
+                  ],
                 ),
-                decoration: InputDecoration(
-                  hintText: _composeHint,
-                  hintStyle: TextStyle(
-                    color: cs.onSurfaceVariant.withOpacity(0.85),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  minLines: 5,
+                  maxLength: 280,
+                  style: TextStyle(
+                    color: cs.onSurface,
                     fontSize: 18,
                   ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
+                  decoration: InputDecoration(
+                    hintText: _composeHint,
+                    hintStyle: TextStyle(
+                      color: cs.onSurfaceVariant.withOpacity(0.85),
+                      fontSize: 18,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                _buildShareWithSection(),
+                const SizedBox(height: 15),
+                if (_mediaFiles.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: _buildMediaPreview(),
+                  ),
+                // const SizedBox(height: 15),
+                _buildAddMediaButton(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleShareFeed(_ShareFeed feed) {
+    setState(() {
+      if (_selectedShareFeeds.contains(feed)) {
+        if (_selectedShareFeeds.length > 1) {
+          _selectedShareFeeds.remove(feed);
+        }
+      } else {
+        _selectedShareFeeds.add(feed);
+      }
+    });
+  }
+
+  Widget _buildShareWithSection() {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cs.outlineVariant,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.share_outlined, size: 18, color: cs.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Share with',
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 20),
-              if (_mediaFiles.isNotEmpty) _buildMediaPreview(),
-              const SizedBox(height: 20),
-              _buildAddMediaButton(),
+              Text(
+                ' · ',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+              ),
+              Expanded(
+                child: Text(
+                  'Tap to add or remove',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < _shareFeedOrder.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(child: _buildShareFeedCell(_shareFeedOrder[i])),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShareFeedCell(_ShareFeed feed) {
+    final cs = Theme.of(context).colorScheme;
+    final selected = _selectedShareFeeds.contains(feed);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _toggleShareFeed(feed),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? cs.primary : cs.outlineVariant,
+              width: selected ? 2 : 1,
+            ),
+            color: selected ? cs.primary.withOpacity(0.12) : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                feed.chipIcon,
+                size: 18,
+                color: selected ? cs.primary : cs.onSurfaceVariant,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                feed.chipHint,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected ? cs.onSurface : cs.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Icon(
+                selected ? Icons.check_circle : Icons.circle_outlined,
+                size: 15,
+                color: selected ? cs.primary : cs.onSurfaceVariant.withOpacity(0.45),
+              ),
             ],
           ),
         ),
@@ -564,9 +741,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         width: double.infinity,
                         height: double.infinity,
                         child: Container(
-                          color: isVideo
-                              ? cs.scrim
-                              : cs.surfaceContainerHighest,
+                          color: isVideo ? cs.scrim : cs.surfaceContainerHighest,
                           child: isVideo
                               ? _buildVideoPreview(context, file)
                               : Image.file(
