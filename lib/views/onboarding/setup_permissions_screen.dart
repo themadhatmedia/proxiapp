@@ -156,6 +156,7 @@ class _PermissionCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: isGranted ? null : onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(

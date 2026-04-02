@@ -89,7 +89,7 @@ class FavoritesScreen extends StatelessWidget {
             backgroundColor: cs.surfaceContainerHighest,
             child: ListView.builder(
               controller: scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               itemCount: controller.favoriteUsers.length + (controller.hasMore.value ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == controller.favoriteUsers.length) {
@@ -104,13 +104,11 @@ class FavoritesScreen extends StatelessWidget {
                 }
 
                 final user = controller.favoriteUsers[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: CircleUserCard(
-                    user: user,
-                    showFavoriteButton: true,
-                    requireUnfavoriteConfirmation: true,
-                  ),
+                return CircleUserCard(
+                  user: user,
+                  showFavoriteButton: true,
+                  requireUnfavoriteConfirmation: true,
+                  bottomMargin: 6,
                 );
               },
             ),

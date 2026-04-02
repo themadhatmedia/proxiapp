@@ -1249,6 +1249,7 @@ class ApiService {
     required String token,
     required String content,
     List<File>? mediaFiles,
+    List<String>? connectionAudiences,
   }) async {
     final url = '$baseUrl/posts/create';
     final headers = {
@@ -1262,6 +1263,10 @@ class ApiService {
         final request = http.MultipartRequest('POST', Uri.parse(url));
         request.headers.addAll(headers);
         request.fields['content'] = content;
+
+        if (connectionAudiences != null && connectionAudiences.isNotEmpty) {
+          request.fields['connection_audiences'] = jsonEncode(connectionAudiences);
+        }
 
         if (mediaFiles != null && mediaFiles.isNotEmpty) {
           for (var file in mediaFiles) {
@@ -1302,7 +1307,11 @@ class ApiService {
           method: 'POST',
           url: url,
           headers: headers,
-          requestData: {'content': content},
+          requestData: {
+            'content': content,
+            if (connectionAudiences != null && connectionAudiences.isNotEmpty)
+              'connection_audiences': connectionAudiences,
+          },
         );
 
         final streamedResponse = await request.send();
@@ -1316,7 +1325,11 @@ class ApiService {
             method: 'POST',
             url: url,
             headers: headers,
-            requestData: {'content': content},
+            requestData: {
+              'content': content,
+              if (connectionAudiences != null && connectionAudiences.isNotEmpty)
+                'connection_audiences': connectionAudiences,
+            },
             statusCode: response.statusCode,
             responseData: {'raw_response': response.body.substring(0, 500)},
           );
@@ -1327,7 +1340,11 @@ class ApiService {
           method: 'POST',
           url: url,
           headers: headers,
-          requestData: {'content': content},
+          requestData: {
+            'content': content,
+            if (connectionAudiences != null && connectionAudiences.isNotEmpty)
+              'connection_audiences': connectionAudiences,
+          },
           statusCode: response.statusCode,
           responseData: responseData,
         );

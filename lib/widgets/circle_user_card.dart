@@ -20,6 +20,8 @@ class CircleUserCard extends StatefulWidget {
   final User? user;
   final bool showFavoriteButton;
   final bool requireUnfavoriteConfirmation;
+  /// Space below the card (list density). Default matches circles / search lists.
+  final double bottomMargin;
 
   const CircleUserCard({
     super.key,
@@ -33,6 +35,7 @@ class CircleUserCard extends StatefulWidget {
     this.user,
     this.showFavoriteButton = false,
     this.requireUnfavoriteConfirmation = false,
+    this.bottomMargin = 12,
   });
 
   @override
@@ -159,7 +162,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
     final displayAvatar = widget.user?.avatarUrl ?? widget.avatarUrl;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: widget.bottomMargin),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
