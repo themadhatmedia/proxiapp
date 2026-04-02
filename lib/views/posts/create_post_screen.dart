@@ -408,62 +408,60 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ],
       ),
-      body: SizedBox.expand(
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            gradient: AppTheme.scaffoldGradient(context),
-          ),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
+        ),
+        child: SizedBox.expand(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              Row(
-                children: [
-                  SafeAvatar(
-                    imageUrl: avatarUrl,
-                    size: 50,
-                    fallbackText: displayName,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      displayName,
-                      style: TextStyle(
-                        color: cs.onSurface,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    SafeAvatar(
+                      imageUrl: avatarUrl,
+                      size: 50,
+                      fallbackText: displayName,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        displayName,
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _contentController,
-                maxLines: null,
-                minLines: 3,
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: 18,
+                  ],
                 ),
-                decoration: InputDecoration(
-                  hintText: _composeHint,
-                  hintStyle: TextStyle(
-                    color: cs.onSurfaceVariant.withOpacity(0.85),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  minLines: 3,
+                  style: TextStyle(
+                    color: cs.onSurface,
                     fontSize: 18,
                   ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
+                  decoration: InputDecoration(
+                    hintText: _composeHint,
+                    hintStyle: TextStyle(
+                      color: cs.onSurfaceVariant.withOpacity(0.85),
+                      fontSize: 18,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              if (_mediaFiles.isNotEmpty) _buildMediaPreview(),
-              const SizedBox(height: 20),
-              _buildAddMediaButton(),
+                const SizedBox(height: 20),
+                if (_mediaFiles.isNotEmpty) _buildMediaPreview(),
+                const SizedBox(height: 20),
+                _buildAddMediaButton(),
               ],
             ),
           ),
