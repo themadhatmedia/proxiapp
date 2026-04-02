@@ -42,6 +42,14 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        // Ignore system display font size so UI uses theme/widget font sizes only.
+        builder: (context, child) {
+          final data = MediaQuery.of(context);
+          return MediaQuery(
+            data: data.copyWith(textScaler: TextScaler.noScaling),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         home: authController.isAuthenticated ? const MainNavigation() : const AuthScreen(),
         getPages: [
           GetPage(name: '/auth', page: () => const AuthScreen()),
