@@ -368,7 +368,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: context.proxi.surfaceCard,
         elevation: 0,
@@ -408,15 +408,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.scaffoldGradient(context),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: SizedBox.expand(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: AppTheme.scaffoldGradient(context),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Row(
                 children: [
                   SafeAvatar(
@@ -461,7 +464,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               if (_mediaFiles.isNotEmpty) _buildMediaPreview(),
               const SizedBox(height: 20),
               _buildAddMediaButton(),
-            ],
+              ],
+            ),
           ),
         ),
       ),
