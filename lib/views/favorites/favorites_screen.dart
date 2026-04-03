@@ -22,7 +22,7 @@ class FavoritesScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: context.proxi.surfaceCard,
         leading: IconButton(

@@ -16,7 +16,7 @@ class NotificationsScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: context.proxi.surfaceCard,
         elevation: 0,
