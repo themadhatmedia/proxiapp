@@ -42,12 +42,24 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-        // Ignore system display font size so UI uses theme/widget font sizes only.
+        // Full-screen brand gradient behind all routes; fixed text scale.
         builder: (context, child) {
           final data = MediaQuery.of(context);
-          return MediaQuery(
+          final content = MediaQuery(
             data: data.copyWith(textScaler: TextScaler.noScaling),
             child: child ?? const SizedBox.shrink(),
+          );
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.scaffoldGradient(context),
+                ),
+                child: const SizedBox.expand(),
+              ),
+              content,
+            ],
           );
         },
         home: authController.isAuthenticated ? const MainNavigation() : const AuthScreen(),

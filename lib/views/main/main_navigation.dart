@@ -105,6 +105,7 @@ class _MainNavigationState extends State<MainNavigation> {
       child: Obx(() => AnnotatedRegion<SystemUiOverlayStyle>(
         value: AppTheme.systemUiOverlayFor(context),
         child: Scaffold(
+          backgroundColor: Colors.transparent,
           body: IndexedStack(
             index: _navigationController.currentIndex.value,
             children: [

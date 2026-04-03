@@ -116,7 +116,9 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: palette.scaffoldGradientTop,
+      // Transparent so the app-root gradient (see main.dart builder) fills the screen;
+      // avoids a solid band (e.g. indigo) showing below short scroll content.
+      scaffoldBackgroundColor: Colors.transparent,
       primaryColor: colorScheme.primary,
       extensions: [palette],
       textTheme: baseText,
