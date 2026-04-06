@@ -47,5 +47,15 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>Proxi needs camera access to take your profile photo.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Proxi needs photo library access to set your profile picture.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Proxi needs your location while you use the app to detect nearby users and send proximity alerts.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Proxi needs location access to detect nearby users and send proximity alerts even when the app is in the background.</string>
+		<key>NSContactsUsageDescription</key>
+		<string>Proxi needs contacts access to find friends who also use Proxi.</string>
 	</dict>
 </plist>
