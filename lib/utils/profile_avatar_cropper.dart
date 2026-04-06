@@ -42,6 +42,12 @@ Future<File?> cropProfileAvatarFile(String sourcePath, {BuildContext? context}) 
       ),
       IOSUiSettings(
         title: 'Adjust photo',
+        doneButtonTitle: 'Done',
+        cancelButtonTitle: 'Cancel',
+        // Without a visible navigation bar, Done/Cancel can be missing or clipped on iOS
+        // (especially with circle crop / safe areas). Embed and show the bar explicitly.
+        embedInNavigationController: true,
+        hidesNavigationBar: false,
         aspectRatioLockEnabled: true,
         resetAspectRatioEnabled: false,
         aspectRatioPickerButtonHidden: true,
