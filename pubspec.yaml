@@ -39,6 +39,7 @@ dependencies:
   flutter_animate: ^4.5.2
   fluttertoast: ^9.0.0
   image_picker: ^1.2.1
+  image_cropper: ^12.1.1
   intl: ^0.20.2
   permission_handler: ^12.0.1
   geolocator: ^14.0.2
@@ -52,6 +53,7 @@ dependencies:
   comment_tree: ^0.3.0
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.7
+  package_info_plus: ^8.3.0
 
 dev_dependencies:
   flutter_test:

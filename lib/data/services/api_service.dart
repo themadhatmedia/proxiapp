@@ -1780,7 +1780,7 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> addToFavorites({
+  Future<Map<String, dynamic>> addBookmark({
     required String token,
     required int userId,
   }) async {
@@ -1820,14 +1820,14 @@ class ApiService {
         if (response.statusCode == 200 || response.statusCode == 201) {
           return responseData ?? {'success': true, 'isFavorite': true};
         } else {
-          final errorMessage = responseData?['message'] ?? 'Failed to add to favorites';
+          final errorMessage = responseData?['message'] ?? 'Failed to bookmark user';
           throw Exception(errorMessage);
         }
       },
     );
   }
 
-  Future<Map<String, dynamic>> removeFromFavorites({
+  Future<Map<String, dynamic>> removeBookmark({
     required String token,
     required int userId,
   }) async {
@@ -1867,14 +1867,14 @@ class ApiService {
         if (response.statusCode == 200 || response.statusCode == 204) {
           return responseData ?? {'success': true, 'isFavorite': false};
         } else {
-          final errorMessage = responseData?['message'] ?? 'Failed to remove from favorites';
+          final errorMessage = responseData?['message'] ?? 'Failed to remove bookmark';
           throw Exception(errorMessage);
         }
       },
     );
   }
 
-  Future<Map<String, dynamic>> getFavorites({
+  Future<Map<String, dynamic>> getBookmarks({
     required String token,
     int page = 1,
   }) async {
@@ -1918,7 +1918,7 @@ class ApiService {
                 'data': {'favorites': [], 'pagination': {}},
               };
         } else {
-          final errorMessage = responseData?['message'] ?? 'Failed to get favorites';
+          final errorMessage = responseData?['message'] ?? 'Failed to load bookmarks';
           throw Exception(errorMessage);
         }
       },

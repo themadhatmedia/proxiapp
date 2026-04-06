@@ -7,6 +7,7 @@ import '../data/models/core_value_model.dart';
 import '../data/models/interest_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
+import '../utils/profile_avatar_cropper.dart';
 import '../utils/toast_helper.dart';
 
 class OnboardingController extends GetxController {
@@ -30,7 +31,10 @@ class OnboardingController extends GetxController {
 
   final RxList<CoreValueModel> availableCoreValues = <CoreValueModel>[].obs;
   final RxList<int> selectedCoreValueIds = <int>[].obs;
-  final Rx<String?> customCoreValue = Rx<String?>(null);
+  final RxList<String> customCoreValues = <String>[].obs;
+
+  static const int maxPresetCoreValues = 5;
+  static const int maxCustomCoreValues = 5;
 
   final RxList<PlanModel> availablePlans = <PlanModel>[].obs;
   final Rx<PlanModel?> selectedPlan = Rx<PlanModel?>(null);
@@ -98,14 +102,15 @@ class OnboardingController extends GetxController {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 92,
       );
-      if (image != null) {
-        profileImage = File(image.path);
-        update();
-      }
+      if (image == null) return;
+      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
+      if (cropped == null) return;
+      profileImage = cropped;
+      update();
     } catch (e) {
       ToastHelper.showError('Failed to pick image: $e');
     }
@@ -115,14 +120,15 @@ class OnboardingController extends GetxController {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 92,
       );
-      if (image != null) {
-        profileImage = File(image.path);
-        update();
-      }
+      if (image == null) return;
+      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
+      if (cropped == null) return;
+      profileImage = cropped;
+      update();
     } catch (e) {
       ToastHelper.showError('Failed to take photo: $e');
     }
@@ -140,10 +146,10 @@ class OnboardingController extends GetxController {
     if (selectedCoreValueIds.contains(coreValueId)) {
       selectedCoreValueIds.remove(coreValueId);
     } else {
-      if (selectedCoreValueIds.length < 5) {
+      if (selectedCoreValueIds.length < maxPresetCoreValues) {
         selectedCoreValueIds.add(coreValueId);
       } else {
-        ToastHelper.showInfo('You can only select up to 5 core values');
+        ToastHelper.showInfo('You can only select up to $maxPresetCoreValues values from the list');
       }
     }
   }
@@ -183,11 +189,77 @@ class OnboardingController extends GetxController {
   }
 
   List<String> _getSelectedCoreValueNames() {
-    final names = selectedCoreValueIds.map((id) => availableCoreValues.firstWhereOrNull((cv) => cv.id == id)?.name).whereType<String>().toList();
-    if (customCoreValue.value != null && customCoreValue.value!.isNotEmpty) {
-      names.add(customCoreValue.value!);
-    }
+    final names = selectedCoreValueIds
+        .map((id) => availableCoreValues.firstWhereOrNull((cv) => cv.id == id)?.name)
+        .whereType<String>()
+        .toList();
+    names.addAll(customCoreValues);
     return names;
+  }
+
+  /// Returns true if [raw] was added; false if empty or invalid (toast already shown).
+  bool addCustomCoreValue(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) {
+      ToastHelper.showError('Enter a core value');
+      return false;
+    }
+
+    final lower = value.toLowerCase();
+    final presetLower = availableCoreValues.map((cv) => cv.name.toLowerCase()).toList();
+    if (presetLower.contains(lower)) {
+      ToastHelper.showError('This matches a value in the list above — tap it to select');
+      return false;
+    }
+    if (customCoreValues.any((s) => s.toLowerCase() == lower)) {
+      ToastHelper.showError('You already added this custom value');
+      return false;
+    }
+    if (customCoreValues.length >= maxCustomCoreValues) {
+      ToastHelper.showError('You can add up to $maxCustomCoreValues custom values');
+      return false;
+    }
+    customCoreValues.add(value);
+    return true;
+  }
+
+  /// Updates the custom entry matching [previous] (exact string as stored).
+  /// Returns true on success or if the text is unchanged; false if invalid (toast shown).
+  bool updateCustomCoreValue(String previous, String raw) {
+    final index = customCoreValues.indexOf(previous);
+    if (index < 0) return false;
+
+    final value = raw.trim();
+    if (value.isEmpty) {
+      ToastHelper.showError('Enter a core value');
+      return false;
+    }
+    if (value == previous) {
+      return true;
+    }
+
+    final lower = value.toLowerCase();
+    final presetLower = availableCoreValues.map((cv) => cv.name.toLowerCase()).toList();
+    if (presetLower.contains(lower)) {
+      ToastHelper.showError('This matches a value in the list above — tap it to select');
+      return false;
+    }
+    final duplicateOther = customCoreValues.asMap().entries.any(
+          (e) => e.key != index && e.value.toLowerCase() == lower,
+        );
+    if (duplicateOther) {
+      ToastHelper.showError('You already added this custom value');
+      return false;
+    }
+
+    final next = List<String>.from(customCoreValues);
+    next[index] = value;
+    customCoreValues.assignAll(next);
+    return true;
+  }
+
+  void removeCustomCoreValue(String value) {
+    customCoreValues.remove(value);
   }
 
   Future<bool> saveInterestsToApi(String token) async {
@@ -276,7 +348,7 @@ class OnboardingController extends GetxController {
   }
 
   bool validateCoreValuesSelection() {
-    final hasSelection = selectedCoreValueIds.isNotEmpty || (customCoreValue.value != null && customCoreValue.value!.isNotEmpty);
+    final hasSelection = selectedCoreValueIds.isNotEmpty || customCoreValues.isNotEmpty;
     if (!hasSelection) {
       ToastHelper.showError('Please select at least one core value');
       return false;
@@ -296,7 +368,7 @@ class OnboardingController extends GetxController {
     acceptedTerms = false;
     selectedInterestIds.clear();
     selectedCoreValueIds.clear();
-    customCoreValue.value = null;
+    customCoreValues.clear();
     selectedPlan.value = null;
   }
 }

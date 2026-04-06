@@ -4,10 +4,10 @@ import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
 import '../utils/toast_helper.dart';
 
-class FavoritesController extends GetxController {
+class BookmarksController extends GetxController {
   final ApiService _apiService = ApiService();
 
-  final RxList<User> favoriteUsers = <User>[].obs;
+  final RxList<User> bookmarkedUsers = <User>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool hasMore = true.obs;
   final RxInt currentPage = 1.obs;
@@ -22,14 +22,14 @@ class FavoritesController extends GetxController {
       _token = args['token'] as String?;
     }
     if (_token != null) {
-      loadFavorites();
+      loadBookmarks();
     }
   }
 
-  Future<void> loadFavorites({bool refresh = false}) async {
+  Future<void> loadBookmarks({bool refresh = false}) async {
     if (refresh) {
       currentPage.value = 1;
-      favoriteUsers.clear();
+      bookmarkedUsers.clear();
       hasMore.value = true;
     }
 
@@ -39,7 +39,7 @@ class FavoritesController extends GetxController {
     try {
       isLoading.value = true;
 
-      final response = await _apiService.getFavorites(
+      final response = await _apiService.getBookmarks(
         token: _token!,
         page: currentPage.value,
       );
@@ -51,9 +51,9 @@ class FavoritesController extends GetxController {
         final users = favorites.map((json) => User.fromJson(json)).toList();
 
         if (refresh) {
-          favoriteUsers.value = users;
+          bookmarkedUsers.value = users;
         } else {
-          favoriteUsers.addAll(users);
+          bookmarkedUsers.addAll(users);
         }
 
         final pagination = data['pagination'];
@@ -67,51 +67,51 @@ class FavoritesController extends GetxController {
         }
       }
     } catch (e) {
-      ToastHelper.showError('Failed to load favorites: ${e.toString()}');
+      ToastHelper.showError('Failed to load bookmarks: ${e.toString()}');
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<bool> toggleFavorite(int userId, bool currentlyisFavorite) async {
+  Future<bool> toggleBookmark(int userId, bool isCurrentlyBookmarked) async {
     if (_token == null) return false;
 
     try {
-      if (currentlyisFavorite) {
-        final response = await _apiService.removeFromFavorites(
+      if (isCurrentlyBookmarked) {
+        final response = await _apiService.removeBookmark(
           token: _token!,
           userId: userId,
         );
 
         if (response['success'] == true) {
-          favoriteUsers.removeWhere((user) => user.id == userId);
-          ToastHelper.showSuccess('Removed from favorites');
+          bookmarkedUsers.removeWhere((user) => user.id == userId);
+          ToastHelper.showSuccess('Bookmark removed');
           return false;
         }
       } else {
-        final response = await _apiService.addToFavorites(
+        final response = await _apiService.addBookmark(
           token: _token!,
           userId: userId,
         );
 
         if (response['success'] == true) {
-          ToastHelper.showSuccess('Added to favorites');
+          ToastHelper.showSuccess('User bookmarked');
           return true;
         }
       }
     } catch (e) {
-      ToastHelper.showError('Failed to update favorites: ${e.toString()}');
+      ToastHelper.showError('Failed to update bookmark: ${e.toString()}');
     }
 
-    return currentlyisFavorite;
+    return isCurrentlyBookmarked;
   }
 
-  void removeFavoriteLocally(int userId) {
-    favoriteUsers.removeWhere((user) => user.id == userId);
+  void removeBookmarkLocally(int userId) {
+    bookmarkedUsers.removeWhere((user) => user.id == userId);
   }
 
   void reset() {
-    favoriteUsers.clear();
+    bookmarkedUsers.clear();
     currentPage.value = 1;
     hasMore.value = true;
     isLoading.value = false;

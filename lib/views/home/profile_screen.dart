@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
@@ -24,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileController profileController = Get.put(ProfileController());
   bool _isRefreshing = false;
   bool _isLoggingOut = false;
+  String _appVersionLabel = '';
 
   @override
   void initState() {
@@ -31,7 +33,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Load profile after build completes to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProfile();
+      _loadAppVersion();
     });
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _appVersionLabel = 'Proxi v${info.version}+${info.buildNumber}';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _appVersionLabel = 'Proxi');
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -438,7 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Proxi v.0.1.0.1205.2',
+                      _appVersionLabel.isEmpty ? 'Proxi' : _appVersionLabel,
                       style: TextStyle(
                         fontSize: 12,
                         color: cs.onSurfaceVariant.withOpacity(0.85),
