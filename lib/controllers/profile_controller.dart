@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +6,7 @@ import '../data/models/core_value_model.dart';
 import '../data/models/interest_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
+import '../utils/profile_avatar_cropper.dart';
 import '../utils/toast_helper.dart';
 import 'auth_controller.dart';
 
@@ -22,7 +21,10 @@ class ProfileController extends GetxController {
   final availablePlans = <PlanModel>[].obs;
   final selectedInterestNames = <String>[].obs;
   final selectedCoreValueNames = <String>[].obs;
-  final customCoreValue = Rxn<String>();
+  final customCoreValues = <String>[].obs;
+
+  static const int maxPresetCoreValues = 5;
+  static const int maxCustomCoreValues = 5;
 
   final linkedinUrl = ''.obs;
   final facebookUrl = ''.obs;
@@ -38,7 +40,7 @@ class ProfileController extends GetxController {
     availablePlans.clear();
     selectedInterestNames.clear();
     selectedCoreValueNames.clear();
-    customCoreValue.value = null;
+    customCoreValues.clear();
     linkedinUrl.value = '';
     facebookUrl.value = '';
     instagramUrl.value = '';
@@ -78,15 +80,18 @@ class ProfileController extends GetxController {
         final availableNames = coreValues.map((cv) => cv.name).toList();
 
         selectedCoreValueNames.clear();
-        customCoreValue.value = null;
+        customCoreValues.clear();
 
         for (var value in userCoreValues) {
           if (availableNames.contains(value)) {
             selectedCoreValueNames.add(value);
-          } else {
-            customCoreValue.value = value;
+          } else if (value.trim().isNotEmpty) {
+            customCoreValues.add(value);
           }
         }
+      } else {
+        selectedCoreValueNames.clear();
+        customCoreValues.clear();
       }
     } catch (e) {
       ToastHelper.showError('Failed to load core values');
@@ -121,11 +126,76 @@ class ProfileController extends GetxController {
   void toggleCoreValue(String coreValueName) {
     if (selectedCoreValueNames.contains(coreValueName)) {
       selectedCoreValueNames.remove(coreValueName);
-    } else if (selectedCoreValueNames.length < 5) {
+    } else if (selectedCoreValueNames.length < maxPresetCoreValues) {
       selectedCoreValueNames.add(coreValueName);
     } else {
-      ToastHelper.showError('You can select up to 5 core values');
+      ToastHelper.showError('You can select up to $maxPresetCoreValues values from the list');
     }
+  }
+
+  /// Returns true if [raw] was added; false if empty or invalid (toast already shown).
+  bool addCustomCoreValue(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) {
+      ToastHelper.showError('Enter a core value');
+      return false;
+    }
+
+    final lower = value.toLowerCase();
+    final presetLower = availableCoreValues.map((cv) => cv.name.toLowerCase()).toList();
+    if (presetLower.contains(lower)) {
+      ToastHelper.showError('This matches a value in the list above — tap it to select');
+      return false;
+    }
+    if (customCoreValues.any((s) => s.toLowerCase() == lower)) {
+      ToastHelper.showError('You already added this custom value');
+      return false;
+    }
+    if (customCoreValues.length >= maxCustomCoreValues) {
+      ToastHelper.showError('You can add up to $maxCustomCoreValues custom values');
+      return false;
+    }
+    customCoreValues.add(value);
+    return true;
+  }
+
+  /// Updates the custom entry matching [previous] (exact string as stored).
+  /// Returns true on success or if the text is unchanged; false if invalid (toast shown).
+  bool updateCustomCoreValue(String previous, String raw) {
+    final index = customCoreValues.indexOf(previous);
+    if (index < 0) return false;
+
+    final value = raw.trim();
+    if (value.isEmpty) {
+      ToastHelper.showError('Enter a core value');
+      return false;
+    }
+    if (value == previous) {
+      return true;
+    }
+
+    final lower = value.toLowerCase();
+    final presetLower = availableCoreValues.map((cv) => cv.name.toLowerCase()).toList();
+    if (presetLower.contains(lower)) {
+      ToastHelper.showError('This matches a value in the list above — tap it to select');
+      return false;
+    }
+    final duplicateOther = customCoreValues.asMap().entries.any(
+          (e) => e.key != index && e.value.toLowerCase() == lower,
+        );
+    if (duplicateOther) {
+      ToastHelper.showError('You already added this custom value');
+      return false;
+    }
+
+    final next = List<String>.from(customCoreValues);
+    next[index] = value;
+    customCoreValues.assignAll(next);
+    return true;
+  }
+
+  void removeCustomCoreValue(String value) {
+    customCoreValues.remove(value);
   }
 
   Future<bool> saveInterests() async {
@@ -152,10 +222,10 @@ class ProfileController extends GetxController {
       final token = authController.token;
       if (token == null) return false;
 
-      final coreValuesToSave = List<String>.from(selectedCoreValueNames);
-      if (customCoreValue.value != null && customCoreValue.value!.isNotEmpty) {
-        coreValuesToSave.add(customCoreValue.value!);
-      }
+      final coreValuesToSave = [
+        ...List<String>.from(selectedCoreValueNames),
+        ...List<String>.from(customCoreValues),
+      ];
 
       await apiService.updateProfile(
         token: token,
@@ -175,12 +245,15 @@ class ProfileController extends GetxController {
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 92,
       );
 
       if (image == null) return;
+
+      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
+      if (cropped == null) return;
 
       final token = authController.token;
       if (token == null) return;
@@ -189,7 +262,7 @@ class ProfileController extends GetxController {
 
       await apiService.updateProfile(
         token: token,
-        avatar: File(image.path),
+        avatar: cropped,
       );
 
       await authController.fetchUserProfile();

@@ -16,7 +16,7 @@ import 'views/onboarding/select_core_values_screen.dart';
 import 'views/onboarding/select_plan_screen.dart';
 import 'views/onboarding/setup_permissions_screen.dart';
 import 'views/onboarding/proxi_circles_screen.dart';
-import 'views/favorites/favorites_screen.dart';
+import 'views/bookmarks/bookmarks_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,11 +52,15 @@ class MyApp extends StatelessWidget {
           return Stack(
             fit: StackFit.expand,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: AppTheme.scaffoldGradient(context),
+              // Decorative layer must not participate in hit testing — on iOS taps can
+              // otherwise fall through transparent scaffold regions and never reach targets.
+              IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.scaffoldGradient(context),
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               ),
               content,
             ],
@@ -73,7 +77,8 @@ class MyApp extends StatelessWidget {
           GetPage(name: '/select-plan', page: () => const SelectPlanScreen()),
           GetPage(name: '/setup-permissions', page: () => const SetupPermissionsScreen()),
           GetPage(name: '/proxi-circles', page: () => const ProxiCirclesScreen()),
-          GetPage(name: '/favorites', page: () => const FavoritesScreen()),
+          GetPage(name: '/bookmarks', page: () => const BookmarksScreen()),
+          GetPage(name: '/favorites', page: () => const BookmarksScreen()),
         ],
       ),
     );

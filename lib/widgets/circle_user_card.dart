@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
-import '../controllers/favorites_controller.dart';
+import '../controllers/bookmarks_controller.dart';
 import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
+import '../config/theme/proxi_palette.dart';
 import '../utils/toast_helper.dart';
 import '../views/pulse/user_profile_detail_screen.dart';
 import 'safe_avatar.dart';
@@ -18,8 +19,8 @@ class CircleUserCard extends StatefulWidget {
   final Function(String)? onMenuSelected;
   final bool isLoading;
   final User? user;
-  final bool showFavoriteButton;
-  final bool requireUnfavoriteConfirmation;
+  final bool showBookmarkButton;
+  final bool requireRemoveBookmarkConfirmation;
   /// Space below the card (list density). Default matches circles / search lists.
   final double bottomMargin;
 
@@ -33,8 +34,8 @@ class CircleUserCard extends StatefulWidget {
     this.onMenuSelected,
     this.isLoading = false,
     this.user,
-    this.showFavoriteButton = false,
-    this.requireUnfavoriteConfirmation = false,
+    this.showBookmarkButton = false,
+    this.requireRemoveBookmarkConfirmation = false,
     this.bottomMargin = 12,
   });
 
@@ -43,61 +44,61 @@ class CircleUserCard extends StatefulWidget {
 }
 
 class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProviderStateMixin {
-  bool _isTogglingFavorite = false;
+  bool _isTogglingBookmark = false;
 
-  Future<void> _toggleFavorite(BuildContext context) async {
-    if (widget.user == null || _isTogglingFavorite) return;
+  Future<void> _toggleBookmark(BuildContext context) async {
+    if (widget.user == null || _isTogglingBookmark) return;
 
     final authController = Get.find<AuthController>();
     final token = authController.token;
     if (token == null) return;
 
     setState(() {
-      _isTogglingFavorite = true;
+      _isTogglingBookmark = true;
     });
 
     final apiService = ApiService();
 
     try {
-      final currentlyisFavorite = widget.user!.isFavorite ?? false;
+      final isBookmarked = widget.user!.isFavorite ?? false;
 
-      if (currentlyisFavorite) {
-        if (widget.requireUnfavoriteConfirmation) {
-          final confirm = await _showUnfavoriteConfirmation(context);
+      if (isBookmarked) {
+        if (widget.requireRemoveBookmarkConfirmation) {
+          final confirm = await _showRemoveBookmarkConfirmation(context);
           if (confirm != true) {
             return;
           }
         }
-        await apiService.removeFromFavorites(
+        await apiService.removeBookmark(
           token: token,
           userId: widget.user!.id,
         );
 
-        if (Get.isRegistered<FavoritesController>()) {
-          final favController = Get.find<FavoritesController>();
-          favController.removeFavoriteLocally(widget.user!.id);
+        if (Get.isRegistered<BookmarksController>()) {
+          final bmController = Get.find<BookmarksController>();
+          bmController.removeBookmarkLocally(widget.user!.id);
         }
 
-        ToastHelper.showSuccess('Removed from favorites');
+        ToastHelper.showSuccess('Bookmark removed');
       } else {
-        await apiService.addToFavorites(
+        await apiService.addBookmark(
           token: token,
           userId: widget.user!.id,
         );
-        ToastHelper.showSuccess('Added to favorites');
+        ToastHelper.showSuccess('User bookmarked');
       }
     } catch (e) {
-      ToastHelper.showError('Failed to update favorites');
+      ToastHelper.showError('Failed to update bookmark');
     } finally {
       if (mounted) {
         setState(() {
-          _isTogglingFavorite = false;
+          _isTogglingBookmark = false;
         });
       }
     }
   }
 
-  Future<bool?> _showUnfavoriteConfirmation(BuildContext context) {
+  Future<bool?> _showRemoveBookmarkConfirmation(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return showDialog<bool>(
       context: context,
@@ -107,11 +108,11 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
           borderRadius: BorderRadius.circular(14),
         ),
         title: Text(
-          'Remove favorite?',
+          'Remove bookmark?',
           style: TextStyle(color: cs.onSurface),
         ),
         content: Text(
-          'Are you sure you want to remove this user from favorites?',
+          'Are you sure you want to remove this user from your bookmarks?',
           style: TextStyle(color: cs.onSurfaceVariant),
         ),
         actions: [
@@ -125,8 +126,8 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
+              backgroundColor: ProxiPalette.bookmarkAccent,
+              foregroundColor: ProxiPalette.pureWhite,
             ),
             child: const Text('Remove'),
           ),
@@ -181,7 +182,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: widget.showFavoriteButton && widget.user != null ? () => _openUserProfile(context) : widget.onTap,
+          onTap: widget.showBookmarkButton && widget.user != null ? () => _openUserProfile(context) : widget.onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
@@ -244,14 +245,16 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
                       valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
                     ),
                   )
-                else if (widget.showFavoriteButton && widget.user != null)
+                else if (widget.showBookmarkButton && widget.user != null)
                   IconButton(
-                    onPressed: _isTogglingFavorite ? null : () => _toggleFavorite(context),
-                    icon: _isTogglingFavorite
-                        ? const _BeatingHeart()
+                    onPressed: _isTogglingBookmark ? null : () => _toggleBookmark(context),
+                    icon: _isTogglingBookmark
+                        ? _PulsingBookmark(color: ProxiPalette.bookmarkSaved)
                         : Icon(
-                            (widget.user?.isFavorite ?? false) ? Icons.favorite : Icons.favorite_border,
-                            color: (widget.user?.isFavorite ?? false) ? Colors.red : cs.onSurface,
+                            (widget.user?.isFavorite ?? false) ? Icons.bookmark : Icons.bookmark_border,
+                            color: (widget.user?.isFavorite ?? false)
+                                ? ProxiPalette.bookmarkSaved
+                                : ProxiPalette.bookmarkAccent,
                             size: 24,
                           ),
                   )
@@ -284,14 +287,16 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
   }
 }
 
-class _BeatingHeart extends StatefulWidget {
-  const _BeatingHeart();
+class _PulsingBookmark extends StatefulWidget {
+  final Color color;
+
+  const _PulsingBookmark({required this.color});
 
   @override
-  State<_BeatingHeart> createState() => _BeatingHeartState();
+  State<_PulsingBookmark> createState() => _PulsingBookmarkState();
 }
 
-class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderStateMixin {
+class _PulsingBookmarkState extends State<_PulsingBookmark> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -303,7 +308,7 @@ class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderS
       vsync: this,
     )..repeat(reverse: true);
 
-    _animation = Tween<double>(begin: 0.8, end: 1.2).animate(
+    _animation = Tween<double>(begin: 0.85, end: 1.1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -318,9 +323,9 @@ class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderS
   Widget build(BuildContext context) {
     return ScaleTransition(
       scale: _animation,
-      child: const Icon(
-        Icons.favorite,
-        color: Colors.red,
+      child: Icon(
+        Icons.bookmark,
+        color: widget.color,
         size: 24,
       ),
     );
