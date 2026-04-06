@@ -12,6 +12,7 @@ class PostCard extends StatelessWidget {
   final Post post;
   final VoidCallback? onLike;
   final VoidCallback? onComment;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool isLiking;
 
@@ -20,6 +21,7 @@ class PostCard extends StatelessWidget {
     required this.post,
     this.onLike,
     this.onComment,
+    this.onEdit,
     this.onDelete,
     this.isLiking = false,
   });
@@ -127,7 +129,7 @@ class PostCard extends StatelessWidget {
               ),
             ),
           ),
-          if (isOwner && onDelete != null)
+          if (isOwner && (onEdit != null || onDelete != null))
             PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert,
@@ -138,24 +140,38 @@ class PostCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               onSelected: (value) {
-                if (value == 'delete') {
+                if (value == 'edit') {
+                  onEdit?.call();
+                } else if (value == 'delete') {
                   onDelete?.call();
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                      SizedBox(width: 12),
-                      Text(
-                        'Delete Post',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ],
+                if (onEdit != null)
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined, size: 20),
+                        SizedBox(width: 12),
+                        Text('Edit Post'),
+                      ],
+                    ),
                   ),
-                ),
+                if (onDelete != null)
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        SizedBox(width: 12),
+                        Text(
+                          'Delete Post',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
         ],

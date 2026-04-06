@@ -1367,6 +1367,129 @@ class ApiService {
     );
   }
 
+  Future<Post> updatePost({
+    required String token,
+    required int postId,
+    required String content,
+    List<String>? connectionAudiences,
+    List<int>? deleteMediaIds,
+    List<File>? newMediaFiles,
+  }) async {
+    final url = '$baseUrl/posts/$postId/update';
+    final headers = {
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        final request = http.MultipartRequest('POST', Uri.parse(url));
+        request.headers.addAll(headers);
+        request.fields['content'] = content;
+
+        if (connectionAudiences != null && connectionAudiences.isNotEmpty) {
+          request.fields['connection_audiences'] = jsonEncode(connectionAudiences);
+        }
+
+        // Multipart form maps each key to a string; Laravel expects a real array, not a JSON string.
+        // Use delete_media_ids[0], delete_media_ids[1], … (Map cannot repeat delete_media_ids[]).
+        if (deleteMediaIds != null && deleteMediaIds.isNotEmpty) {
+          for (var i = 0; i < deleteMediaIds.length; i++) {
+            request.fields['delete_media_ids[$i]'] = deleteMediaIds[i].toString();
+          }
+        }
+
+        if (newMediaFiles != null && newMediaFiles.isNotEmpty) {
+          for (var file in newMediaFiles) {
+            final extension = file.path.split('.').last.toLowerCase();
+            String? mimeType;
+
+            if (['jpg', 'jpeg'].contains(extension)) {
+              mimeType = 'image/jpeg';
+            } else if (extension == 'png') {
+              mimeType = 'image/png';
+            } else if (extension == 'webp') {
+              mimeType = 'image/webp';
+            } else if (extension == 'gif') {
+              mimeType = 'image/gif';
+            } else if (extension == 'mp4') {
+              mimeType = 'video/mp4';
+            } else if (extension == 'mov') {
+              mimeType = 'video/quicktime';
+            } else if (extension == 'avi') {
+              mimeType = 'video/x-msvideo';
+            }
+
+            final stream = http.ByteStream(file.openRead());
+            final length = await file.length();
+            final multipartFile = http.MultipartFile(
+              'media[]',
+              stream,
+              length,
+              filename: file.path.split('/').last,
+              contentType: mimeType != null ? http_parser.MediaType.parse(mimeType) : null,
+            );
+            request.files.add(multipartFile);
+          }
+        }
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: {
+            'content': content,
+            if (connectionAudiences != null && connectionAudiences.isNotEmpty)
+              'connection_audiences': connectionAudiences,
+            if (deleteMediaIds != null && deleteMediaIds.isNotEmpty) 'delete_media_ids': deleteMediaIds,
+          },
+        );
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+
+        dynamic responseData;
+        try {
+          responseData = jsonDecode(response.body);
+        } catch (e) {
+          _logApiCall(
+            method: 'POST',
+            url: url,
+            headers: headers,
+            statusCode: response.statusCode,
+            responseData: {
+              'raw_response': response.body.length > 500 ? response.body.substring(0, 500) : response.body,
+            },
+          );
+          throw Exception('Invalid response format from server');
+        }
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (responseData['post'] != null) {
+            return Post.fromJson(responseData['post'] as Map<String, dynamic>);
+          }
+          if (responseData['data'] != null) {
+            return Post.fromJson(responseData['data'] as Map<String, dynamic>);
+          }
+          return Post.fromJson(responseData as Map<String, dynamic>);
+        } else if (response.statusCode == 413) {
+          throw Exception('Files are too large. Each file must be 10MB or less');
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to update post');
+        }
+      },
+    );
+  }
+
   Future<List<Post>> getMyPosts(String token) async {
     final url = '$baseUrl/my-posts';
     final headers = {

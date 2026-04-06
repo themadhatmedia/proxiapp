@@ -1,5 +1,8 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
+import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
 import '../../utils/progress_dialog_helper.dart';
@@ -38,7 +42,10 @@ extension on _ShareFeed {
 }
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  /// When set, screen updates this post via [ApiService.updatePost].
+  final Post? postToEdit;
+
+  const CreatePostScreen({super.key, this.postToEdit});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -52,6 +59,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
   final List<VideoPlayerController> _videoControllers = [];
+  List<MediaItem> _serverMedia = [];
+  final Set<int> _removedMediaIds = {};
   static const List<_ShareFeed> _shareFeedOrder = [
     _ShareFeed.inner,
     _ShareFeed.outer,
@@ -80,12 +89,60 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   late String _composeHint;
 
+  bool get _isEditing => widget.postToEdit != null && widget.postToEdit!.id != null;
+
+  /// API rule: post must have caption text and/or at least one media item.
+  bool get _hasCaptionOrMedia {
+    final hasText = _contentController.text.trim().isNotEmpty;
+    if (_isEditing) {
+      return hasText || _visibleServerMedia.isNotEmpty || _mediaFiles.isNotEmpty;
+    }
+    return hasText || _mediaFiles.isNotEmpty;
+  }
+
+  List<MediaItem> get _visibleServerMedia {
+    return _serverMedia
+        .where((m) => m.id != null && !_removedMediaIds.contains(m.id!))
+        .toList();
+  }
+
   @override
   void initState() {
     super.initState();
-    final idx = _storageService.getCreatePostHintIndex();
-    _composeHint = _createPostHints[idx];
-    _storageService.setCreatePostHintIndex(idx + 1);
+    final edit = widget.postToEdit;
+    if (edit != null) {
+      _contentController.text = edit.content;
+      _serverMedia = List<MediaItem>.from(edit.media ?? []);
+      final aud = edit.connectionAudiences;
+      if (aud != null && aud.isNotEmpty) {
+        _selectedShareFeeds.clear();
+        for (final k in aud) {
+          switch (k) {
+            case 'inner':
+              _selectedShareFeeds.add(_ShareFeed.inner);
+              break;
+            case 'outer':
+              _selectedShareFeeds.add(_ShareFeed.outer);
+              break;
+            case 'mutual':
+              _selectedShareFeeds.add(_ShareFeed.mutual);
+              break;
+          }
+        }
+        if (_selectedShareFeeds.isEmpty) {
+          _selectedShareFeeds.addAll({
+            _ShareFeed.inner,
+            _ShareFeed.outer,
+            _ShareFeed.mutual,
+          });
+        }
+      }
+      _composeHint = "Edit your post…";
+    } else {
+      final idx = _storageService.getCreatePostHintIndex();
+      _composeHint = _createPostHints[idx];
+      _storageService.setCreatePostHintIndex(idx + 1);
+    }
   }
 
   @override
@@ -360,8 +417,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _createPost() async {
     final content = _contentController.text.trim();
 
-    if (content.isEmpty && _mediaFiles.isEmpty) {
-      ToastHelper.showError('Add some text or at least one photo, video, or GIF');
+    if (!_hasCaptionOrMedia) {
+      ToastHelper.showError(
+        'Add a caption or choose at least one photo, video, or GIF before you post.',
+      );
       return;
     }
 
@@ -380,6 +439,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       final audiences = _shareFeedOrder.where((f) => _selectedShareFeeds.contains(f)).map((f) => f.apiKey).toList();
 
+      if (_isEditing) {
+        final postId = widget.postToEdit!.id!;
+        await apiService.updatePost(
+          token: token,
+          postId: postId,
+          content: content,
+          connectionAudiences: audiences,
+          deleteMediaIds: _removedMediaIds.isNotEmpty ? _removedMediaIds.toList() : null,
+          newMediaFiles: _mediaFiles.isNotEmpty ? _mediaFiles : null,
+        );
+
+        await ProgressDialogHelper.hide();
+        ToastHelper.showSuccess('Post updated');
+        if (mounted) Get.back(result: true);
+        return;
+      }
+
       await apiService.createPost(
         token: token,
         content: content,
@@ -390,9 +466,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       await ProgressDialogHelper.hide();
       ToastHelper.showSuccess('Post created successfully');
 
-      // Navigate to MyPostsScreen and close CreatePostScreen
-      Get.back(); // Close CreatePostScreen
-      Get.to(() => const MyPostsScreen()); // Open MyPostsScreen
+      Get.back();
+      Get.to(() => const MyPostsScreen());
     } catch (e) {
       await ProgressDialogHelper.hide();
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -417,7 +492,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Create Post',
+          _isEditing ? 'Edit Post' : 'Create Post',
           style: TextStyle(
             color: cs.onSurface,
             fontSize: 20,
@@ -437,9 +512,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               ),
-              child: const Text(
-                'Post',
-                style: TextStyle(
+              child: Text(
+                _isEditing ? 'Save' : 'Post',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -502,12 +577,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 const SizedBox(height: 15),
                 _buildShareWithSection(),
                 const SizedBox(height: 15),
-                if (_mediaFiles.isNotEmpty)
+                if (_isEditing && (_visibleServerMedia.isNotEmpty || _mediaFiles.isNotEmpty))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: _buildEditMediaPreview(),
+                  )
+                else if (!_isEditing && _mediaFiles.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15),
                     child: _buildMediaPreview(),
                   ),
-                // const SizedBox(height: 15),
                 _buildAddMediaButton(),
               ],
             ),
@@ -657,6 +736,258 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       totalSize += await file.length();
     }
     return totalSize;
+  }
+
+  void _removeServerMedia(int mediaId) {
+    setState(() {
+      _removedMediaIds.add(mediaId);
+    });
+  }
+
+  Widget _buildEditMediaPreview() {
+    final cs = Theme.of(context).colorScheme;
+    final server = _visibleServerMedia;
+    final totalSlots = server.length + _mediaFiles.length;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.proxi.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Media ($totalSlots)',
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    FutureBuilder<int>(
+                      future: _getTotalMediaSize(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData || snapshot.data == 0) {
+                          return const SizedBox.shrink();
+                        }
+                        final totalSize = snapshot.data!;
+                        final percentage = (totalSize / maxTotalSize * 100).clamp(0, 100);
+                        final isNearLimit = percentage > 80;
+                        return Text(
+                          'New uploads: ${_formatFileSize(totalSize)} / ${_formatFileSize(maxTotalSize)}',
+                          style: TextStyle(
+                            color: isNearLimit ? Colors.orange : cs.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _pickMedia,
+                icon: Icon(Icons.add, color: cs.primary, size: 20),
+                label: Text(
+                  'Add More',
+                  style: TextStyle(color: cs.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: totalSlots,
+            itemBuilder: (context, index) {
+              if (index < server.length) {
+                final m = server[index];
+                final thumb = m.fullUrl.isNotEmpty ? m.fullUrl : m.url;
+                final isVideo = m.isVideo;
+                return Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: isVideo
+                            ? ColoredBox(
+                                color: cs.surfaceContainerHighest,
+                                child: Icon(Icons.videocam, color: cs.onSurfaceVariant, size: 36),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: thumb,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                placeholder: (_, __) => ColoredBox(
+                                  color: cs.surfaceContainerHighest,
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (_, __, ___) => ColoredBox(
+                                  color: cs.surfaceContainerHighest,
+                                  child: Icon(Icons.broken_image_outlined, color: cs.onSurfaceVariant),
+                                ),
+                              ),
+                      ),
+                    ),
+                    if (m.id != null)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _removeServerMedia(m.id!),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: cs.inverseSurface,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: cs.onInverseSurface,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (isVideo)
+                      Center(
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          color: cs.onPrimary,
+                          size: 40,
+                        ),
+                      ),
+                    if (m.isGif)
+                      Positioned(
+                        bottom: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: cs.inverseSurface,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'GIF',
+                            style: TextStyle(
+                              color: cs.onInverseSurface,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }
+
+              final fileIndex = index - server.length;
+              final file = _mediaFiles[fileIndex];
+              final isVideo = _isVideoFile(file);
+              return Stack(
+                children: [
+                  GestureDetector(
+                    onTap: isVideo ? () => _showVideoReview(file) : null,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Container(
+                          color: isVideo ? cs.scrim : cs.surfaceContainerHighest,
+                          child: isVideo
+                              ? _buildVideoPreview(context, file)
+                              : Image.file(
+                                  file,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _removeMedia(fileIndex),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: cs.inverseSurface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          color: cs.onInverseSurface,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isVideo)
+                    GestureDetector(
+                      onTap: () => _showVideoReview(file),
+                      child: Center(
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          color: cs.onPrimary,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  if (_isGifFile(file))
+                    Positioned(
+                      bottom: 4,
+                      left: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: cs.inverseSurface,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'GIF',
+                          style: TextStyle(
+                            color: cs.onInverseSurface,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMediaPreview() {
