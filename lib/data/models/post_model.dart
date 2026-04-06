@@ -13,6 +13,8 @@ class Post {
   final DateTime? createdAt;
   final PostUser? user;
   final PostPermissions? permissions;
+  /// Audience keys from API: `inner`, `outer`, `mutual`.
+  final List<String>? connectionAudiences;
 
   Post({
     this.id,
@@ -29,6 +31,7 @@ class Post {
     this.createdAt,
     this.user,
     this.permissions,
+    this.connectionAudiences,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -53,6 +56,9 @@ class Post {
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
       user: json['user'] != null ? PostUser.fromJson(json['user']) : null,
       permissions: json['permissions'] != null ? PostPermissions.fromJson(json['permissions']) : null,
+      connectionAudiences: json['connection_audiences'] != null
+          ? List<String>.from(json['connection_audiences'] as List)
+          : null,
     );
   }
 
@@ -72,6 +78,7 @@ class Post {
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (user != null) 'user': user!.toJson(),
       if (permissions != null) 'permissions': permissions!.toJson(),
+      if (connectionAudiences != null) 'connection_audiences': connectionAudiences,
     };
   }
 }

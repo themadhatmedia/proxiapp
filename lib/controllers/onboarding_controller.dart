@@ -107,9 +107,13 @@ class OnboardingController extends GetxController {
         imageQuality: 92,
       );
       if (image == null) return;
-      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
-      if (cropped == null) return;
-      profileImage = cropped;
+
+      final ctx = Get.context;
+      if (ctx == null) return;
+      final croppedPath = await cropProfilePictureFromPath(ctx, image.path);
+      if (croppedPath == null) return;
+
+      profileImage = File(croppedPath);
       update();
     } catch (e) {
       ToastHelper.showError('Failed to pick image: $e');
@@ -125,9 +129,13 @@ class OnboardingController extends GetxController {
         imageQuality: 92,
       );
       if (image == null) return;
-      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
-      if (cropped == null) return;
-      profileImage = cropped;
+
+      final ctx = Get.context;
+      if (ctx == null) return;
+      final croppedPath = await cropProfilePictureFromPath(ctx, image.path);
+      if (croppedPath == null) return;
+
+      profileImage = File(croppedPath);
       update();
     } catch (e) {
       ToastHelper.showError('Failed to take photo: $e');

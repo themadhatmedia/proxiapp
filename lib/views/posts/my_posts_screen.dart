@@ -13,6 +13,7 @@ import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/comment_card.dart';
 import '../../widgets/post_card.dart';
+import 'create_post_screen.dart';
 
 class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
@@ -112,6 +113,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               avatarUrl: currentUser.avatarUrl,
             ),
             permissions: post.permissions,
+            connectionAudiences: post.connectionAudiences,
           );
         }
         return post;
@@ -135,6 +137,18 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     _showingComments.clear();
     _loadingComments.clear();
     await _loadMyPosts();
+  }
+
+  Future<void> _openEditPost(Post post) async {
+    if (post.id == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (ctx) => CreatePostScreen(postToEdit: post),
+      ),
+    );
+    if (mounted) {
+      await _loadMyPosts();
+    }
   }
 
   Future<void> _deletePost(int postId) async {
@@ -265,6 +279,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             createdAt: post.createdAt,
             user: post.user,
             permissions: post.permissions,
+            connectionAudiences: post.connectionAudiences,
           );
         }
         _likingPosts[post.id!] = false;
@@ -409,6 +424,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               createdAt: _posts[index].createdAt,
               user: _posts[index].user,
               permissions: _posts[index].permissions,
+              connectionAudiences: _posts[index].connectionAudiences,
             );
           });
         }
@@ -457,6 +473,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               createdAt: _posts[index].createdAt,
               user: _posts[index].user,
               permissions: _posts[index].permissions,
+              connectionAudiences: _posts[index].connectionAudiences,
             );
           });
         }
@@ -829,6 +846,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 post: post,
                 onLike: () => _handleLike(post),
                 onComment: () => _handleComment(post),
+                onEdit: post.id != null ? () => _openEditPost(post) : null,
                 onDelete: post.id != null ? () => _deletePost(post.id!) : null,
                 isLiking: _likingPosts[post.id] ?? false,
               ),

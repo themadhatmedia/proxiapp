@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -252,8 +254,11 @@ class ProfileController extends GetxController {
 
       if (image == null) return;
 
-      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
-      if (cropped == null) return;
+      final ctx = Get.context;
+      if (ctx == null) return;
+
+      final croppedPath = await cropProfilePictureFromPath(ctx, image.path);
+      if (croppedPath == null) return;
 
       final token = authController.token;
       if (token == null) return;
@@ -262,7 +267,7 @@ class ProfileController extends GetxController {
 
       await apiService.updateProfile(
         token: token,
-        avatar: cropped,
+        avatar: File(croppedPath),
       );
 
       await authController.fetchUserProfile();
