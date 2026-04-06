@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationUsageDescription</key>
+	<string>during signup</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>to fetch location when signup</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
@@ -9,7 +11,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Proxiapp</string>
+	<string>Proxi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,6 +50,10 @@
 	<string>to use image from gallery</string>
 	<key>NSCameraUsageDescription</key>
 	<string>to pick image from profile</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>to find nearby friends</string>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
