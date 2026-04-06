@@ -8,6 +8,7 @@ import '../data/models/core_value_model.dart';
 import '../data/models/interest_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
+import '../utils/profile_avatar_cropper.dart';
 import '../utils/toast_helper.dart';
 import 'auth_controller.dart';
 
@@ -253,6 +254,12 @@ class ProfileController extends GetxController {
 
       if (image == null) return;
 
+      final ctx = Get.context;
+      if (ctx == null) return;
+
+      final croppedPath = await cropProfilePictureFromPath(ctx, image.path);
+      if (croppedPath == null) return;
+
       final token = authController.token;
       if (token == null) return;
 
@@ -260,7 +267,7 @@ class ProfileController extends GetxController {
 
       await apiService.updateProfile(
         token: token,
-        avatar: File(image.path),
+        avatar: File(croppedPath),
       );
 
       await authController.fetchUserProfile();
