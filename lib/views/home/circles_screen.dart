@@ -64,10 +64,10 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     );
   }
 
-  void _navigateToFavorites() {
+  void _navigateToBookmarks() {
     final authController = Get.find<AuthController>();
     Get.toNamed(
-      '/favorites',
+      '/bookmarks',
       arguments: {'token': authController.token},
     );
   }
@@ -528,13 +528,14 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
               ),
               const SizedBox(height: 12),
               _buildSpeedDialOption(
-                icon: Icons.favorite,
-                label: 'Favorites',
+                icon: Icons.bookmark,
+                label: 'Bookmarks',
+                miniFabColor: ProxiPalette.bookmarkSaved,
                 onTap: () {
                   setState(() {
                     _isFabExpanded = false;
                   });
-                  _navigateToFavorites();
+                  _navigateToBookmarks();
                 },
               ),
               const SizedBox(height: 16),
@@ -567,6 +568,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    Color? miniFabColor,
   }) {
     final cs = Theme.of(context).colorScheme;
     final proxi = context.proxi;
@@ -595,7 +597,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: ProxiPalette.electricBlue,
+              color: miniFabColor ?? ProxiPalette.electricBlue,
               shape: BoxShape.circle,
             ),
             child: Icon(

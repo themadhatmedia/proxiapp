@@ -45,6 +45,12 @@ class ProxiPalette extends ThemeExtension<ProxiPalette> {
   /// Pure White #FFFFFF
   static const Color pureWhite = Color(0xFFFFFFFF);
 
+  /// Filled / saved bookmark (icons, speed-dial entry).
+  static const Color bookmarkSaved = Color(0xFF43A047);
+
+  /// Outline “add bookmark” icon; also destructive remove actions in bookmark flows.
+  static const Color bookmarkAccent = Color(0xFFE53935);
+
   /// Cool Light Gray #F5F7FB
   static const Color coolLightGray = Color(0xFFF5F7FB);
 

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/bookmarks_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
@@ -32,8 +33,8 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   bool inOuterCircle = false;
   String innerRequestStatus = 'not_sent';
   int? pendingRequestId;
-  bool isisFavorite = false;
-  bool _isTogglingFavorite = false;
+  bool isBookmarked = false;
+  bool _isTogglingBookmark = false;
 
   @override
   void initState() {
@@ -43,7 +44,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     innerRequestStatus = widget.userData['inner_request_status'] ?? 'not_sent';
 
     final userData = widget.userData['user'] ?? widget.userData;
-    isisFavorite = userData['isFavorite'] ?? false;
+    isBookmarked = userData['isFavorite'] ?? false;
 
     if (widget.userData['inner_request_id'] != null) {
       pendingRequestId = widget.userData['inner_request_id'];
@@ -252,8 +253,55 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     }
   }
 
-  Future<void> _toggleFavorite() async {
-    if (_isTogglingFavorite) return;
+  void _setBookmarkOnUserData(bool value) {
+    final nested = widget.userData['user'];
+    if (nested is Map) {
+      nested['isFavorite'] = value;
+    } else {
+      widget.userData['isFavorite'] = value;
+    }
+  }
+
+  Future<bool?> _showRemoveBookmarkConfirmation() {
+    final cs = Theme.of(context).colorScheme;
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        title: Text(
+          'Remove bookmark?',
+          style: TextStyle(color: cs.onSurface),
+        ),
+        content: Text(
+          'Are you sure you want to remove this user from your bookmarks?',
+          style: TextStyle(color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ProxiPalette.bookmarkAccent,
+              foregroundColor: ProxiPalette.pureWhite,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleBookmark() async {
+    if (_isTogglingBookmark) return;
 
     final userData = widget.userData['user'] ?? widget.userData;
     final userId = userData['id'];
@@ -263,31 +311,39 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     final token = authController.token;
     if (token == null) return;
 
+    if (isBookmarked) {
+      final confirm = await _showRemoveBookmarkConfirmation();
+      if (!mounted || confirm != true) return;
+    }
+
     setState(() {
-      _isTogglingFavorite = true;
+      _isTogglingBookmark = true;
     });
 
     try {
-      if (isisFavorite) {
-        await apiService.removeFromFavorites(
+      if (isBookmarked) {
+        await apiService.removeBookmark(
           token: token,
           userId: userId,
         );
+        if (Get.isRegistered<BookmarksController>()) {
+          Get.find<BookmarksController>().removeBookmarkLocally(userId);
+        }
         setState(() {
-          isisFavorite = false;
+          isBookmarked = false;
         });
-        widget.userData['isFavorite'] = false;
-        ToastHelper.showSuccess('Removed from favorites');
+        _setBookmarkOnUserData(false);
+        ToastHelper.showSuccess('Bookmark removed');
       } else {
-        await apiService.addToFavorites(
+        await apiService.addBookmark(
           token: token,
           userId: userId,
         );
         setState(() {
-          isisFavorite = true;
+          isBookmarked = true;
         });
-        widget.userData['isFavorite'] = true;
-        ToastHelper.showSuccess('Added to favorites');
+        _setBookmarkOnUserData(true);
+        ToastHelper.showSuccess('User bookmarked');
       }
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -295,7 +351,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     } finally {
       if (mounted) {
         setState(() {
-          _isTogglingFavorite = false;
+          _isTogglingBookmark = false;
         });
       }
     }
@@ -352,12 +408,14 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                   ),
                 ),
                 IconButton(
-                  onPressed: _isTogglingFavorite ? null : _toggleFavorite,
-                  icon: _isTogglingFavorite
-                      ? const _BeatingHeart()
+                  onPressed: _isTogglingBookmark ? null : _toggleBookmark,
+                  icon: _isTogglingBookmark
+                      ? _PulsingBookmark(color: ProxiPalette.bookmarkSaved)
                       : Icon(
-                          isisFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: isisFavorite ? Colors.red : cs.onSurface,
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked
+                              ? ProxiPalette.bookmarkSaved
+                              : ProxiPalette.bookmarkAccent,
                         ),
                 ),
               ],
@@ -1045,14 +1103,16 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   }
 }
 
-class _BeatingHeart extends StatefulWidget {
-  const _BeatingHeart();
+class _PulsingBookmark extends StatefulWidget {
+  final Color color;
+
+  const _PulsingBookmark({required this.color});
 
   @override
-  State<_BeatingHeart> createState() => _BeatingHeartState();
+  State<_PulsingBookmark> createState() => _PulsingBookmarkState();
 }
 
-class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderStateMixin {
+class _PulsingBookmarkState extends State<_PulsingBookmark> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -1064,7 +1124,7 @@ class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderS
       vsync: this,
     )..repeat(reverse: true);
 
-    _animation = Tween<double>(begin: 0.8, end: 1.2).animate(
+    _animation = Tween<double>(begin: 0.85, end: 1.1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -1079,9 +1139,9 @@ class _BeatingHeartState extends State<_BeatingHeart> with SingleTickerProviderS
   Widget build(BuildContext context) {
     return ScaleTransition(
       scale: _animation,
-      child: const Icon(
-        Icons.favorite,
-        color: Colors.red,
+      child: Icon(
+        Icons.bookmark,
+        color: widget.color,
         size: 24,
       ),
     );

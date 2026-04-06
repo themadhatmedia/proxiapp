@@ -3,21 +3,21 @@ import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
-import '../../controllers/favorites_controller.dart';
+import '../../controllers/bookmarks_controller.dart';
 import '../../widgets/circle_user_card.dart';
 
-class FavoritesScreen extends StatelessWidget {
-  const FavoritesScreen({super.key});
+class BookmarksScreen extends StatelessWidget {
+  const BookmarksScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(FavoritesController());
+    final controller = Get.put(BookmarksController());
     final scrollController = ScrollController();
     final cs = Theme.of(context).colorScheme;
 
     scrollController.addListener(() {
       if (scrollController.position.pixels >= scrollController.position.maxScrollExtent * 0.8) {
-        controller.loadFavorites();
+        controller.loadBookmarks();
       }
     });
 
@@ -30,7 +30,7 @@ class FavoritesScreen extends StatelessWidget {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Favorites',
+          'Bookmarks',
           style: TextStyle(
             color: cs.onSurface,
             fontSize: 20,
@@ -43,27 +43,27 @@ class FavoritesScreen extends StatelessWidget {
           gradient: AppTheme.scaffoldGradient(context),
         ),
         child: Obx(() {
-          if (controller.isLoading.value && controller.favoriteUsers.isEmpty) {
+          if (controller.isLoading.value && controller.bookmarkedUsers.isEmpty) {
             return Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                valueColor: const AlwaysStoppedAnimation<Color>(ProxiPalette.bookmarkSaved),
               ),
             );
           }
 
-          if (controller.favoriteUsers.isEmpty) {
+          if (controller.bookmarkedUsers.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.favorite_border,
+                    Icons.bookmark_border,
                     size: 80,
                     color: cs.onSurfaceVariant.withOpacity(0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No favorites yet',
+                    'No bookmarks yet',
                     style: TextStyle(
                       color: cs.onSurfaceVariant,
                       fontSize: 18,
@@ -72,7 +72,7 @@ class FavoritesScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Users you favorite will appear here',
+                    'Users you bookmark will appear here',
                     style: TextStyle(
                       color: cs.onSurfaceVariant.withOpacity(0.85),
                       fontSize: 14,
@@ -84,30 +84,30 @@ class FavoritesScreen extends StatelessWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () => controller.loadFavorites(refresh: true),
-            color: cs.primary,
+            onRefresh: () => controller.loadBookmarks(refresh: true),
+            color: ProxiPalette.bookmarkSaved,
             backgroundColor: cs.surfaceContainerHighest,
             child: ListView.builder(
               controller: scrollController,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              itemCount: controller.favoriteUsers.length + (controller.hasMore.value ? 1 : 0),
+              itemCount: controller.bookmarkedUsers.length + (controller.hasMore.value ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == controller.favoriteUsers.length) {
+                if (index == controller.bookmarkedUsers.length) {
                   return Padding(
                     padding: const EdgeInsets.all(16),
                     child: Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                        valueColor: const AlwaysStoppedAnimation<Color>(ProxiPalette.bookmarkSaved),
                       ),
                     ),
                   );
                 }
 
-                final user = controller.favoriteUsers[index];
+                final user = controller.bookmarkedUsers[index];
                 return CircleUserCard(
                   user: user,
-                  showFavoriteButton: true,
-                  requireUnfavoriteConfirmation: true,
+                  showBookmarkButton: true,
+                  requireRemoveBookmarkConfirmation: true,
                   bottomMargin: 6,
                 );
               },

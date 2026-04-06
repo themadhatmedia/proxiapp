@@ -24,9 +24,11 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
   }
 
   void _showCustomValueDialog() {
-    final TextEditingController customValueController = TextEditingController(
-      text: controller.customCoreValue.value ?? '',
-    );
+    if (controller.customCoreValues.length >= ProfileController.maxCustomCoreValues) {
+      return;
+    }
+
+    final TextEditingController customValueController = TextEditingController();
 
     showDialog(
       context: context,
@@ -38,7 +40,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            controller.customCoreValue.value == null ? 'Add Custom Core Value' : 'Edit Custom Core Value',
+            'Add custom core value',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -51,7 +53,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Enter a core value that is important to you:',
+                  'Enter a value that is not already in the grid (max ${ProfileController.maxCustomCoreValues} custom).',
                   style: TextStyle(
                     fontSize: 14,
                     color: cs.onSurfaceVariant,
@@ -86,17 +88,6 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
             ),
           ),
           actions: [
-            if (controller.customCoreValue.value != null)
-              TextButton(
-                onPressed: () {
-                  controller.customCoreValue.value = null;
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text(
-                  'Remove',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
             TextButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
@@ -108,11 +99,103 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                final value = customValueController.text.trim();
-                if (value.isNotEmpty) {
-                  controller.customCoreValue.value = value;
+                if (controller.addCustomCoreValue(customValueController.text)) {
+                  Navigator.of(ctx).pop();
                 }
-                Navigator.of(ctx).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    ).whenComplete(() {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        customValueController.dispose();
+      });
+    });
+  }
+
+  void _showEditCustomValueDialog(String previousValue) {
+    final TextEditingController customValueController = TextEditingController(text: previousValue);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: cs.surfaceContainerHighest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Edit custom core value',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Update the text below. It must stay unique and not match a grid option.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: customValueController,
+                  autofocus: true,
+                  style: TextStyle(color: cs.onSurface),
+                  decoration: InputDecoration(
+                    hintText: 'e.g., Sustainability',
+                    hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.8)),
+                    filled: true,
+                    fillColor: cs.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: cs.outline.withOpacity(0.5)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: cs.outline.withOpacity(0.45)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: cs.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: cs.onSurfaceVariant),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (controller.updateCustomCoreValue(previousValue, customValueController.text)) {
+                  Navigator.of(ctx).pop();
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: cs.primary,
@@ -135,8 +218,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
   }
 
   Future<void> _handleSave() async {
-    if (controller.selectedCoreValueNames.isEmpty &&
-        (controller.customCoreValue.value == null || controller.customCoreValue.value!.isEmpty)) {
+    if (controller.selectedCoreValueNames.isEmpty && controller.customCoreValues.isEmpty) {
       return;
     }
 
@@ -191,10 +273,12 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Obx(() {
-                        final selectedCount = controller.selectedCoreValueNames.length +
-                            (controller.customCoreValue.value != null && controller.customCoreValue.value!.isNotEmpty ? 1 : 0);
+                        final preset = controller.selectedCoreValueNames.length;
+                        final custom = controller.customCoreValues.length;
+                        final total = preset + custom;
                         return Text(
-                          'Choose 3-5 values that define who you are${selectedCount > 0 ? ' ($selectedCount/5 selected)' : ''}',
+                          'Up to ${ProfileController.maxPresetCoreValues} from the grid and ${ProfileController.maxCustomCoreValues} custom values.'
+                          '${total > 0 ? ' ($total selected: $preset + $custom custom)' : ''}',
                           style: TextStyle(
                             fontSize: 14,
                             color: cs.onSurfaceVariant,
@@ -231,21 +315,29 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                           itemBuilder: (context, index) {
                             if (index == controller.availableCoreValues.length) {
                               return Obx(() {
-                                final hasCustomValue =
-                                    controller.customCoreValue.value != null && controller.customCoreValue.value!.isNotEmpty;
+                                final hasCustom = controller.customCoreValues.isNotEmpty;
+                                final atMax = controller.customCoreValues.length >= ProfileController.maxCustomCoreValues;
+                                final highlight = hasCustom && !atMax;
+                                final label = atMax
+                                    ? 'Custom (max)'
+                                    : hasCustom
+                                        ? 'Add another\n(${controller.customCoreValues.length}/${ProfileController.maxCustomCoreValues})'
+                                        : 'Add custom';
                                 return GestureDetector(
-                                  onTap: _showCustomValueDialog,
+                                  onTap: atMax ? null : _showCustomValueDialog,
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
                                     padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                    decoration: SelectionStyles.chipBox(context, hasCustomValue),
+                                    decoration: SelectionStyles.chipBox(context, highlight),
                                     child: Center(
                                       child: Text(
-                                        hasCustomValue ? controller.customCoreValue.value! : 'Custom',
+                                        label,
                                         textAlign: TextAlign.center,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: SelectionStyles.chipLabel(context, hasCustomValue),
+                                        style: atMax
+                                            ? SelectionStyles.chipLabel(context, false).copyWith(color: cs.onSurfaceVariant)
+                                            : SelectionStyles.chipLabel(context, highlight),
                                       ),
                                     ),
                                   ),
@@ -274,6 +366,59 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                               );
                             });
                           },
+                        );
+                      }),
+                      Obx(() {
+                        if (controller.customCoreValues.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Custom values',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tap a chip to edit, or use ✕ to remove.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: controller.customCoreValues.map((v) {
+                                  return InputChip(
+                                    label: Text(
+                                      v,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: cs.onSurface, fontSize: 13),
+                                    ),
+                                    deleteIcon: Icon(Icons.close, size: 16, color: cs.onSurfaceVariant),
+                                    onDeleted: () => controller.removeCustomCoreValue(v),
+                                    onPressed: () => _showEditCustomValueDialog(v),
+                                    backgroundColor: cs.surfaceContainerHighest,
+                                    side: BorderSide(color: cs.outline.withOpacity(0.35)),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    labelPadding: const EdgeInsets.only(left: 8, right: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
                         );
                       }),
                     ],
