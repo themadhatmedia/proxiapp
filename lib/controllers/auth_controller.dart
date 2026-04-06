@@ -152,6 +152,12 @@ class AuthController extends GetxController {
         Get.delete<BookmarksController>();
       }
 
+      // MyApp only calls Get.put for these once at cold start; after delete they must
+      // be registered again or Get.find fails (e.g. onboarding after logout).
+      Get.put(NavigationController());
+      Get.put(OnboardingController());
+      Get.put(ProfileController());
+
       Get.offAllNamed('/auth');
     }
   }
