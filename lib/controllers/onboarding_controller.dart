@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/models/ambition_model.dart';
 import '../data/models/core_value_model.dart';
 import '../data/models/interest_model.dart';
+import '../data/models/skill_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
 import '../utils/profile_avatar_cropper.dart';
@@ -33,7 +35,12 @@ class OnboardingController extends GetxController {
   final RxList<int> selectedCoreValueIds = <int>[].obs;
   final RxList<String> customCoreValues = <String>[].obs;
 
-  static const int maxPresetCoreValues = 5;
+  final RxList<SkillModel> availableSkills = <SkillModel>[].obs;
+  final RxList<int> selectedSkillIds = <int>[].obs;
+
+  final RxList<AmbitionModel> availableAmbitions = <AmbitionModel>[].obs;
+  final RxList<int> selectedAmbitionIds = <int>[].obs;
+
   static const int maxCustomCoreValues = 5;
 
   final RxList<PlanModel> availablePlans = <PlanModel>[].obs;
@@ -53,6 +60,8 @@ class OnboardingController extends GetxController {
       await Future.wait([
         fetchInterests(),
         fetchCoreValues(),
+        fetchSkills(),
+        fetchAmbitions(),
       ]);
     } catch (e) {
       ToastHelper.showError('Failed to load data: $e');
@@ -74,6 +83,24 @@ class OnboardingController extends GetxController {
     try {
       final coreValues = await _apiService.getCoreValues();
       availableCoreValues.value = coreValues;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> fetchSkills() async {
+    try {
+      final skills = await _apiService.getSkills();
+      availableSkills.value = skills;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> fetchAmbitions() async {
+    try {
+      final ambitions = await _apiService.getAmbitions();
+      availableAmbitions.value = ambitions;
     } catch (e) {
       rethrow;
     }
@@ -154,11 +181,23 @@ class OnboardingController extends GetxController {
     if (selectedCoreValueIds.contains(coreValueId)) {
       selectedCoreValueIds.remove(coreValueId);
     } else {
-      if (selectedCoreValueIds.length < maxPresetCoreValues) {
-        selectedCoreValueIds.add(coreValueId);
-      } else {
-        ToastHelper.showInfo('You can only select up to $maxPresetCoreValues values from the list');
-      }
+      selectedCoreValueIds.add(coreValueId);
+    }
+  }
+
+  void toggleSkill(int skillId) {
+    if (selectedSkillIds.contains(skillId)) {
+      selectedSkillIds.remove(skillId);
+    } else {
+      selectedSkillIds.add(skillId);
+    }
+  }
+
+  void toggleAmbition(int ambitionId) {
+    if (selectedAmbitionIds.contains(ambitionId)) {
+      selectedAmbitionIds.remove(ambitionId);
+    } else {
+      selectedAmbitionIds.add(ambitionId);
     }
   }
 
@@ -203,6 +242,20 @@ class OnboardingController extends GetxController {
         .toList();
     names.addAll(customCoreValues);
     return names;
+  }
+
+  List<String> _getSelectedSkillNames() {
+    return selectedSkillIds
+        .map((id) => availableSkills.firstWhereOrNull((s) => s.id == id)?.name)
+        .whereType<String>()
+        .toList();
+  }
+
+  List<String> _getSelectedAmbitionNames() {
+    return selectedAmbitionIds
+        .map((id) => availableAmbitions.firstWhereOrNull((a) => a.id == id)?.name)
+        .whereType<String>()
+        .toList();
   }
 
   /// Returns true if [raw] was added; false if empty or invalid (toast already shown).
@@ -302,6 +355,38 @@ class OnboardingController extends GetxController {
     }
   }
 
+  Future<bool> saveSkillsToApi(String token) async {
+    try {
+      isLoading.value = true;
+      await _apiService.updateProfile(
+        token: token,
+        skills: _getSelectedSkillNames(),
+      );
+      return true;
+    } catch (e) {
+      ToastHelper.showError('Failed to save skills: ${e.toString().replaceAll('Exception: ', '')}');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> saveAmbitionsToApi(String token) async {
+    try {
+      isLoading.value = true;
+      await _apiService.updateProfile(
+        token: token,
+        ambitions: _getSelectedAmbitionNames(),
+      );
+      return true;
+    } catch (e) {
+      ToastHelper.showError('Failed to save ambitions: ${e.toString().replaceAll('Exception: ', '')}');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<bool> subscribeMembershipToApi(String token) async {
     if (selectedPlan.value == null) return false;
     try {
@@ -364,6 +449,22 @@ class OnboardingController extends GetxController {
     return true;
   }
 
+  bool validateSkillsSelection() {
+    if (selectedSkillIds.isEmpty) {
+      ToastHelper.showError('Please select at least one skill');
+      return false;
+    }
+    return true;
+  }
+
+  bool validateAmbitionsSelection() {
+    if (selectedAmbitionIds.isEmpty) {
+      ToastHelper.showError('Please select at least one ambition');
+      return false;
+    }
+    return true;
+  }
+
   void reset() {
     profileImage = null;
     name = '';
@@ -377,6 +478,8 @@ class OnboardingController extends GetxController {
     selectedInterestIds.clear();
     selectedCoreValueIds.clear();
     customCoreValues.clear();
+    selectedSkillIds.clear();
+    selectedAmbitionIds.clear();
     selectedPlan.value = null;
   }
 }

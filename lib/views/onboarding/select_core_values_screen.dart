@@ -226,7 +226,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
     setState(() => _isSaving = false);
 
     if (success) {
-      Get.toNamed('/select-plan');
+      Get.toNamed('/select-skills');
     }
   }
 
@@ -276,8 +276,8 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                         final custom = controller.customCoreValues.length;
                         final total = preset + custom;
                         return Text(
-                          'Up to ${OnboardingController.maxPresetCoreValues} from the grid and ${OnboardingController.maxCustomCoreValues} custom values.'
-                          '${total > 0 ? ' ($total selected: $preset + $custom custom)' : ''}',
+                          'Select any from the grid. Up to ${OnboardingController.maxCustomCoreValues} custom values.'
+                          '${total > 0 ? ' ($total selected: $preset from grid + $custom custom)' : ''}',
                           style: TextStyle(
                             fontSize: 14,
                             color: cs.onSurfaceVariant,

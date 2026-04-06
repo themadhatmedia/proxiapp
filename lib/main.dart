@@ -12,10 +12,13 @@ import 'views/main/main_navigation.dart';
 import 'views/onboarding/profile_creation_screen.dart';
 import 'views/onboarding/terms_conditions_screen.dart';
 import 'views/onboarding/select_interests_screen.dart';
+import 'views/onboarding/select_ambitions_screen.dart';
 import 'views/onboarding/select_core_values_screen.dart';
+import 'views/onboarding/select_skills_screen.dart';
 import 'views/onboarding/select_plan_screen.dart';
 import 'views/onboarding/setup_permissions_screen.dart';
 import 'views/onboarding/proxi_circles_screen.dart';
+import 'utils/app_keyboard_dismiss.dart';
 import 'views/bookmarks/bookmarks_screen.dart';
 
 void main() async {
@@ -49,21 +52,25 @@ class MyApp extends StatelessWidget {
             data: data.copyWith(textScaler: TextScaler.noScaling),
             child: child ?? const SizedBox.shrink(),
           );
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              // Decorative layer must not participate in hit testing — on iOS taps can
-              // otherwise fall through transparent scaffold regions and never reach targets.
-              IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.scaffoldGradient(context),
+          return Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: handlePointerDownDismissKeyboard,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Decorative layer must not participate in hit testing — on iOS taps can
+                // otherwise fall through transparent scaffold regions and never reach targets.
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.scaffoldGradient(context),
+                    ),
+                    child: const SizedBox.expand(),
                   ),
-                  child: const SizedBox.expand(),
                 ),
-              ),
-              content,
-            ],
+                content,
+              ],
+            ),
           );
         },
         home: authController.isAuthenticated ? const MainNavigation() : const AuthScreen(),
@@ -74,6 +81,8 @@ class MyApp extends StatelessWidget {
           GetPage(name: '/terms-conditions', page: () => const TermsConditionsScreen()),
           GetPage(name: '/select-interests', page: () => const SelectInterestsScreen()),
           GetPage(name: '/select-core-values', page: () => const SelectCoreValuesScreen()),
+          GetPage(name: '/select-skills', page: () => const SelectSkillsScreen()),
+          GetPage(name: '/select-ambitions', page: () => const SelectAmbitionsScreen()),
           GetPage(name: '/select-plan', page: () => const SelectPlanScreen()),
           GetPage(name: '/setup-permissions', page: () => const SetupPermissionsScreen()),
           GetPage(name: '/proxi-circles', page: () => const ProxiCirclesScreen()),
