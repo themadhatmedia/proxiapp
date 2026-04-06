@@ -13,31 +13,59 @@ class SetupPermissionsScreen extends StatefulWidget {
   State<SetupPermissionsScreen> createState() => _SetupPermissionsScreenState();
 }
 
-class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
+class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with WidgetsBindingObserver {
   bool _locationGranted = false;
   bool _contactsGranted = false;
+
+  /// iOS: "Allow While Using the App" satisfies [locationWhenInUse] but often not [Permission.location]
+  /// (which targets Always). Treat when-in-use, always, and limited as OK.
+  static bool _isLocationAuthorized(PermissionStatus status) {
+    return status.isGranted || status.isLimited;
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermissions();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
   Future<void> _checkPermissions() async {
-    final locationStatus = await Permission.location.status;
+    final whenInUse = await Permission.locationWhenInUse.status;
+    final always = await Permission.locationAlways.status;
     final contactsStatus = await Permission.contacts.status;
 
+    if (!mounted) return;
     setState(() {
-      _locationGranted = locationStatus.isGranted;
+      _locationGranted = _isLocationAuthorized(whenInUse) || _isLocationAuthorized(always);
       _contactsGranted = contactsStatus.isGranted;
     });
   }
 
   Future<void> _requestLocationPermission() async {
-    final status = await Permission.location.request();
+    // Prefer when-in-use so it matches iOS Settings → "While Using the App".
+    var status = await Permission.locationWhenInUse.request();
+    if (!_isLocationAuthorized(status)) {
+      status = await Permission.location.request();
+    }
+    if (!mounted) return;
     setState(() {
-      _locationGranted = status.isGranted;
+      _locationGranted = _isLocationAuthorized(status);
     });
+    await _checkPermissions();
   }
 
   Future<void> _requestContactsPermission() async {
@@ -106,7 +134,7 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> {
                       _PermissionCard(
                         icon: Icons.location_on,
                         title: 'Location Access',
-                        description: 'Always - To detect nearby users and send proximity alerts',
+                        description: 'While using the app or always — to detect nearby users and proximity alerts',
                         isGranted: _locationGranted,
                         onTap: _requestLocationPermission,
                       ),

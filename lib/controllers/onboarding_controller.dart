@@ -7,7 +7,6 @@ import '../data/models/core_value_model.dart';
 import '../data/models/interest_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
-import '../utils/profile_avatar_cropper.dart';
 import '../utils/toast_helper.dart';
 
 class OnboardingController extends GetxController {
@@ -107,9 +106,7 @@ class OnboardingController extends GetxController {
         imageQuality: 92,
       );
       if (image == null) return;
-      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
-      if (cropped == null) return;
-      profileImage = cropped;
+      profileImage = File(image.path);
       update();
     } catch (e) {
       ToastHelper.showError('Failed to pick image: $e');
@@ -125,9 +122,7 @@ class OnboardingController extends GetxController {
         imageQuality: 92,
       );
       if (image == null) return;
-      final cropped = await cropProfileAvatarFile(image.path, context: Get.context);
-      if (cropped == null) return;
-      profileImage = cropped;
+      profileImage = File(image.path);
       update();
     } catch (e) {
       ToastHelper.showError('Failed to take photo: $e');
