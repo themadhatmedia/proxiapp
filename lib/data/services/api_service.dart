@@ -11,6 +11,7 @@ import '../models/core_value_model.dart';
 import '../models/interest_model.dart';
 import '../models/skill_model.dart';
 import '../models/plan_model.dart';
+import '../models/post_like_models.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 
@@ -1786,6 +1787,43 @@ class ApiService {
           final errorMessage = responseData?['message'] ?? 'Failed to unlike post';
           throw Exception(errorMessage);
         }
+      },
+    );
+  }
+
+  Future<PostLikesResult> getPostLikes({
+    required String token,
+    required int postId,
+  }) async {
+    final url = '$baseUrl/posts/$postId/likes';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await http.get(Uri.parse(url), headers: headers).timeout(timeout);
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode != 200) {
+          final errorMessage = responseData['message'] ?? 'Failed to load likes';
+          throw Exception(errorMessage);
+        }
+
+        return PostLikesResult.fromJson(responseData);
       },
     );
   }

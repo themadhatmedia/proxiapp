@@ -13,6 +13,7 @@ import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../utils/progress_dialog_helper.dart';
 import '../views/posts/media_viewer_screen.dart';
+import '../views/posts/post_likes_bottom_sheet.dart';
 import '../views/pulse/user_profile_detail_screen.dart';
 import '../widgets/comment_card.dart';
 import 'safe_avatar.dart';
@@ -500,22 +501,59 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     final canComment = widget.post.permissions?.canComment ?? false;
     final isLiking = controller.likingPosts[widget.post.id] ?? false;
     final cs = Theme.of(context).colorScheme;
+    final statsMeta = TextStyle(
+      color: cs.onSurfaceVariant,
+      fontSize: 13,
+      height: 1.25,
+      fontWeight: FontWeight.w400,
+    );
+    final likesMeta = statsMeta.copyWith(fontWeight: FontWeight.w500);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stats text
+          // Stats: subtle emphasis on tappable likes, same palette as comments
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              '${widget.post.likesCount} ${widget.post.likesCount == 1 ? 'like' : 'likes'} • ${widget.post.commentsCount} ${widget.post.commentsCount == 1 ? 'comment' : 'comments'}',
-              style: TextStyle(
-                color: cs.onSurfaceVariant,
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
+            child: Row(
+              children: [
+                if (widget.post.likesCount > 0 && widget.post.id != null)
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => showPostLikesBottomSheet(context, postId: widget.post.id!),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                        child: Text(
+                          '${widget.post.likesCount} ${widget.post.likesCount == 1 || widget.post.likesCount == 0 ? 'like' : 'likes'}',
+                          style: likesMeta,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    '${widget.post.likesCount} ${widget.post.likesCount == 1 || widget.post.likesCount == 0 ? 'like' : 'likes'}',
+                    style: statsMeta,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Text(
+                    '|',
+                    style: statsMeta.copyWith(
+                      color: cs.onSurfaceVariant.withOpacity(0.62),
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${widget.post.commentsCount} ${widget.post.commentsCount == 1 || widget.post.commentsCount == 0 ? 'comment' : 'comments'}',
+                  style: statsMeta,
+                ),
+              ],
             ),
           ),
           // Action buttons

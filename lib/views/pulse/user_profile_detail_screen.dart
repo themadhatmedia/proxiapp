@@ -29,6 +29,17 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
 
+  /// True when this sheet shows the signed-in user's profile (hide bookmark & circle UI).
+  bool get _isOwnProfile {
+    final me = authController.user?.id;
+    if (me == null) return false;
+    final raw = widget.userData['user'] ?? widget.userData;
+    final other = raw['id'];
+    if (other == null) return false;
+    final otherId = other is int ? other : int.tryParse('$other');
+    return otherId != null && otherId == me;
+  }
+
   bool inInnerCircle = false;
   bool inOuterCircle = false;
   String innerRequestStatus = 'not_sent';
@@ -407,17 +418,20 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                     color: cs.onSurface,
                   ),
                 ),
-                IconButton(
-                  onPressed: _isTogglingBookmark ? null : _toggleBookmark,
-                  icon: _isTogglingBookmark
-                      ? _PulsingBookmark(color: ProxiPalette.bookmarkSaved)
-                      : Icon(
-                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: isBookmarked
-                              ? ProxiPalette.bookmarkSaved
-                              : ProxiPalette.bookmarkAccent,
-                        ),
-                ),
+                if (_isOwnProfile)
+                  const SizedBox(width: 48)
+                else
+                  IconButton(
+                    onPressed: _isTogglingBookmark ? null : _toggleBookmark,
+                    icon: _isTogglingBookmark
+                        ? _PulsingBookmark(color: ProxiPalette.bookmarkSaved)
+                        : Icon(
+                            isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                            color: isBookmarked
+                                ? ProxiPalette.bookmarkSaved
+                                : ProxiPalette.bookmarkAccent,
+                          ),
+                  ),
               ],
             ),
           ),
@@ -715,7 +729,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
               ),
             ),
           ),
-          if (widget.userData['hide_action_buttons'] != true)
+          if (widget.userData['hide_action_buttons'] != true && !_isOwnProfile)
             Container(
               padding: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(

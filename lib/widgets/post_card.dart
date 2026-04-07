@@ -12,6 +12,7 @@ class PostCard extends StatelessWidget {
   final Post post;
   final VoidCallback? onLike;
   final VoidCallback? onComment;
+  final VoidCallback? onLikesTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool isLiking;
@@ -21,6 +22,7 @@ class PostCard extends StatelessWidget {
     required this.post,
     this.onLike,
     this.onComment,
+    this.onLikesTap,
     this.onEdit,
     this.onDelete,
     this.isLiking = false,
@@ -569,6 +571,13 @@ class PostCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final canLike = post.permissions?.canLike ?? true;
     final canComment = post.permissions?.canComment ?? true;
+    final statsMeta = TextStyle(
+      color: cs.onSurfaceVariant,
+      fontSize: 13,
+      height: 1.25,
+      fontWeight: FontWeight.w400,
+    );
+    final likesMeta = statsMeta.copyWith(fontWeight: FontWeight.w500);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -580,31 +589,42 @@ class PostCard extends StatelessWidget {
               child: Row(
                 children: [
                   if ((post.likesCount) > 0) ...[
-                    Text(
-                      '${post.likesCount} ${(post.likesCount) == 1 ? 'like' : 'likes'}',
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 13,
+                    if (onLikesTap != null)
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onLikesTap,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                            child: Text(
+                              '${post.likesCount} ${(post.likesCount) == 1 || (post.likesCount) == 0 ? 'like' : 'likes'}',
+                              style: likesMeta,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        '${post.likesCount} ${(post.likesCount) == 1 || (post.likesCount) == 0 ? 'like' : 'likes'}',
+                        style: statsMeta,
                       ),
-                    ),
                   ],
                   if ((post.likesCount) > 0 && (post.commentsCount) > 0)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
                       child: Text(
-                        '•',
-                        style: TextStyle(
-                          color: cs.onSurfaceVariant,
+                        '|',
+                        style: statsMeta.copyWith(
+                          color: cs.onSurfaceVariant.withOpacity(0.62),
+                          fontWeight: FontWeight.w300,
                         ),
                       ),
                     ),
                   if ((post.commentsCount) > 0) ...[
                     Text(
-                      '${post.commentsCount} ${(post.commentsCount) == 1 ? 'comment' : 'comments'}',
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
+                      '${post.commentsCount} ${(post.commentsCount) == 1 || (post.commentsCount) == 0 ? 'comment' : 'comments'}',
+                      style: statsMeta,
                     ),
                   ],
                 ],
