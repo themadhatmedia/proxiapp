@@ -6,8 +6,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
 
+import '../models/ambition_model.dart';
 import '../models/core_value_model.dart';
 import '../models/interest_model.dart';
+import '../models/skill_model.dart';
 import '../models/plan_model.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
@@ -386,6 +388,8 @@ class ApiService {
     List<String>? interests,
     List<String>? preferences,
     List<String>? coreValues,
+    List<String>? skills,
+    List<String>? ambitions,
     bool? locationVisible,
     File? avatar,
     String? accountType,
@@ -422,6 +426,8 @@ class ApiService {
           if (interests != null) request.fields['interests'] = jsonEncode(interests);
           if (preferences != null) request.fields['preferences'] = jsonEncode(preferences);
           if (coreValues != null) request.fields['core_values'] = jsonEncode(coreValues);
+          if (skills != null) request.fields['skills'] = jsonEncode(skills);
+          if (ambitions != null) request.fields['ambitions'] = jsonEncode(ambitions);
           if (locationVisible != null) request.fields['location_visible'] = locationVisible.toString();
           if (accountType != null) request.fields['account_type'] = accountType;
           if (linkedinUrl != null) request.fields['linkedin_url'] = linkedinUrl;
@@ -455,6 +461,8 @@ class ApiService {
             if (interests != null) 'interests': interests,
             if (preferences != null) 'preferences': preferences,
             if (coreValues != null) 'core_values': coreValues,
+            if (skills != null) 'skills': skills,
+            if (ambitions != null) 'ambitions': ambitions,
             if (locationVisible != null) 'location_visible': locationVisible,
             if (accountType != null) 'account_type': accountType,
             if (linkedinUrl != null) 'linkedin_url': linkedinUrl,
@@ -578,6 +586,74 @@ class ApiService {
           return responseData['data'] ?? responseData ?? [];
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to get preferences';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<List<SkillModel>> getSkills() async {
+    final url = '$baseUrl/master/skills';
+    final headers = {'Content-Type': 'application/json'};
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await http.get(Uri.parse(url), headers: headers);
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = responseData['data'] ?? responseData ?? [];
+          return data
+              .map((json) => SkillModel.fromJson(json as Map<String, dynamic>))
+              .where((s) => s.isActive && s.name.isNotEmpty)
+              .toList();
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to get skills';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
+  Future<List<AmbitionModel>> getAmbitions() async {
+    final url = '$baseUrl/master/ambitions';
+    final headers = {'Content-Type': 'application/json'};
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await http.get(Uri.parse(url), headers: headers);
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = responseData['data'] ?? responseData ?? [];
+          return data
+              .map((json) => AmbitionModel.fromJson(json as Map<String, dynamic>))
+              .where((a) => a.isActive && a.name.isNotEmpty)
+              .toList();
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to get ambitions';
           throw Exception(errorMessage);
         }
       },

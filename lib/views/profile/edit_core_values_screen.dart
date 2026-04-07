@@ -277,8 +277,8 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                         final custom = controller.customCoreValues.length;
                         final total = preset + custom;
                         return Text(
-                          'Up to ${ProfileController.maxPresetCoreValues} from the grid and ${ProfileController.maxCustomCoreValues} custom values.'
-                          '${total > 0 ? ' ($total selected: $preset + $custom custom)' : ''}',
+                          'Select any from the grid. Up to ${ProfileController.maxCustomCoreValues} custom values.'
+                          '${total > 0 ? ' ($total selected: $preset from grid + $custom custom)' : ''}',
                           style: TextStyle(
                             fontSize: 14,
                             color: cs.onSurfaceVariant,

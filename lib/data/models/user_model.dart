@@ -5,6 +5,8 @@ class User {
   final Profile? profile;
   final List<String>? interests;
   final List<String>? coreValues;
+  final List<String>? skills;
+  final List<String>? ambitions;
   final DateTime? createdAt;
   final String? displayName;
   final String? avatarUrl;
@@ -34,6 +36,8 @@ class User {
     this.profile,
     this.interests,
     this.coreValues,
+    this.skills,
+    this.ambitions,
     this.createdAt,
     this.displayName,
     this.avatarUrl,
@@ -73,6 +77,20 @@ class User {
       coreValues = List<String>.from(userData['core_values']);
     } else if (profileData?['core_values'] != null) {
       coreValues = List<String>.from(profileData['core_values']);
+    }
+
+    List<String>? skills;
+    if (userData['skills'] != null) {
+      skills = List<String>.from(userData['skills']);
+    } else if (profileData?['skills'] != null) {
+      skills = List<String>.from(profileData['skills']);
+    }
+
+    List<String>? ambitions;
+    if (userData['ambitions'] != null) {
+      ambitions = List<String>.from(userData['ambitions']);
+    } else if (profileData?['ambitions'] != null) {
+      ambitions = List<String>.from(profileData['ambitions']);
     }
 
     String? displayName;
@@ -130,6 +148,8 @@ class User {
       profile: profileData != null ? Profile.fromJson(profileData) : null,
       interests: interests,
       coreValues: coreValues,
+      skills: skills,
+      ambitions: ambitions,
       createdAt: userData['created_at'] != null ? DateTime.parse(userData['created_at']) : null,
       displayName: displayName,
       avatarUrl: avatarUrl,
@@ -180,6 +200,12 @@ class User {
     if (coreValues != null) {
       profileData['core_values'] = coreValues;
     }
+    if (skills != null) {
+      profileData['skills'] = skills;
+    }
+    if (ambitions != null) {
+      profileData['ambitions'] = ambitions;
+    }
 
     return {
       'id': id,
@@ -188,6 +214,8 @@ class User {
       'profile': profileData.isNotEmpty ? profileData : null,
       'interests': interests,
       'core_values': coreValues,
+      'skills': skills,
+      'ambitions': ambitions,
       'created_at': createdAt?.toIso8601String(),
       'display_name': displayName,
       'avatar_url': avatarUrl,

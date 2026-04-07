@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme/proxi_palette.dart';
+import '../utils/app_keyboard_dismiss.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -30,7 +31,12 @@ class CustomButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isLoading
+            ? null
+            : () {
+                unfocusKeyboard();
+                onPressed();
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           disabledBackgroundColor: bgColor.withOpacity(0.6),

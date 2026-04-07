@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/models/ambition_model.dart';
 import '../data/models/core_value_model.dart';
 import '../data/models/interest_model.dart';
+import '../data/models/skill_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
 import '../utils/profile_avatar_cropper.dart';
@@ -20,12 +22,15 @@ class ProfileController extends GetxController {
   final isLoading = false.obs;
   final availableInterests = <InterestModel>[].obs;
   final availableCoreValues = <CoreValueModel>[].obs;
+  final availableSkills = <SkillModel>[].obs;
+  final availableAmbitions = <AmbitionModel>[].obs;
   final availablePlans = <PlanModel>[].obs;
   final selectedInterestNames = <String>[].obs;
   final selectedCoreValueNames = <String>[].obs;
+  final selectedSkillNames = <String>[].obs;
+  final selectedAmbitionNames = <String>[].obs;
   final customCoreValues = <String>[].obs;
 
-  static const int maxPresetCoreValues = 5;
   static const int maxCustomCoreValues = 5;
 
   final linkedinUrl = ''.obs;
@@ -39,9 +44,13 @@ class ProfileController extends GetxController {
   void reset() {
     availableInterests.clear();
     availableCoreValues.clear();
+    availableSkills.clear();
+    availableAmbitions.clear();
     availablePlans.clear();
     selectedInterestNames.clear();
     selectedCoreValueNames.clear();
+    selectedSkillNames.clear();
+    selectedAmbitionNames.clear();
     customCoreValues.clear();
     linkedinUrl.value = '';
     facebookUrl.value = '';
@@ -65,6 +74,40 @@ class ProfileController extends GetxController {
       }
     } catch (e) {
       ToastHelper.showError('Failed to load interests');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> loadSkills() async {
+    try {
+      isLoading.value = true;
+      final skills = await apiService.getSkills();
+      availableSkills.value = skills;
+
+      final currentUser = authController.currentUser.value;
+      if (currentUser?.skills != null) {
+        selectedSkillNames.value = List<String>.from(currentUser!.skills!);
+      }
+    } catch (e) {
+      ToastHelper.showError('Failed to load skills');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> loadAmbitions() async {
+    try {
+      isLoading.value = true;
+      final ambitions = await apiService.getAmbitions();
+      availableAmbitions.value = ambitions;
+
+      final currentUser = authController.currentUser.value;
+      if (currentUser?.ambitions != null) {
+        selectedAmbitionNames.value = List<String>.from(currentUser!.ambitions!);
+      }
+    } catch (e) {
+      ToastHelper.showError('Failed to load ambitions');
     } finally {
       isLoading.value = false;
     }
@@ -128,10 +171,24 @@ class ProfileController extends GetxController {
   void toggleCoreValue(String coreValueName) {
     if (selectedCoreValueNames.contains(coreValueName)) {
       selectedCoreValueNames.remove(coreValueName);
-    } else if (selectedCoreValueNames.length < maxPresetCoreValues) {
-      selectedCoreValueNames.add(coreValueName);
     } else {
-      ToastHelper.showError('You can select up to $maxPresetCoreValues values from the list');
+      selectedCoreValueNames.add(coreValueName);
+    }
+  }
+
+  void toggleSkill(String skillName) {
+    if (selectedSkillNames.contains(skillName)) {
+      selectedSkillNames.remove(skillName);
+    } else {
+      selectedSkillNames.add(skillName);
+    }
+  }
+
+  void toggleAmbition(String ambitionName) {
+    if (selectedAmbitionNames.contains(ambitionName)) {
+      selectedAmbitionNames.remove(ambitionName);
+    } else {
+      selectedAmbitionNames.add(ambitionName);
     }
   }
 
@@ -239,6 +296,44 @@ class ProfileController extends GetxController {
       return true;
     } catch (e) {
       ToastHelper.showError('Failed to update core values');
+      return false;
+    }
+  }
+
+  Future<bool> saveSkills() async {
+    try {
+      final token = authController.token;
+      if (token == null) return false;
+
+      await apiService.updateProfile(
+        token: token,
+        skills: selectedSkillNames.toList(),
+      );
+
+      await authController.fetchUserProfile();
+      ToastHelper.showSuccess('Skills updated');
+      return true;
+    } catch (e) {
+      ToastHelper.showError('Failed to update skills');
+      return false;
+    }
+  }
+
+  Future<bool> saveAmbitions() async {
+    try {
+      final token = authController.token;
+      if (token == null) return false;
+
+      await apiService.updateProfile(
+        token: token,
+        ambitions: selectedAmbitionNames.toList(),
+      );
+
+      await authController.fetchUserProfile();
+      ToastHelper.showSuccess('Ambitions updated');
+      return true;
+    } catch (e) {
+      ToastHelper.showError('Failed to update ambitions');
       return false;
     }
   }

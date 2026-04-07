@@ -548,11 +548,13 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                 });
               },
               backgroundColor: ProxiPalette.electricBlue,
-              child: AnimatedRotation(
-                turns: _isFabExpanded ? 0.250 : 0,
+              child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
                 child: Icon(
-                  _isFabExpanded ? Icons.close : Icons.add,
+                  _isFabExpanded ? Icons.close : Icons.person_search,
+                  key: ValueKey<bool>(_isFabExpanded),
                   color: ProxiPalette.pureWhite,
                   size: 28.0,
                 ),

@@ -9,8 +9,10 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../data/models/user_model.dart';
 import '../../widgets/safe_avatar.dart';
+import '../profile/edit_ambitions_screen.dart';
 import '../profile/edit_core_values_screen.dart';
 import '../profile/edit_interests_screen.dart';
+import '../profile/edit_skills_screen.dart';
 import '../profile/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -132,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -161,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 15.0),
+                    const SizedBox(height: 6),
                     GestureDetector(
                       onTap: () {
                         profileController.showImageSourceDialog((source) {
@@ -225,30 +227,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: cs.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 25.0),
+                    const SizedBox(height: 20),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          GestureDetector(
-                            onTap: () => Get.to(() => const EditInterestsScreen()),
-                            child: _buildStatItem(
-                              count: user.interests?.length ?? 0,
-                              label: 'Interests',
+                          Text(
+                            'Profile Highlights',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                              letterSpacing: 0.15,
+                              color: cs.onSurface,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () => Get.to(() => const EditCoreValuesScreen()),
-                            child: _buildStatItem(
-                              count: user.coreValues?.length ?? 0,
-                              label: 'Core Values',
-                            ),
+                          const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildProfileStatTile(
+                                  count: user.interests?.length ?? 0,
+                                  label: 'Interests',
+                                  icon: Icons.interests_outlined,
+                                  accentColor: ProxiPalette.skyBlue,
+                                  onTap: () => Get.to(() => const EditInterestsScreen()),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildProfileStatTile(
+                                  count: user.coreValues?.length ?? 0,
+                                  label: 'Core values',
+                                  icon: Icons.verified_outlined,
+                                  accentColor: ProxiPalette.vibrantPurple,
+                                  onTap: () => Get.to(() => const EditCoreValuesScreen()),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildProfileStatTile(
+                                  count: user.skills?.length ?? 0,
+                                  label: 'Skills',
+                                  icon: Icons.construction_outlined,
+                                  accentColor: ProxiPalette.electricBlue,
+                                  onTap: () => Get.to(() => const EditSkillsScreen()),
+                                ),
+                              ),
+                            ],
                           ),
-                          _buildStatItem(
-                            // count: user.membership?.membership?.features?.dailyPulseLimit ?? 0,
-                            count: _getRemainingPulses(user),
-                            label: 'Pulses',
+                          const SizedBox(height: 10),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildProfileStatTile(
+                                  count: user.ambitions?.length ?? 0,
+                                  label: 'Ambitions',
+                                  icon: Icons.flag_outlined,
+                                  accentColor: const Color(0xFFFFB703),
+                                  onTap: () => Get.to(() => const EditAmbitionsScreen()),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildProfileStatTile(
+                                  count: _getRemainingPulses(user),
+                                  label: 'Pulses left',
+                                  icon: Icons.bolt_rounded,
+                                  accentColor: cs.primary,
+                                  onTap: null,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -390,6 +444,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 32),
                     ],
+                    if (user.skills != null && user.skills!.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Your Skills',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                GestureDetector(
+                                  onTap: () => Get.to(() => const EditSkillsScreen()),
+                                  child: Icon(
+                                    Icons.edit,
+                                    color: cs.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: user.skills!.map((skill) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: ProxiPalette.electricBlue.withOpacity(0.22),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.construction,
+                                        color: ProxiPalette.electricBlue,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        skill,
+                                        style: TextStyle(
+                                          color: cs.onSurface,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                    if (user.ambitions != null && user.ambitions!.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Your Ambitions',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                GestureDetector(
+                                  onTap: () => Get.to(() => const EditAmbitionsScreen()),
+                                  child: Icon(
+                                    Icons.edit,
+                                    color: cs.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: user.ambitions!.map((ambition) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFB703).withOpacity(0.22),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.flag_outlined,
+                                        color: Color(0xFFFFB703),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        ambition,
+                                        style: TextStyle(
+                                          color: cs.onSurface,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Column(
@@ -471,26 +657,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem({required int count, required String label}) {
+  Widget _buildProfileStatTile({
+    required int count,
+    required String label,
+    required IconData icon,
+    required Color accentColor,
+    VoidCallback? onTap,
+  }) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 30.0,
-            fontWeight: FontWeight.bold,
-            color: cs.primary,
+
+    final inner = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.16),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: accentColor, size: 22),
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: cs.onSurfaceVariant,
+          const SizedBox(height: 10),
+          Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: cs.onSurface,
+              height: 1,
+            ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Material(
+      color: cs.surfaceContainerHighest.withOpacity(0.85),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: onTap != null ? accentColor.withOpacity(0.12) : Colors.transparent,
+        highlightColor: onTap != null ? accentColor.withOpacity(0.06) : Colors.transparent,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: cs.outline.withOpacity(0.12),
+            ),
+          ),
+          child: inner,
         ),
-      ],
+      ),
     );
   }
 
@@ -503,6 +739,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _getRemainingPulses(User user) {
     final dailyPulseLimit = user.membership?.membership?.features?.dailyPulseLimit ?? 0;
     final dailyPulsesUsed = user.membership?.dailyPulsesUsed ?? 0;
-    return dailyPulseLimit - dailyPulsesUsed;
+    final left = dailyPulseLimit - dailyPulsesUsed;
+    return left < 0 ? 0 : left;
   }
 }

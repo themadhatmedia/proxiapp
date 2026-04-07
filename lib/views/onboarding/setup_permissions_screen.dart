@@ -56,12 +56,13 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
   }
 
   Future<void> _requestLocationPermission() async {
+    if (_locationGranted) return;
     // Prefer when-in-use so it matches iOS Settings → "While Using the App".
     var status = await Permission.locationWhenInUse.request();
     if (!_isLocationAuthorized(status)) {
       status = await Permission.location.request();
     }
-    if (!mounted) return;
+    // if (!mounted) return;
     setState(() {
       _locationGranted = _isLocationAuthorized(status);
     });
@@ -69,6 +70,7 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
   }
 
   Future<void> _requestContactsPermission() async {
+    if (_contactsGranted) return;
     final status = await Permission.contacts.request();
     setState(() {
       _contactsGranted = status.isGranted;
@@ -192,7 +194,8 @@ class _PermissionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: isGranted ? null : onTap,
+          // onTap: isGranted ? null : onTap,
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
