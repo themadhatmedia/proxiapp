@@ -118,8 +118,7 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
     if (whenInUsePre.isPermanentlyDenied) {
       await _openSettingsGuideDialog(
         title: 'Location is turned off',
-        body:
-            'Proxi needs location to find people nearby. Open your device Settings, choose Proxi, tap Location, then select While Using the App (or Always). Return here and Continue will unlock.',
+        body: 'Proxi needs location to find people nearby. Open your device Settings, choose Proxi, tap Location, then select While Using the App (or Always). Return here and Continue will unlock.',
       );
       return;
     }
@@ -135,14 +134,12 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
       if (w.isPermanentlyDenied) {
         await _openSettingsGuideDialog(
           title: 'Location is turned off',
-          body:
-              'Location was blocked for Proxi. Open Settings → Proxi → Location and allow access, then come back to this screen.',
+          body: 'Location was blocked for Proxi. Open Settings → Proxi → Location and allow access, then come back to this screen.',
         );
       } else {
         await _openSettingsGuideDialog(
           title: 'Allow location',
-          body:
-              'Location is still off for Proxi. Open Settings, enable Location for Proxi, then return here — Continue will work once both permissions are on.',
+          body: 'Location is still off for Proxi. Open Settings, enable Location for Proxi, then return here — Continue will work once both permissions are on.',
         );
       }
     }
@@ -155,8 +152,7 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
     if (pre.isPermanentlyDenied) {
       await _openSettingsGuideDialog(
         title: 'Contacts are turned off',
-        body:
-            'Proxi needs contacts to find friends on the app. Open Settings → Proxi → Contacts and turn them on, then return here.',
+        body: 'Proxi needs contacts to find friends on the app. Open Settings → Proxi → Contacts and turn them on, then return here.',
       );
       return;
     }
@@ -169,14 +165,12 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
       if (s.isPermanentlyDenied) {
         await _openSettingsGuideDialog(
           title: 'Contacts are turned off',
-          body:
-              'Contacts were blocked for Proxi. Open Settings → Proxi → Contacts and allow access, then come back.',
+          body: 'Contacts were blocked for Proxi. Open Settings → Proxi → Contacts and allow access, then come back.',
         );
       } else {
         await _openSettingsGuideDialog(
           title: 'Allow contacts',
-          body:
-              'Contacts are still off for Proxi. Open Settings and enable Contacts for Proxi, then return — Continue unlocks when Location and Contacts are both allowed.',
+          body: 'Contacts are still off for Proxi. Open Settings and enable Contacts for Proxi, then return — Continue unlocks when Location and Contacts are both allowed.',
         );
       }
     }

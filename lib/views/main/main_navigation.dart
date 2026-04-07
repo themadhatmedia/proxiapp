@@ -29,6 +29,22 @@ class _MainNavigationState extends State<MainNavigation> {
   final AuthController _authController = Get.find<AuthController>();
   final GlobalKey<NavigatorState> _circlesKey = GlobalKey<NavigatorState>();
 
+  /// While onboarding routes are on top of the stack, [MainNavigation] can still
+  /// be mounted as `GetMaterialApp` `home` — avoid prompting for location until
+  /// the user reaches the main app (`/home` after onboarding).
+  static bool _isOnboardingRouteActive(String route) {
+    final r = route.toLowerCase();
+    return r.contains('profile-creation') ||
+        r.contains('terms-conditions') ||
+        r.contains('select-interests') ||
+        r.contains('select-core-values') ||
+        r.contains('select-skills') ||
+        r.contains('select-ambitions') ||
+        r.contains('select-plan') ||
+        r.contains('setup-permissions') ||
+        r.contains('proxi-circles');
+  }
+
   Future<void> _updateUserLocation() async {
     try {
       final token = _authController.token;
@@ -77,7 +93,14 @@ class _MainNavigationState extends State<MainNavigation> {
     } else {
       _navigationController = Get.put(NavigationController());
     }
-    _updateUserLocation();
+    // Defer so signup → /profile-creation (and Obx switching `home` to this widget)
+    // applies first; skip while any onboarding screen is the active route.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      if (!mounted) return;
+      if (_isOnboardingRouteActive(Get.currentRoute)) return;
+      await _updateUserLocation();
+    });
   }
 
   Future<bool> _onWillPop() async {
