@@ -14,6 +14,7 @@ import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/comment_card.dart';
 import '../../widgets/post_card.dart';
+import 'post_likes_bottom_sheet.dart';
 
 class UserPostsScreen extends StatefulWidget {
   final int userId;
@@ -781,6 +782,9 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
                 post: post,
                 onLike: () => _handleLike(post),
                 onComment: () => _handleComment(post),
+                onLikesTap: post.id != null && post.likesCount > 0
+                    ? () => showPostLikesBottomSheet(context, postId: post.id!)
+                    : null,
                 onDelete: null,
                 isLiking: _likingPosts[post.id] ?? false,
               ),

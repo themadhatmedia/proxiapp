@@ -14,6 +14,7 @@ import '../../utils/toast_helper.dart';
 import '../../widgets/comment_card.dart';
 import '../../widgets/post_card.dart';
 import 'create_post_screen.dart';
+import 'post_likes_bottom_sheet.dart';
 
 class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
@@ -846,6 +847,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 post: post,
                 onLike: () => _handleLike(post),
                 onComment: () => _handleComment(post),
+                onLikesTap: post.id != null && post.likesCount > 0
+                    ? () => showPostLikesBottomSheet(context, postId: post.id!)
+                    : null,
                 onEdit: post.id != null ? () => _openEditPost(post) : null,
                 onDelete: post.id != null ? () => _deletePost(post.id!) : null,
                 isLiking: _likingPosts[post.id] ?? false,
