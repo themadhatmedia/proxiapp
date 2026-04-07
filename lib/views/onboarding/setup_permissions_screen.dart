@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
+import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 
 class SetupPermissionsScreen extends StatefulWidget {
@@ -55,33 +56,145 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
     });
   }
 
+  Future<void> _openSettingsGuideDialog({
+    required String title,
+    required String body,
+  }) async {
+    if (!mounted) return;
+    final cs = Theme.of(context).colorScheme;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        content: Text(
+          body,
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Not now',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _requestLocationPermission() async {
     if (_locationGranted) return;
-    // Prefer when-in-use so it matches iOS Settings → "While Using the App".
+
+    final whenInUsePre = await Permission.locationWhenInUse.status;
+    final alwaysPre = await Permission.locationAlways.status;
+    if (_isLocationAuthorized(alwaysPre)) {
+      await _checkPermissions();
+      return;
+    }
+    if (whenInUsePre.isPermanentlyDenied) {
+      await _openSettingsGuideDialog(
+        title: 'Location is turned off',
+        body:
+            'Proxi needs location to find people nearby. Open your device Settings, choose Proxi, tap Location, then select While Using the App (or Always). Return here and Continue will unlock.',
+      );
+      return;
+    }
+
     var status = await Permission.locationWhenInUse.request();
     if (!_isLocationAuthorized(status)) {
       status = await Permission.location.request();
     }
-    // if (!mounted) return;
-    setState(() {
-      _locationGranted = _isLocationAuthorized(status);
-    });
     await _checkPermissions();
+
+    if (!_locationGranted && mounted) {
+      final w = await Permission.locationWhenInUse.status;
+      if (w.isPermanentlyDenied) {
+        await _openSettingsGuideDialog(
+          title: 'Location is turned off',
+          body:
+              'Location was blocked for Proxi. Open Settings → Proxi → Location and allow access, then come back to this screen.',
+        );
+      } else {
+        await _openSettingsGuideDialog(
+          title: 'Allow location',
+          body:
+              'Location is still off for Proxi. Open Settings, enable Location for Proxi, then return here — Continue will work once both permissions are on.',
+        );
+      }
+    }
   }
 
   Future<void> _requestContactsPermission() async {
     if (_contactsGranted) return;
-    final status = await Permission.contacts.request();
-    setState(() {
-      _contactsGranted = status.isGranted;
-    });
+
+    final pre = await Permission.contacts.status;
+    if (pre.isPermanentlyDenied) {
+      await _openSettingsGuideDialog(
+        title: 'Contacts are turned off',
+        body:
+            'Proxi needs contacts to find friends on the app. Open Settings → Proxi → Contacts and turn them on, then return here.',
+      );
+      return;
+    }
+
+    await Permission.contacts.request();
+    await _checkPermissions();
+
+    if (!_contactsGranted && mounted) {
+      final s = await Permission.contacts.status;
+      if (s.isPermanentlyDenied) {
+        await _openSettingsGuideDialog(
+          title: 'Contacts are turned off',
+          body:
+              'Contacts were blocked for Proxi. Open Settings → Proxi → Contacts and allow access, then come back.',
+        );
+      } else {
+        await _openSettingsGuideDialog(
+          title: 'Allow contacts',
+          body:
+              'Contacts are still off for Proxi. Open Settings and enable Contacts for Proxi, then return — Continue unlocks when Location and Contacts are both allowed.',
+        );
+      }
+    }
   }
 
   bool get _canContinue => _locationGranted && _contactsGranted;
 
   void _handleContinue() {
+    Get.toNamed('/proxi-circles');
+  }
+
+  void _onContinuePressed() {
     if (_canContinue) {
-      Get.toNamed('/proxi-circles');
+      _handleContinue();
+    } else {
+      ToastHelper.showInfo(
+        'Allow Location and Contacts above to continue. If you tapped Don’t Allow before, tap each card and use Open Settings, then return here.',
+      );
     }
   }
 
@@ -132,7 +245,16 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
                           color: cs.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 10),
+                      Text(
+                        'If you denied access earlier, tap the card and choose Open Settings, turn the permission on for Proxi, then return — we refresh when you come back.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: cs.onSurfaceVariant.withOpacity(0.95),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
                       _PermissionCard(
                         icon: Icons.location_on,
                         title: 'Location Access',
@@ -151,7 +273,7 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
                       const Spacer(),
                       CustomButton(
                         text: 'Continue',
-                        onPressed: _canContinue ? _handleContinue : () {},
+                        onPressed: _onContinuePressed,
                         backgroundColor: _canContinue ? null : Colors.grey.shade400,
                       ),
                     ],
@@ -234,6 +356,18 @@ class _PermissionCard extends StatelessWidget {
                           color: cs.onSurfaceVariant,
                         ),
                       ),
+                      if (!isGranted) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap to allow. If you chose Don’t Allow, use Open Settings in the dialog.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.3,
+                            color: cs.primary.withOpacity(0.95),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
