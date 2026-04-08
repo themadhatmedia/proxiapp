@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSLocationUsageDescription</key>
-	<string>during signup</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>to fetch location when signup</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -28,8 +24,41 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>to pick image from profile</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app accesses your contacts to help you find and connect with friends on Proxi.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>fetch location time to time</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>to fetch location when signup</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>to use image from gallery</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -42,18 +71,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSContactsUsageDescription</key>
-	<string>to fetch contact</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>fetch location time to time</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>to use image from gallery</string>
-	<key>NSCameraUsageDescription</key>
-	<string>to pick image from profile</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>to find nearby friends</string>
-	<key>LSApplicationCategoryType</key>
-	<string></string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

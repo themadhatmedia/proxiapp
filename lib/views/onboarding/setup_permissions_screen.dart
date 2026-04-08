@@ -110,36 +110,27 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
     if (_locationGranted) return;
 
     final whenInUsePre = await Permission.locationWhenInUse.status;
-    final alwaysPre = await Permission.locationAlways.status;
-    if (_isLocationAuthorized(alwaysPre)) {
-      await _checkPermissions();
-      return;
-    }
+
+    // If permanently denied → go to settings
     if (whenInUsePre.isPermanentlyDenied) {
       await _openSettingsGuideDialog(
         title: 'Location is turned off',
-        body: 'Proxi needs location to find people nearby. Open your device Settings, choose Proxi, tap Location, then select While Using the App (or Always). Return here and Continue will unlock.',
+        body: 'Please enable location from settings',
       );
       return;
     }
 
-    var status = await Permission.locationWhenInUse.request();
-    if (!_isLocationAuthorized(status)) {
-      status = await Permission.location.request();
-    }
+    final status = await Permission.locationWhenInUse.request();
+
+    print('Location status after request: $status');
+
     await _checkPermissions();
 
     if (!_locationGranted && mounted) {
-      final w = await Permission.locationWhenInUse.status;
-      if (w.isPermanentlyDenied) {
+      if (status.isPermanentlyDenied) {
         await _openSettingsGuideDialog(
           title: 'Location is turned off',
-          body: 'Location was blocked for Proxi. Open Settings → Proxi → Location and allow access, then come back to this screen.',
-        );
-      } else {
-        await _openSettingsGuideDialog(
-          title: 'Allow location',
-          body: 'Location is still off for Proxi. Open Settings, enable Location for Proxi, then return here — Continue will work once both permissions are on.',
+          body: 'Location was blocked. Enable it from Settings.',
         );
       }
     }
