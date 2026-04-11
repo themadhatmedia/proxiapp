@@ -202,6 +202,7 @@ class OnboardingController extends GetxController {
   }
 
   void selectPlan(PlanModel plan) {
+    if (plan.isComingSoonPlan || !plan.isFree) return;
     selectedPlan.value = plan;
   }
 

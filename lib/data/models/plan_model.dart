@@ -85,4 +85,12 @@ class PlanModel {
     }
     return limits;
   }
+
+  /// Ambassador and Coach tiers are not selectable until a future launch.
+  bool get isComingSoonPlan {
+    final n = name.toLowerCase().trim();
+    if (n.contains('ambassador')) return true;
+    final words = n.split(RegExp(r'\s+'));
+    return words.contains('coach');
+  }
 }

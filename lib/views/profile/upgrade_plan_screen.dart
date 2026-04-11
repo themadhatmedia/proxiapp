@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
-import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
+import '../../data/models/plan_model.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/plan_option_card.dart';
 
 class UpgradePlanScreen extends StatefulWidget {
   const UpgradePlanScreen({super.key});
@@ -30,12 +31,42 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
     if (currentUser?.membership?.membershipId != null) {
       selectedPlanId = currentUser!.membership!.membershipId;
     }
-    controller.loadPlans();
+    controller.loadPlans().then((_) {
+      if (!mounted) return;
+      final id = selectedPlanId;
+      if (id == null) return;
+      PlanModel? match;
+      for (final p in controller.availablePlans) {
+        if (p.id == id) {
+          match = p;
+          break;
+        }
+      }
+      if (match != null && (match.isComingSoonPlan || !match.isFree)) {
+        setState(() => selectedPlanId = null);
+      }
+    });
   }
 
   Future<void> _handleSubscribe() async {
     if (selectedPlanId == null) {
       ToastHelper.showError('Please select a plan');
+      return;
+    }
+
+    PlanModel? selectedPlan;
+    for (final p in controller.availablePlans) {
+      if (p.id == selectedPlanId) {
+        selectedPlan = p;
+        break;
+      }
+    }
+    if (selectedPlan?.isComingSoonPlan == true) {
+      ToastHelper.showError('This plan is not available yet');
+      return;
+    }
+    if (selectedPlan?.isFree != true) {
+      ToastHelper.showError('Only the free plan can be selected');
       return;
     }
 
@@ -128,67 +159,16 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
 
                         return Column(
                           children: controller.availablePlans.map((plan) {
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedPlanId = plan.id;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                margin: const EdgeInsets.only(bottom: 16),
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: selectedPlanId == plan.id ? cs.primary : context.proxi.surfaceCard,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: selectedPlanId == plan.id ? cs.primary : cs.outline.withOpacity(0.45),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          plan.name,
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: selectedPlanId == plan.id ? cs.onPrimary : cs.onSurface,
-                                          ),
-                                        ),
-                                        Text(
-                                          plan.isFree ? 'Free' : plan.displayPrice.split(' ').first,
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            color: selectedPlanId == plan.id ? cs.onPrimary : cs.onSurface,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      plan.description,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: selectedPlanId == plan.id ? cs.onPrimary.withOpacity(0.85) : cs.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      plan.displayLimits,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: selectedPlanId == plan.id ? cs.onPrimary.withOpacity(0.95) : cs.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            return PlanOptionCard(
+                              plan: plan,
+                              isSelected: selectedPlanId == plan.id,
+                              onTap: plan.isFree && !plan.isComingSoonPlan
+                                  ? () {
+                                      setState(() {
+                                        selectedPlanId = plan.id;
+                                      });
+                                    }
+                                  : null,
                             );
                           }).toList(),
                         );

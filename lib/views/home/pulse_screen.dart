@@ -29,8 +29,8 @@ class _PulseScreenState extends State<PulseScreen> {
   final ApiService apiService = ApiService();
   final LocationService locationService = Get.put(LocationService());
 
-  final List<int> radiusOptions = [50, 100, 150, 200];
-  int selectedRadius = 50;
+  final List<int> radiusOptions = [1, 5, 10, 20];
+  int selectedRadius = 1;
   int nearbyUserCount = 0;
   bool isSearching = false;
   bool hasSearched = false;

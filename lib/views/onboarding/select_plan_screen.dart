@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
-import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/plan_option_card.dart';
 
 class SelectPlanScreen extends StatefulWidget {
   const SelectPlanScreen({super.key});
@@ -34,8 +34,17 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
   bool _isSaving = false;
 
   Future<void> _handleContinue() async {
-    if (onboardingController.selectedPlan.value == null) {
+    final selected = onboardingController.selectedPlan.value;
+    if (selected == null) {
       ToastHelper.showError('Please select a plan');
+      return;
+    }
+    if (selected.isComingSoonPlan) {
+      ToastHelper.showError('This plan is not available yet');
+      return;
+    }
+    if (!selected.isFree) {
+      ToastHelper.showError('Only the free plan can be selected');
       return;
     }
     if (authController.token == null) {
@@ -119,68 +128,14 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
 
                         return Column(
                           children: onboardingController.availablePlans.map((plan) {
-                            return Obx(() {
-                              final isSelected = onboardingController.selectedPlan.value?.id == plan.id;
-
-                              return GestureDetector(
-                                onTap: plan.isFree ? () => onboardingController.selectPlan(plan) : null,
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? cs.primary : context.proxi.surfaceCard,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: isSelected ? cs.primary : cs.outline.withOpacity(0.45),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            plan.name,
-                                            style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: isSelected ? cs.onPrimary : cs.onSurface,
-                                            ),
-                                          ),
-                                          Text(
-                                            plan.isFree ? 'Free' : plan.displayPrice.split(' ').first,
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: isSelected ? cs.onPrimary : cs.onSurface,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        plan.description,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: isSelected ? cs.onPrimary.withOpacity(0.85) : cs.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        plan.displayLimits,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: isSelected ? cs.onPrimary.withOpacity(0.95) : cs.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            });
+                            final isSelected = onboardingController.selectedPlan.value?.id == plan.id;
+                            return PlanOptionCard(
+                              plan: plan,
+                              isSelected: isSelected,
+                              onTap: plan.isFree && !plan.isComingSoonPlan
+                                  ? () => onboardingController.selectPlan(plan)
+                                  : null,
+                            );
                           }).toList(),
                         );
                       }),
