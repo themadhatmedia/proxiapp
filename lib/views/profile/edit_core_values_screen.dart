@@ -63,6 +63,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                 TextField(
                   controller: customValueController,
                   autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
                   style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     hintText: 'e.g., Sustainability',
@@ -159,6 +160,7 @@ class _EditCoreValuesScreenState extends State<EditCoreValuesScreen> {
                 TextField(
                   controller: customValueController,
                   autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
                   style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     hintText: 'e.g., Sustainability',

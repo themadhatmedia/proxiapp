@@ -236,6 +236,7 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
             const SizedBox(height: 8),
             TextFormField(
               controller: controller,
+              textCapitalization: TextCapitalization.none,
               style: TextStyle(color: cs.onSurface),
               decoration: InputDecoration(
                 hintText: hint,

@@ -236,6 +236,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                       child: TextField(
                         controller: _searchController,
                         focusNode: _searchFocusNode,
+                        textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(color: cs.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Enter keywords to search...',

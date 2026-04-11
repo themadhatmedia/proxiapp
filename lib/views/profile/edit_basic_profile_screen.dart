@@ -289,6 +289,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         controller: bioController,
                         maxLines: 4,
                         maxLength: 200,
+                        textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(color: cs.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Bio',

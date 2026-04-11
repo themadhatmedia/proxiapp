@@ -205,6 +205,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: cs.onSurface,
                       ),
                     ),
+                    if ((user.profession ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.business_center_outlined,
+                            size: 20,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              (user.profession ?? '').trim(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     if (user.profile?.bio != null && user.profile!.bio!.isNotEmpty)
                       Padding(

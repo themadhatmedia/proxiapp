@@ -7,6 +7,8 @@ class CustomTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final VoidCallback? onToggleVisibility;
   final bool? isPassword;
+  /// When null, uses [defaultTextCapitalization] from other props.
+  final TextCapitalization? textCapitalization;
 
   const CustomTextField({
     super.key,
@@ -16,7 +18,24 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType,
     this.onToggleVisibility,
     this.isPassword = false,
+    this.textCapitalization,
   });
+
+  static TextCapitalization defaultTextCapitalization({
+    required bool obscureText,
+    required bool isPassword,
+    TextInputType? keyboardType,
+  }) {
+    if (obscureText || isPassword) return TextCapitalization.none;
+    final kt = keyboardType;
+    if (kt == TextInputType.emailAddress ||
+        kt == TextInputType.url ||
+        kt == TextInputType.visiblePassword) {
+      return TextCapitalization.none;
+    }
+    if (kt == TextInputType.phone) return TextCapitalization.none;
+    return TextCapitalization.sentences;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +54,12 @@ class CustomTextField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        textCapitalization: textCapitalization ??
+            defaultTextCapitalization(
+              obscureText: obscureText,
+              isPassword: isPassword == true,
+              keyboardType: keyboardType,
+            ),
         cursorColor: cs.primary,
         style: TextStyle(
           color: cs.onSurface,

@@ -600,6 +600,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                   child: TextField(
                     controller: _getCommentController(postId),
                     focusNode: _getCommentFocusNode(postId),
+                    textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(color: cs.onSurface),
                     decoration: InputDecoration(
                       hintText: _replyToCommentIds[postId] != null ? 'Write a reply...' : 'Write a comment...',

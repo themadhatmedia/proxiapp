@@ -744,6 +744,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   child: TextField(
                     controller: _commentController,
                     focusNode: _commentFocusNode,
+                    textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(color: cs.onSurface),
                     decoration: InputDecoration(
                       hintText: _replyToCommentId != null ? 'Write a reply...' : 'Write a comment...',

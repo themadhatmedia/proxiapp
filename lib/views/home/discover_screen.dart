@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/discover_controller.dart';
-import '../../controllers/notification_controller.dart';
 import '../../widgets/discover_post_card.dart';
 import '../posts/create_post_screen.dart';
 import '../posts/my_posts_screen.dart';
@@ -21,7 +20,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   late TabController _tabController;
   bool _isFabExpanded = false;
   final DiscoverController _controller = Get.put(DiscoverController());
-  final NotificationController _notificationController = Get.put(NotificationController());
 
   @override
   void initState() {
@@ -88,56 +86,28 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   }
 
   Widget _buildNotificationIcon() {
-    return Obx(() {
-      final unreadCount = _notificationController.unreadCount;
-      final cs = Theme.of(context).colorScheme;
-      return GestureDetector(
-        onTap: () => Get.to(() => const NotificationsScreen()),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: cs.primary.withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.notifications,
-                color: cs.onSurface,
-                size: 24,
-              ),
-            ),
-            if (unreadCount > 0)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      unreadCount > 9 ? '9+' : '$unreadCount',
-                      style: const TextStyle(
-                        color: ProxiPalette.pureWhite,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (context) => const NotificationsScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: cs.primary.withOpacity(0.12),
+          shape: BoxShape.circle,
         ),
-      );
-    });
+        child: Icon(
+          Icons.notifications_outlined,
+          color: cs.onSurface,
+          size: 24,
+        ),
+      ),
+    );
   }
 
   Widget _buildSpeedDialFab() {

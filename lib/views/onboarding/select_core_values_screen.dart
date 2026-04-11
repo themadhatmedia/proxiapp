@@ -60,6 +60,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                 TextField(
                   controller: customValueController,
                   autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
                   style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     hintText: 'e.g., Sustainability',
@@ -156,6 +157,7 @@ class _SelectCoreValuesScreenState extends State<SelectCoreValuesScreen> {
                 TextField(
                   controller: customValueController,
                   autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
                   style: TextStyle(color: cs.onSurface),
                   decoration: InputDecoration(
                     hintText: 'e.g., Sustainability',

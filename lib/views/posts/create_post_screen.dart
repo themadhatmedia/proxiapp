@@ -559,6 +559,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   maxLines: null,
                   minLines: 5,
                   maxLength: 280,
+                  textCapitalization: TextCapitalization.sentences,
                   style: TextStyle(
                     color: cs.onSurface,
                     fontSize: 18,

@@ -377,7 +377,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     final name = profile['display_name'] ?? userData['name'] ?? 'Unknown User';
     final bio = profile['bio'] ?? '';
     final avatarUrl = profile['avatar'];
-    final profession = profile['profession'];
+    final rawProfession = profile['profession'] ?? userData['profession'];
+    final professionText = rawProfession != null && rawProfession.toString().trim().isNotEmpty
+        ? rawProfession.toString().trim()
+        : null;
     final city = profile['city'];
     final state = profile['state'];
     final matchScore = widget.userData['match_score'] ?? 0;
@@ -468,6 +471,32 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  if (professionText != null) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.business_center_outlined,
+                          size: 20,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            professionText,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -555,7 +584,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                       ),
                     ),
                   ],
-                  if (profession != null || city != null || state != null) ...[
+                  if (city != null || state != null) ...[
                     const SizedBox(height: 24),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -567,50 +596,23 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                           width: 1,
                         ),
                       ),
-                      child: Column(
+                      child: Row(
                         children: [
-                          if (profession != null) ...[
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.work,
-                                  color: cs.onSurfaceVariant,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  profession,
-                                  style: TextStyle(
-                                    color: cs.onSurface,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                          Icon(
+                            Icons.location_city,
+                            color: cs.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _formatLocation(city, state),
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontSize: 16,
+                              ),
                             ),
-                          ],
-                          if ((city != null || state != null) && profession != null) ...[
-                            const SizedBox(height: 12),
-                          ],
-                          if (city != null || state != null) ...[
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_city,
-                                  color: cs.onSurfaceVariant,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _formatLocation(city, state),
-                                  style: TextStyle(
-                                    color: cs.onSurface,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                     ),

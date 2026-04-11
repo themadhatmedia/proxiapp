@@ -436,6 +436,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
                         controller: bioController,
                         maxLines: 4,
                         maxLength: 200,
+                        textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(color: cs.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Tell us something about yourself...',
