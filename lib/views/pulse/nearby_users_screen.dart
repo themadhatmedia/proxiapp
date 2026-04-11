@@ -123,7 +123,7 @@ class NearbyUsersScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$selectedRadius YDS',
+                        '$selectedRadius Miles',
                         style: TextStyle(
                           fontSize: 28,
                           color: cs.onSurface,

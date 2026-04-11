@@ -7,6 +7,7 @@ import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/bookmarks_controller.dart';
 import '../../data/services/api_service.dart';
+import '../../utils/app_vibration.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
@@ -350,6 +351,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
           token: token,
           userId: userId,
         );
+        AppVibration.interactionSuccess();
         setState(() {
           isBookmarked = true;
         });

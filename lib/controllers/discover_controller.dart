@@ -4,6 +4,7 @@ import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/storage_service.dart';
+import '../utils/app_vibration.dart';
 import '../utils/toast_helper.dart';
 
 class DiscoverController extends GetxController {
@@ -79,6 +80,7 @@ class DiscoverController extends GetxController {
       if (token == null) throw Exception('Not authenticated');
 
       await _apiService.likePost(token, post.id!);
+      AppVibration.interactionSuccess();
 
       post.liked = true;
       post.likesCount = post.likesCount + 1;

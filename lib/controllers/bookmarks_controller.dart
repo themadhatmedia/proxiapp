@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
+import '../utils/app_vibration.dart';
 import '../utils/toast_helper.dart';
 
 class BookmarksController extends GetxController {
@@ -95,6 +96,7 @@ class BookmarksController extends GetxController {
         );
 
         if (response['success'] == true) {
+          AppVibration.interactionSuccess();
           ToastHelper.showSuccess('User bookmarked');
           return true;
         }

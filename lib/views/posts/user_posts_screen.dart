@@ -10,6 +10,7 @@ import '../../data/models/post_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
+import '../../utils/app_vibration.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/comment_card.dart';
@@ -178,6 +179,7 @@ class _UserPostsScreenState extends State<UserPostsScreen> {
         await _apiService.unlikePost(token, post.id!);
       } else {
         await _apiService.likePost(token, post.id!);
+        AppVibration.interactionSuccess();
       }
 
       setState(() {

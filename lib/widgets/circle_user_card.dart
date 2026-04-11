@@ -6,6 +6,7 @@ import '../controllers/bookmarks_controller.dart';
 import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
 import '../config/theme/proxi_palette.dart';
+import '../utils/app_vibration.dart';
 import '../utils/toast_helper.dart';
 import '../views/pulse/user_profile_detail_screen.dart';
 import 'safe_avatar.dart';
@@ -85,6 +86,7 @@ class _CircleUserCardState extends State<CircleUserCard> with SingleTickerProvid
           token: token,
           userId: widget.user!.id,
         );
+        AppVibration.interactionSuccess();
         ToastHelper.showSuccess('User bookmarked');
       }
     } catch (e) {

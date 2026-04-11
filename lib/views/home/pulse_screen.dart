@@ -10,6 +10,7 @@ import '../../config/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
+import '../../utils/app_vibration.dart';
 import '../../utils/permission_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/radar_view.dart';
@@ -100,6 +101,7 @@ class _PulseScreenState extends State<PulseScreen> {
       if (nearbyUserCount == 0) {
         ToastHelper.showInfo('No nearby users found');
       } else {
+        AppVibration.pulseUsersFound();
         final userText = nearbyUserCount == 1 ? 'user' : 'users';
         ToastHelper.showSuccess('$nearbyUserCount $userText found');
       }
@@ -281,7 +283,7 @@ class _PulseScreenState extends State<PulseScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              '$radius\nYDS',
+                              '$radius\nMiles',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
