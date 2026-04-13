@@ -17,6 +17,11 @@ class AppVibration {
     unawaited(_pulseUsersFound());
   }
 
+  /// When opening the post likes list (tap on likes count).
+  static void likesListOpen() {
+    unawaited(_likesListOpen());
+  }
+
   static Future<void> _interactionSuccess() async {
     try {
       if (await Vibration.hasVibrator() == true) {
@@ -31,6 +36,23 @@ class AppVibration {
       }
     } catch (_) {
       await _heavyHapticDouble();
+    }
+  }
+
+  static Future<void> _likesListOpen() async {
+    try {
+      if (await Vibration.hasVibrator() == true) {
+        final amp = await Vibration.hasAmplitudeControl() == true;
+        if (amp) {
+          await Vibration.vibrate(duration: 110, amplitude: 220);
+        } else {
+          await Vibration.vibrate(duration: 140);
+        }
+      } else {
+        await HapticFeedback.mediumImpact();
+      }
+    } catch (_) {
+      await HapticFeedback.mediumImpact();
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../config/theme/proxi_palette.dart';
 import '../data/models/post_model.dart';
+import '../utils/app_vibration.dart';
 import '../views/posts/media_viewer_screen.dart';
 import '../views/posts/user_posts_screen.dart';
 
@@ -13,6 +14,8 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onLike;
   final VoidCallback? onComment;
   final VoidCallback? onLikesTap;
+  /// When [post.commentsCount] > 0, same emphasis as likes; tap uses vibration (no ink splash).
+  final VoidCallback? onCommentCountTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool isLiking;
@@ -23,6 +26,7 @@ class PostCard extends StatelessWidget {
     this.onLike,
     this.onComment,
     this.onLikesTap,
+    this.onCommentCountTap,
     this.onEdit,
     this.onDelete,
     this.isLiking = false,
@@ -622,10 +626,26 @@ class PostCard extends StatelessWidget {
                       ),
                     ),
                   if ((post.commentsCount) > 0) ...[
-                    Text(
-                      '${post.commentsCount} ${(post.commentsCount) == 1 || (post.commentsCount) == 0 ? 'comment' : 'comments'}',
-                      style: statsMeta,
-                    ),
+                    if (onCommentCountTap != null)
+                      GestureDetector(
+                        onTap: () {
+                          AppVibration.likesListOpen();
+                          onCommentCountTap!();
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                          child: Text(
+                            '${post.commentsCount} ${(post.commentsCount) == 1 || (post.commentsCount) == 0 ? 'comment' : 'comments'}',
+                            style: likesMeta,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        '${post.commentsCount} ${(post.commentsCount) == 1 || (post.commentsCount) == 0 ? 'comment' : 'comments'}',
+                        style: statsMeta,
+                      ),
                   ],
                 ],
               ),

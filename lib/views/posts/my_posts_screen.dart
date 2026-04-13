@@ -853,6 +853,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 onLikesTap: post.id != null && post.likesCount > 0
                     ? () => showPostLikesBottomSheet(context, postId: post.id!)
                     : null,
+                onCommentCountTap: post.id != null && post.commentsCount > 0
+                    ? () => _handleComment(post)
+                    : null,
                 onEdit: post.id != null ? () => _openEditPost(post) : null,
                 onDelete: post.id != null ? () => _deletePost(post.id!) : null,
                 isLiking: _likingPosts[post.id] ?? false,

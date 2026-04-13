@@ -11,6 +11,7 @@ import '../controllers/discover_controller.dart';
 import '../controllers/navigation_controller.dart';
 import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
+import '../utils/app_vibration.dart';
 import '../utils/progress_dialog_helper.dart';
 import '../views/posts/media_viewer_screen.dart';
 import '../views/posts/post_likes_bottom_sheet.dart';
@@ -549,10 +550,26 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                     ),
                   ),
                 ),
-                Text(
-                  '${widget.post.commentsCount} ${widget.post.commentsCount == 1 || widget.post.commentsCount == 0 ? 'comment' : 'comments'}',
-                  style: statsMeta,
-                ),
+                if (widget.post.commentsCount > 0 && widget.post.id != null)
+                  GestureDetector(
+                    onTap: () {
+                      AppVibration.likesListOpen();
+                      controller.toggleComments(widget.post.id!);
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                      child: Text(
+                        '${widget.post.commentsCount} ${widget.post.commentsCount == 1 || widget.post.commentsCount == 0 ? 'comment' : 'comments'}',
+                        style: likesMeta,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    '${widget.post.commentsCount} ${widget.post.commentsCount == 1 || widget.post.commentsCount == 0 ? 'comment' : 'comments'}',
+                    style: statsMeta,
+                  ),
               ],
             ),
           ),
