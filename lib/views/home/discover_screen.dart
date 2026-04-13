@@ -252,8 +252,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
             fontWeight: FontWeight.w600,
           ),
           tabs: const [
-            Tab(text: 'Inner Proxi'),
-            Tab(text: 'Outer Proxi'),
+            Tab(text: 'Inner'),
+            Tab(text: 'Outer'),
           ],
         ),
       ),
