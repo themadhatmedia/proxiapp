@@ -276,7 +276,7 @@ class NearbyUsersScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${distance.toStringAsFixed(0)} yards away',
+                          '${distance.toStringAsFixed(0)} miles away',
                           style: TextStyle(
                             fontSize: 13,
                             color: cs.onSurfaceVariant,
