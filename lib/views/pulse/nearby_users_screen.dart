@@ -3,12 +3,15 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
+import '../../utils/pulse_distance_format.dart';
 import '../../widgets/safe_avatar.dart';
 import 'user_profile_detail_screen.dart';
 
 class NearbyUsersScreen extends StatelessWidget {
   final Map<String, dynamic> nearbyUsersData;
   final int selectedRadius;
+  /// Matches GET /puls/distance-options `distance_unit`.
+  final String distanceUnit;
   final Position currentPosition;
   final ScrollController? scrollController;
 
@@ -16,6 +19,7 @@ class NearbyUsersScreen extends StatelessWidget {
     super.key,
     required this.nearbyUsersData,
     required this.selectedRadius,
+    this.distanceUnit = 'yards',
     required this.currentPosition,
     this.scrollController,
   });
@@ -123,7 +127,7 @@ class NearbyUsersScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$selectedRadius Miles',
+                        '$selectedRadius ${pulseDistanceUnitDisplay(distanceUnit)}',
                         style: TextStyle(
                           fontSize: 28,
                           color: cs.onSurface,
@@ -165,7 +169,7 @@ class NearbyUsersScreen extends StatelessWidget {
                     itemCount: users.length,
                     itemBuilder: (context, index) {
                       final user = users[index];
-                      return _buildUserCard(context, user);
+                      return _buildUserCard(context, user, distanceUnit);
                     },
                   ),
           ),
@@ -174,7 +178,7 @@ class NearbyUsersScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUserCard(BuildContext context, dynamic user) {
+  Widget _buildUserCard(BuildContext context, dynamic user, String distanceUnit) {
     final cs = Theme.of(context).colorScheme;
     final userData = user['user'] ?? user;
     final profile = userData['profile'] ?? {};
@@ -276,7 +280,7 @@ class NearbyUsersScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${distance.toStringAsFixed(0)} miles away',
+                          formatPulseDistanceAway(distance, distanceUnit),
                           style: TextStyle(
                             fontSize: 13,
                             color: cs.onSurfaceVariant,
@@ -333,6 +337,7 @@ class NearbyUsersScreen extends StatelessWidget {
                         expand: false,
                         builder: (context, scrollController) => UserProfileDetailScreen(
                           userData: user,
+                          distanceUnit: distanceUnit,
                           scrollController: scrollController,
                         ),
                       ),

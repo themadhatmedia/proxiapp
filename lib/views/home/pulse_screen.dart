@@ -8,9 +8,11 @@ import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
+import '../../data/models/pulse_distance_options.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
 import '../../utils/app_vibration.dart';
+import '../../utils/pulse_distance_format.dart';
 import '../../utils/permission_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/radar_view.dart';
@@ -30,8 +32,9 @@ class _PulseScreenState extends State<PulseScreen> {
   final ApiService apiService = ApiService();
   final LocationService locationService = Get.put(LocationService());
 
-  final List<int> radiusOptions = [1, 5, 10, 20];
-  int selectedRadius = 1;
+  PulseDistanceOptions _distanceOpts = PulseDistanceOptions.fallback();
+  int selectedRadius = PulseDistanceOptions.fallback().distanceOptions.first;
+  bool _distanceOptsLoaded = false;
   int nearbyUserCount = 0;
   bool isSearching = false;
   bool hasSearched = false;
@@ -41,6 +44,38 @@ class _PulseScreenState extends State<PulseScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDistanceOptions());
+  }
+
+  Future<void> _loadDistanceOptions() async {
+    final token = authController.token;
+    if (token == null) {
+      if (mounted) {
+        setState(() => _distanceOptsLoaded = true);
+      }
+      return;
+    }
+    try {
+      final map = await apiService.getPulseDistanceOptions(token);
+      final parsed = PulseDistanceOptions.fromJson(map);
+      if (!mounted) return;
+      setState(() {
+        _distanceOpts = parsed.distanceOptions.isEmpty ? PulseDistanceOptions.fallback() : parsed;
+        if (!_distanceOpts.distanceOptions.contains(selectedRadius)) {
+          selectedRadius = _distanceOpts.distanceOptions.first;
+        }
+        _distanceOptsLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _distanceOpts = PulseDistanceOptions.fallback();
+        if (!_distanceOpts.distanceOptions.contains(selectedRadius)) {
+          selectedRadius = _distanceOpts.distanceOptions.first;
+        }
+        _distanceOptsLoaded = true;
+      });
+    }
   }
 
   @override
@@ -145,6 +180,7 @@ class _PulseScreenState extends State<PulseScreen> {
         builder: (context, scrollController) => NearbyUsersScreen(
           nearbyUsersData: nearbyUsersData!,
           selectedRadius: selectedRadius,
+          distanceUnit: _distanceOpts.distanceUnit,
           currentPosition: currentPosition!,
           scrollController: scrollController,
         ),
@@ -240,6 +276,7 @@ class _PulseScreenState extends State<PulseScreen> {
                     userCount: nearbyUserCount,
                     onTap: _onRadarTap,
                     selectedRadius: selectedRadius,
+                    distanceUnit: _distanceOpts.distanceUnit,
                     isSearching: isSearching,
                     hasSearched: hasSearched,
                     usersData: nearbyUsersData,
@@ -255,49 +292,66 @@ class _PulseScreenState extends State<PulseScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: cs.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: cs.outline.withOpacity(0.45),
-                      width: 1,
+                if (!_distanceOptsLoaded)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Center(
+                      child: SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cs.primary,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: radiusOptions.map((radius) {
-                      final isSelected = selectedRadius == radius;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => _onRadiusChanged(radius),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected ? cs.primary : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '$radius\nMiles',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                height: 1.2,
+                  )
+                else
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: cs.outline.withOpacity(0.45),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: _distanceOpts.distanceOptions.map((radius) {
+                        final isSelected = selectedRadius == radius;
+                        final unitLine = pulseRadiusChipSubtitle(_distanceOpts.distanceUnit);
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => _onRadiusChanged(radius),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected ? cs.primary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$radius\n$unitLine',
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  height: 1.2,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
                 const SizedBox(height: 12),
                 if (hasSearched && nearbyUserCount > 0)
                   Padding(

@@ -8,6 +8,8 @@ class RadarView extends StatefulWidget {
   final int userCount;
   final VoidCallback onTap;
   final int selectedRadius;
+  /// API [distance_unit] (e.g. yards); dot positions use same scale as [selectedRadius].
+  final String distanceUnit;
   final bool isSearching;
   final bool hasSearched;
   final Map<String, dynamic>? usersData;
@@ -17,6 +19,7 @@ class RadarView extends StatefulWidget {
     required this.userCount,
     required this.onTap,
     required this.selectedRadius,
+    this.distanceUnit = 'yards',
     required this.isSearching,
     required this.hasSearched,
     this.usersData,

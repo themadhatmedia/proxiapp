@@ -8,17 +8,21 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/bookmarks_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/app_vibration.dart';
+import '../../utils/pulse_distance_format.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
 
 class UserProfileDetailScreen extends StatefulWidget {
   final dynamic userData;
+  /// When opened from Pulse, matches API `distance_unit` for distance labels.
+  final String? distanceUnit;
   final ScrollController? scrollController;
 
   const UserProfileDetailScreen({
     super.key,
     required this.userData,
+    this.distanceUnit,
     this.scrollController,
   });
 
@@ -387,6 +391,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     final state = profile['state'];
     final matchScore = widget.userData['match_score'] ?? 0;
     final distance = widget.userData['distance'] != null ? (widget.userData['distance']).toDouble() : null;
+    final unitForDistance = widget.distanceUnit ??
+        (widget.userData is Map ? widget.userData['distance_unit'] as String? : null) ??
+        'yards';
     final interests = profile['interests'] as List<dynamic>? ?? [];
     final coreValues = profile['core_values'] as List<dynamic>? ?? [];
 
@@ -562,7 +569,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${distance.toStringAsFixed(0)} yds',
+                                formatPulseDistanceCompact(distance!, unitForDistance),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,

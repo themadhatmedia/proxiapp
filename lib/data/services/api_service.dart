@@ -890,6 +890,46 @@ class ApiService {
     );
   }
 
+  /// GET /puls/distance-options — search radius choices and unit for nearby search.
+  Future<Map<String, dynamic>> getPulseDistanceOptions(String token) async {
+    final url = '$baseUrl/puls/distance-options';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic>? : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 && responseData != null) {
+          final data = responseData['data'];
+          if (data is Map<String, dynamic>) return data;
+          return responseData;
+        }
+        final errorMessage = responseData?['message'] ?? 'Failed to load distance options';
+        throw Exception(errorMessage);
+      },
+    );
+  }
+
   Future<Map<String, dynamic>> sendCircleRequest({
     required String token,
     required int toUserId,
