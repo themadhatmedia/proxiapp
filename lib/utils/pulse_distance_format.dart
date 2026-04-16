@@ -1,3 +1,4 @@
+// ignore: dangling_library_doc_comments
 /// Full-word, capitalized labels for pulse search radius and per-user distance from API [distance_unit].
 
 /// First letter uppercase, rest lowercase (e.g. "Yards", "Miles").

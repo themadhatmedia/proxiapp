@@ -375,6 +375,58 @@ class ApiService {
     );
   }
 
+  /// GET /users/{userId} — full public profile for another user (skills, ambitions, links, etc.).
+  Future<Map<String, dynamic>> getUserPublicProfile({
+    required String token,
+    required int userId,
+  }) async {
+    final url = '$baseUrl/users/$userId';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          if (responseData is Map<String, dynamic>) {
+            return responseData;
+          }
+          if (responseData is Map) {
+            return Map<String, dynamic>.from(responseData);
+          }
+          return <String, dynamic>{};
+        } else {
+          final errorMessage = responseData?['message'] ?? 'Failed to load user profile';
+          throw Exception(errorMessage);
+        }
+      },
+    );
+  }
+
   Future<User> updateProfile({
     required String token,
     String? name,
@@ -402,6 +454,7 @@ class ApiService {
     String? tiktokUrl,
     String? otherUrl,
     bool? restrictDm,
+    String? firebaseToken,
   }) async {
     final url = '$baseUrl/profile';
 
@@ -439,6 +492,7 @@ class ApiService {
           if (tiktokUrl != null) request.fields['tiktok_url'] = tiktokUrl;
           if (otherUrl != null) request.fields['other_url'] = otherUrl;
           if (restrictDm != null) request.fields['restrict_dm'] = restrictDm.toString();
+          if (firebaseToken != null) request.fields['firebaseToken'] = firebaseToken;
 
           request.files.add(
             await http.MultipartFile.fromPath('avatar', avatar.path),
@@ -474,6 +528,7 @@ class ApiService {
             if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
             if (otherUrl != null) 'other_url': otherUrl,
             if (restrictDm != null) 'restrict_dm': restrictDm,
+            if (firebaseToken != null) 'firebaseToken': firebaseToken,
           };
           final headers = {
             'Content-Type': 'application/json',

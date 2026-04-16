@@ -24,6 +24,13 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
   int? selectedPlanId;
   bool _isSaving = false;
 
+  int? get _currentMembershipPlanId => authController.currentUser.value?.membership?.membershipId;
+
+  bool get _isSameAsCurrentPlan =>
+      selectedPlanId != null && _currentMembershipPlanId != null && selectedPlanId == _currentMembershipPlanId;
+
+  bool get _canUpdateSubscription => !_isSaving && selectedPlanId != null && !_isSameAsCurrentPlan;
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +58,10 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
   Future<void> _handleSubscribe() async {
     if (selectedPlanId == null) {
       ToastHelper.showError('Please select a plan');
+      return;
+    }
+    if (_isSameAsCurrentPlan) {
+      ToastHelper.showError('You are already on this plan');
       return;
     }
 
@@ -181,7 +192,8 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                 padding: const EdgeInsets.all(24.0),
                 child: CustomButton(
                   text: _isSaving ? 'Updating...' : 'Update Subscription',
-                  onPressed: _isSaving ? () {} : _handleSubscribe,
+                  isEnabled: _canUpdateSubscription,
+                  onPressed: _handleSubscribe,
                 ),
               ),
             ],

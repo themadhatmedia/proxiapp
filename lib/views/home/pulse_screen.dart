@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,7 +34,7 @@ class _PulseScreenState extends State<PulseScreen> {
   final LocationService locationService = Get.put(LocationService());
 
   PulseDistanceOptions _distanceOpts = PulseDistanceOptions.fallback();
-  int selectedRadius = PulseDistanceOptions.fallback().distanceOptions.first;
+  int selectedRadius = PulseDistanceOptions.fallback().distanceOptions.reduce(math.max);
   bool _distanceOptsLoaded = false;
   int nearbyUserCount = 0;
   bool isSearching = false;
@@ -61,18 +62,14 @@ class _PulseScreenState extends State<PulseScreen> {
       if (!mounted) return;
       setState(() {
         _distanceOpts = parsed.distanceOptions.isEmpty ? PulseDistanceOptions.fallback() : parsed;
-        if (!_distanceOpts.distanceOptions.contains(selectedRadius)) {
-          selectedRadius = _distanceOpts.distanceOptions.first;
-        }
+        selectedRadius = _distanceOpts.distanceOptions.reduce(math.max);
         _distanceOptsLoaded = true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _distanceOpts = PulseDistanceOptions.fallback();
-        if (!_distanceOpts.distanceOptions.contains(selectedRadius)) {
-          selectedRadius = _distanceOpts.distanceOptions.first;
-        }
+        selectedRadius = _distanceOpts.distanceOptions.reduce(math.max);
         _distanceOptsLoaded = true;
       });
     }

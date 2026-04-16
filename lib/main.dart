@@ -1,6 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+
+import 'data/services/fcm_service.dart';
+import 'firebase_options.dart';
 import 'config/theme/app_theme.dart';
 import 'config/theme/theme_controller.dart';
 import 'controllers/auth_controller.dart';
@@ -21,9 +27,22 @@ import 'views/onboarding/proxi_circles_screen.dart';
 import 'utils/app_keyboard_dismiss.dart';
 import 'views/bookmarks/bookmarks_screen.dart';
 
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
+
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await FcmService.instance.installAndroid();
+  }
+
   runApp(const MyApp());
 }
 

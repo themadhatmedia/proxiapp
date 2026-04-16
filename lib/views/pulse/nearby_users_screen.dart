@@ -7,7 +7,7 @@ import '../../utils/pulse_distance_format.dart';
 import '../../widgets/safe_avatar.dart';
 import 'user_profile_detail_screen.dart';
 
-class NearbyUsersScreen extends StatelessWidget {
+class NearbyUsersScreen extends StatefulWidget {
   final Map<String, dynamic> nearbyUsersData;
   final int selectedRadius;
   /// Matches GET /puls/distance-options `distance_unit`.
@@ -24,6 +24,29 @@ class NearbyUsersScreen extends StatelessWidget {
     this.scrollController,
   });
 
+  @override
+  State<NearbyUsersScreen> createState() => _NearbyUsersScreenState();
+}
+
+class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
+  late int _localFilterRadius;
+
+  @override
+  void initState() {
+    super.initState();
+    _localFilterRadius = widget.selectedRadius;
+  }
+
+  List<int> _buildLocalFilterOptions() {
+    final maxRadius = widget.selectedRadius;
+    if (maxRadius <= 1) return const [];
+    final values = <int>[];
+    for (int i = 1; i < maxRadius; i += 2) {
+      values.add(i);
+    }
+    return values;
+  }
+
   List<dynamic> _sortUsersByMatchScore(List<dynamic> users) {
     final sortedUsers = List<dynamic>.from(users);
     sortedUsers.sort((a, b) {
@@ -34,11 +57,104 @@ class NearbyUsersScreen extends StatelessWidget {
     return sortedUsers;
   }
 
+  double _userDistance(dynamic user) {
+    final raw = user['distance'];
+    if (raw is num) return raw.toDouble();
+    return double.tryParse('$raw') ?? 0;
+  }
+
+  List<dynamic> _applyLocalRadiusFilter(List<dynamic> users) {
+    final maxDistance = _localFilterRadius.toDouble();
+    return users.where((u) => _userDistance(u) <= maxDistance).toList();
+  }
+
+  Widget _buildLocalFilterChips(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final options = _buildLocalFilterOptions();
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Filter by distance',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildFilterChip(
+                context: context,
+                value: widget.selectedRadius,
+                label: 'All',
+                selected: _localFilterRadius == widget.selectedRadius,
+                onTap: () {
+                  setState(() => _localFilterRadius = widget.selectedRadius);
+                },
+              ),
+              ...options.map((r) => _buildFilterChip(
+                    context: context,
+                    value: r,
+                    label: '$r',
+                    selected: _localFilterRadius == r,
+                    onTap: () {
+                      setState(() => _localFilterRadius = r);
+                    },
+                  )),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip({
+    required BuildContext context,
+    required int value,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final unit = pulseDistanceUnitDisplay(widget.distanceUnit);
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? cs.primary : context.proxi.surfaceCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? cs.primary : cs.outline.withOpacity(0.4),
+            ),
+          ),
+          child: Text(
+            label == 'All' ? '$label ($value $unit)' : '$label $unit',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final rawUsers = nearbyUsersData['users'] as List<dynamic>? ?? [];
+    final rawUsers = widget.nearbyUsersData['users'] as List<dynamic>? ?? [];
     final users = _sortUsersByMatchScore(rawUsers);
+    final filteredUsers = _applyLocalRadiusFilter(users);
 
     return Container(
       decoration: BoxDecoration(
@@ -106,7 +222,7 @@ class NearbyUsersScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        users.length.toString(),
+                        '${filteredUsers.length}/${users.length}',
                         style: TextStyle(
                           fontSize: 28,
                           color: cs.onSurface,
@@ -127,7 +243,7 @@ class NearbyUsersScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$selectedRadius ${pulseDistanceUnitDisplay(distanceUnit)}',
+                        '${widget.selectedRadius} ${pulseDistanceUnitDisplay(widget.distanceUnit)}',
                         style: TextStyle(
                           fontSize: 28,
                           color: cs.onSurface,
@@ -140,9 +256,14 @@ class NearbyUsersScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15.0),
+            child: _buildLocalFilterChips(context),
+          ),
+          const SizedBox(height: 16),
           Expanded(
-            child: users.isEmpty
+            child: filteredUsers.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -164,12 +285,12 @@ class NearbyUsersScreen extends StatelessWidget {
                     ),
                   )
                 : ListView.builder(
-                    controller: scrollController,
+                    controller: widget.scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 15),
-                    itemCount: users.length,
+                    itemCount: filteredUsers.length,
                     itemBuilder: (context, index) {
-                      final user = users[index];
-                      return _buildUserCard(context, user, distanceUnit);
+                      final user = filteredUsers[index];
+                      return _buildUserCard(context, user, widget.distanceUnit);
                     },
                   ),
           ),

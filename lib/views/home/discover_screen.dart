@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/discover_controller.dart';
+import '../../controllers/navigation_controller.dart';
+import '../../data/services/fcm_service.dart';
 import '../../widgets/discover_post_card.dart';
 import '../posts/create_post_screen.dart';
 import '../posts/my_posts_screen.dart';
@@ -20,15 +24,37 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   late TabController _tabController;
   bool _isFabExpanded = false;
   final DiscoverController _controller = Get.put(DiscoverController());
+  Worker? _homeTabWorker;
+
+  Future<void> _printFirebaseToken() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    final token = await FirebaseMessaging.instance.getToken();
+    print('FCM Token (DiscoverScreen): $token');
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    if (Get.isRegistered<NavigationController>()) {
+      final navigationController = Get.find<NavigationController>();
+      _homeTabWorker = ever<int>(navigationController.currentIndex, (index) {
+        if (index == 0) {
+          _printFirebaseToken();
+        }
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        _printFirebaseToken();
+        FcmService.instance.syncTokenToProfileIfNeeded();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _homeTabWorker?.dispose();
     _tabController.dispose();
     super.dispose();
   }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -34,11 +36,15 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
 
+  /// Mutable copy so we can merge a fresh API response without mutating the caller’s map.
+  late Map<String, dynamic> _payload;
+  bool _isRefreshingProfile = false;
+
   /// True when this sheet shows the signed-in user's profile (hide bookmark & circle UI).
   bool get _isOwnProfile {
     final me = authController.user?.id;
     if (me == null) return false;
-    final raw = widget.userData['user'] ?? widget.userData;
+    final raw = _payload['user'] ?? _payload;
     final other = raw['id'];
     if (other == null) return false;
     final otherId = other is int ? other : int.tryParse('$other');
@@ -52,21 +58,172 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   bool isBookmarked = false;
   bool _isTogglingBookmark = false;
 
+  static Map<String, dynamic> _clonePayload(dynamic raw) {
+    try {
+      final decoded = jsonDecode(jsonEncode(raw));
+      if (decoded is Map<String, dynamic>) return Map<String, dynamic>.from(decoded);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {}
+    return <String, dynamic>{};
+  }
+
+  List<dynamic> _listFromUserOrProfile(Map<String, dynamic> userData, Map<String, dynamic> profile, String snakeKey) {
+    final v = userData[snakeKey] ?? profile[snakeKey];
+    if (v == null) return [];
+    if (v is List) return List<dynamic>.from(v);
+    return [];
+  }
+
+  Map<String, dynamic> _mergedProfileForLinks(Map<String, dynamic> userData, Map<String, dynamic> profile) {
+    final merged = Map<String, dynamic>.from(profile);
+    const keys = [
+      'linkedin_url',
+      'facebook_url',
+      'instagram_url',
+      'x_url',
+      'snapchat_url',
+      'tiktok_url',
+      'other_url',
+    ];
+    for (final k in keys) {
+      final u = userData[k];
+      final p = profile[k];
+      final pick = (u != null && u.toString().trim().isNotEmpty) ? u : p;
+      if (pick != null && pick.toString().trim().isNotEmpty) {
+        merged[k] = pick;
+      }
+    }
+    void mergeCamel(String snake, String camel) {
+      final cur = merged[snake];
+      if (cur != null && cur.toString().trim().isNotEmpty) return;
+      final c = userData[camel] ?? profile[camel];
+      if (c != null && c.toString().trim().isNotEmpty) merged[snake] = c;
+    }
+    mergeCamel('linkedin_url', 'linkedinUrl');
+    mergeCamel('facebook_url', 'facebookUrl');
+    mergeCamel('instagram_url', 'instagramUrl');
+    mergeCamel('x_url', 'xUrl');
+    mergeCamel('snapchat_url', 'snapchatUrl');
+    mergeCamel('tiktok_url', 'tiktokUrl');
+    mergeCamel('other_url', 'otherUrl');
+    return merged;
+  }
+
+  Map<String, dynamic>? _parseUserFromPublicProfileResponse(Map<String, dynamic> raw) {
+    if (raw['user'] is Map) {
+      return Map<String, dynamic>.from(raw['user'] as Map);
+    }
+    final data = raw['data'];
+    if (data is Map) {
+      final dataMap = Map<String, dynamic>.from(data);
+      if (dataMap['user'] is Map) {
+        return Map<String, dynamic>.from(dataMap['user'] as Map);
+      }
+      if (dataMap['id'] != null) return dataMap;
+    }
+    if (raw['id'] != null && raw['name'] != null) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
+  /// Merges [incoming] onto [existing] so Pulse/list data is not wiped when GET /users/:id
+  /// returns a sparse user or a [profile] with only a few keys (e.g. [user_id]).
+  Map<String, dynamic> _mergeIncomingUserIntoExisting(
+    Map<String, dynamic> existing,
+    Map<String, dynamic> incoming,
+  ) {
+    final out = Map<String, dynamic>.from(existing);
+    for (final e in incoming.entries) {
+      final key = e.key;
+      final value = e.value;
+      if (key == 'profile' && value is Map) {
+        final prevProfile = out['profile'];
+        if (prevProfile is Map) {
+          out['profile'] = {
+            ...Map<String, dynamic>.from(prevProfile),
+            ...Map<String, dynamic>.from(value),
+          };
+        } else {
+          out['profile'] = Map<String, dynamic>.from(value);
+        }
+      } else if (key != 'profile') {
+        out[key] = value;
+      }
+    }
+    return out;
+  }
+
+  Future<void> _refreshOtherUserProfile() async {
+    if (_isOwnProfile) return;
+    setState(() => _isRefreshingProfile = true);
+    try {
+      final rawUser = _payload['user'] ?? _payload;
+      final id = rawUser['id'];
+      final userId = id is int ? id : int.tryParse('$id');
+      if (userId == null) return;
+      final token = authController.token;
+      if (token == null) return;
+
+      final fresh = await apiService.getUserPublicProfile(token: token, userId: userId);
+      if (!mounted) return;
+      final u = _parseUserFromPublicProfileResponse(fresh);
+      setState(() {
+        if (u != null) {
+          final previous = _payload['user'];
+          if (previous is Map) {
+            _payload['user'] = _mergeIncomingUserIntoExisting(
+              Map<String, dynamic>.from(previous),
+              u,
+            );
+          } else {
+            _payload['user'] = u;
+          }
+        }
+        if (fresh['in_inner_circle'] != null) _payload['in_inner_circle'] = fresh['in_inner_circle'];
+        if (fresh['in_outer_circle'] != null) _payload['in_outer_circle'] = fresh['in_outer_circle'];
+        if (fresh['inner_request_status'] != null) {
+          _payload['inner_request_status'] = fresh['inner_request_status'];
+        }
+        if (fresh['inner_request_id'] != null) {
+          _payload['inner_request_id'] = fresh['inner_request_id'];
+        }
+        final ud = _payload['user'] ?? _payload;
+        if (ud is Map<String, dynamic>) {
+          isBookmarked = ud['isFavorite'] == true;
+        }
+        inInnerCircle = _payload['in_inner_circle'] ?? inInnerCircle;
+        inOuterCircle = _payload['in_outer_circle'] ?? inOuterCircle;
+        innerRequestStatus = _payload['inner_request_status']?.toString() ?? innerRequestStatus;
+      });
+    } catch (_) {
+      // Keep list/sheet data from the opening payload.
+    } finally {
+      if (mounted) setState(() => _isRefreshingProfile = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    inInnerCircle = widget.userData['in_inner_circle'] ?? false;
-    inOuterCircle = widget.userData['in_outer_circle'] ?? false;
-    innerRequestStatus = widget.userData['inner_request_status'] ?? 'not_sent';
+    _payload = _clonePayload(widget.userData);
+    inInnerCircle = _payload['in_inner_circle'] ?? false;
+    inOuterCircle = _payload['in_outer_circle'] ?? false;
+    innerRequestStatus = _payload['inner_request_status'] ?? 'not_sent';
 
-    final userData = widget.userData['user'] ?? widget.userData;
+    final userData = _payload['user'] ?? _payload;
     isBookmarked = userData['isFavorite'] ?? false;
 
-    if (widget.userData['inner_request_id'] != null) {
-      pendingRequestId = widget.userData['inner_request_id'];
-    } else if (widget.userData['pending_request'] != null) {
-      pendingRequestId = widget.userData['pending_request']['id'];
+    if (_payload['inner_request_id'] != null) {
+      pendingRequestId = _payload['inner_request_id'];
+    } else if (_payload['pending_request'] != null) {
+      pendingRequestId = _payload['pending_request']['id'];
     }
+    _isRefreshingProfile = !_isOwnProfile;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isOwnProfile) _refreshOtherUserProfile();
+    });
   }
 
   Future<void> _sendInnerCircleRequest() async {
@@ -119,7 +276,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
 
     if (confirmed != true) return;
 
-    final userData = widget.userData['user'] ?? widget.userData;
+    final userData = _payload['user'] ?? _payload;
     final userId = userData['id'];
 
     if (userId == null) {
@@ -153,10 +310,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
         pendingRequestId = innerRequestId ?? requestId;
       });
 
-      widget.userData['in_inner_circle'] = inInnerCircle;
-      widget.userData['in_outer_circle'] = inOuterCircle;
-      widget.userData['inner_request_status'] = innerRequestStatus;
-      widget.userData['inner_request_id'] = pendingRequestId;
+      _payload['in_inner_circle'] = inInnerCircle;
+      _payload['in_outer_circle'] = inOuterCircle;
+      _payload['inner_request_status'] = innerRequestStatus;
+      _payload['inner_request_id'] = pendingRequestId;
 
       await ProgressDialogHelper.hide();
       ToastHelper.showSuccess('Inner circle request sent');
@@ -217,7 +374,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
 
     if (confirmed != true) return;
 
-    final userData = widget.userData['user'] ?? widget.userData;
+    final userData = _payload['user'] ?? _payload;
     final userId = userData['id'];
 
     if (userId == null) {
@@ -255,10 +412,10 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
         pendingRequestId = null;
       });
 
-      widget.userData['in_inner_circle'] = inInnerCircle;
-      widget.userData['in_outer_circle'] = inOuterCircle;
-      widget.userData['inner_request_status'] = innerRequestStatus;
-      widget.userData['inner_request_id'] = null;
+      _payload['in_inner_circle'] = inInnerCircle;
+      _payload['in_outer_circle'] = inOuterCircle;
+      _payload['inner_request_status'] = innerRequestStatus;
+      _payload['inner_request_id'] = null;
 
       await ProgressDialogHelper.hide();
       ToastHelper.showSuccess('Added to outer circle');
@@ -270,11 +427,11 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   }
 
   void _setBookmarkOnUserData(bool value) {
-    final nested = widget.userData['user'];
+    final nested = _payload['user'];
     if (nested is Map) {
       nested['isFavorite'] = value;
     } else {
-      widget.userData['isFavorite'] = value;
+      _payload['isFavorite'] = value;
     }
   }
 
@@ -319,7 +476,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   Future<void> _toggleBookmark() async {
     if (_isTogglingBookmark) return;
 
-    final userData = widget.userData['user'] ?? widget.userData;
+    final userData = _payload['user'] ?? _payload;
     final userId = userData['id'];
 
     if (userId == null) return;
@@ -377,8 +534,28 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final userData = widget.userData['user'] ?? widget.userData;
-    final profile = userData['profile'] ?? {};
+
+    if (!_isOwnProfile && _isRefreshingProfile) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.scaffoldGradient(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: cs.primary,
+          ),
+        ),
+      );
+    }
+
+    final rawUd = _payload['user'] ?? _payload;
+    final userData =
+        rawUd is Map ? Map<String, dynamic>.from(rawUd) : <String, dynamic>{};
+    final profileRaw = userData['profile'];
+    final profile =
+        profileRaw is Map ? Map<String, dynamic>.from(profileRaw) : <String, dynamic>{};
+    final displayProfile = _mergedProfileForLinks(userData, profile);
 
     final name = profile['display_name'] ?? userData['name'] ?? 'Unknown User';
     final bio = profile['bio'] ?? '';
@@ -389,13 +566,15 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
         : null;
     final city = profile['city'];
     final state = profile['state'];
-    final matchScore = widget.userData['match_score'] ?? 0;
-    final distance = widget.userData['distance'] != null ? (widget.userData['distance']).toDouble() : null;
+    final matchScore = _payload['match_score'] ?? 0;
+    final distance = _payload['distance'] != null ? (_payload['distance'] as num).toDouble() : null;
     final unitForDistance = widget.distanceUnit ??
-        (widget.userData is Map ? widget.userData['distance_unit'] as String? : null) ??
+        (_payload['distance_unit'] as String?) ??
         'yards';
-    final interests = profile['interests'] as List<dynamic>? ?? [];
-    final coreValues = profile['core_values'] as List<dynamic>? ?? [];
+    final interests = _listFromUserOrProfile(userData, profile, 'interests');
+    final coreValues = _listFromUserOrProfile(userData, profile, 'core_values');
+    final skills = _listFromUserOrProfile(userData, profile, 'skills');
+    final ambitions = _listFromUserOrProfile(userData, profile, 'ambitions');
 
     return Container(
       decoration: BoxDecoration(
@@ -433,16 +612,33 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                 if (_isOwnProfile)
                   const SizedBox(width: 48)
                 else
-                  IconButton(
-                    onPressed: _isTogglingBookmark ? null : _toggleBookmark,
-                    icon: _isTogglingBookmark
-                        ? _PulsingBookmark(color: ProxiPalette.bookmarkSaved)
-                        : Icon(
-                            isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                            color: isBookmarked
-                                ? ProxiPalette.bookmarkSaved
-                                : ProxiPalette.bookmarkAccent,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isRefreshingProfile)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: cs.primary,
+                            ),
                           ),
+                        ),
+                      IconButton(
+                        onPressed: _isTogglingBookmark ? null : _toggleBookmark,
+                        icon: _isTogglingBookmark
+                            ? _PulsingBookmark(color: ProxiPalette.bookmarkSaved)
+                            : Icon(
+                                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                                color: isBookmarked
+                                    ? ProxiPalette.bookmarkSaved
+                                    : ProxiPalette.bookmarkAccent,
+                              ),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -569,7 +765,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                formatPulseDistanceCompact(distance!, unitForDistance),
+                                formatPulseDistanceCompact(distance, unitForDistance),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -719,7 +915,111 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                       ),
                     ),
                   ],
-                  if (_hasSocialLinks(profile)) ...[
+                  if (skills.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Skills',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 6.0,
+                        runSpacing: 6.0,
+                        children: skills.map((s) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ProxiPalette.electricBlue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome_outlined,
+                                  size: 16,
+                                  color: cs.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  s.toString(),
+                                  style: TextStyle(
+                                    color: cs.onSurface,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                  if (ambitions.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Ambitions',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 6.0,
+                        runSpacing: 6.0,
+                        children: ambitions.map((a) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ProxiPalette.skyBlue.withOpacity(0.22),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.flag_outlined,
+                                  size: 16,
+                                  color: cs.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  a.toString(),
+                                  style: TextStyle(
+                                    color: cs.onSurface,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                  if (_hasSocialLinks(displayProfile)) ...[
                     const SizedBox(height: 20),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -733,14 +1033,14 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildSocialLinks(context, profile),
+                    _buildSocialLinks(context, displayProfile),
                   ],
                   const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
-          if (widget.userData['hide_action_buttons'] != true && !_isOwnProfile)
+          if (_payload['hide_action_buttons'] != true && !_isOwnProfile)
             Container(
               padding: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(
@@ -1004,8 +1304,6 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     final cs = Theme.of(context).colorScheme;
     final links = <Map<String, String>>[];
 
-    print('profile: $profile');
-
     if (profile['instagram_url'] != null && profile['instagram_url'].toString().isNotEmpty) {
       links.add({'title': 'Instagram', 'url': profile['instagram_url'].toString()});
     }
@@ -1028,7 +1326,6 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
       links.add({'title': 'Other', 'url': profile['other_url'].toString()});
     }
 
-    print('links: $links');
     return Column(
       children: links.map((link) {
         return Container(
@@ -1107,8 +1404,6 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
       if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
         validUrl = 'https://$validUrl';
       }
-
-      print('validUrl: $validUrl');
 
       final uri = Uri.parse(validUrl);
 

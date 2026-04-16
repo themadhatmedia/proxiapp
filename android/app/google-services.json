@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "387366676196",
+    "project_id": "myproxiapp-dev-2127e",
+    "storage_bucket": "myproxiapp-dev-2127e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:387366676196:android:1be137ba83d0a6dd3aeef1",
+        "android_client_info": {
+          "package_name": "com.app.proxiapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACF4eF7J-snSMyNDcjmQv0aMKEX7Rnf34"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

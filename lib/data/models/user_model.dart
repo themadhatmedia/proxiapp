@@ -206,6 +206,16 @@ class User {
     if (ambitions != null) {
       profileData['ambitions'] = ambitions;
     }
+    // Social URLs live on [User] from API profile.* — [Profile.toJson] omits them; include here so
+    // routes that pass [user.toJson()] (e.g. Circles search → UserProfileDetailScreen) keep links.
+    if (linkedinUrl != null) profileData['linkedin_url'] = linkedinUrl;
+    if (facebookUrl != null) profileData['facebook_url'] = facebookUrl;
+    if (instagramUrl != null) profileData['instagram_url'] = instagramUrl;
+    if (xUrl != null) profileData['x_url'] = xUrl;
+    if (snapchatUrl != null) profileData['snapchat_url'] = snapchatUrl;
+    if (tiktokUrl != null) profileData['tiktok_url'] = tiktokUrl;
+    if (otherUrl != null) profileData['other_url'] = otherUrl;
+    if (accountType != null) profileData['account_type'] = accountType;
 
     return {
       'id': id,

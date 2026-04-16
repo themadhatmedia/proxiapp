@@ -7,6 +7,7 @@ class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final bool isLoading;
+  final bool isEnabled;
   final Color? backgroundColor;
   final Color? textColor;
   final String? loadingText;
@@ -16,6 +17,7 @@ class CustomButton extends StatelessWidget {
     required this.text,
     required this.onPressed,
     this.isLoading = false,
+    this.isEnabled = true,
     this.backgroundColor,
     this.textColor,
     this.loadingText,
@@ -26,12 +28,13 @@ class CustomButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final bgColor = backgroundColor ?? cs.primary;
     final fgColor = textColor ?? cs.onPrimary;
+    final canPress = isEnabled && !isLoading;
 
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: isLoading
+        onPressed: !canPress
             ? null
             : () {
                 unfocusKeyboard();
@@ -39,7 +42,7 @@ class CustomButton extends StatelessWidget {
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
-          disabledBackgroundColor: bgColor.withOpacity(0.6),
+          disabledBackgroundColor: Colors.grey.shade600,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
@@ -48,7 +51,7 @@ class CustomButton extends StatelessWidget {
         child: Text(
           isLoading ? (loadingText ?? text) : text,
           style: TextStyle(
-            color: isLoading ? ProxiPalette.pureWhite.withOpacity(0.9) : fgColor,
+            color: !canPress ? ProxiPalette.pureWhite.withOpacity(0.9) : fgColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),

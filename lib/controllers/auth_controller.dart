@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
+import '../data/services/fcm_service.dart';
 import '../data/services/storage_service.dart';
 import '../utils/toast_helper.dart';
 import 'circles_controller.dart';
@@ -80,6 +83,9 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(response.user.toJson()));
 
       _isLoading.value = false;
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        unawaited(FcmService.instance.syncTokenToProfileIfNeeded());
+      }
       ToastHelper.showSuccess('Account created successfully');
       return true;
     } catch (e) {
@@ -108,6 +114,9 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(response.user.toJson()));
 
       _isLoading.value = false;
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        unawaited(FcmService.instance.syncTokenToProfileIfNeeded());
+      }
       // ToastHelper.showSuccess('Logged in successfully');
       return true;
     } catch (e) {
@@ -128,6 +137,9 @@ class AuthController extends GetxController {
       _token.value = null;
       _user.value = null;
       _storageService.clearAll();
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        FcmService.clearStoredSyncSignature();
+      }
 
       // Delete all controllers to ensure fresh data on next login
       if (Get.isRegistered<OnboardingController>()) {
