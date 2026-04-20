@@ -29,7 +29,18 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
   bool get _isSameAsCurrentPlan =>
       selectedPlanId != null && _currentMembershipPlanId != null && selectedPlanId == _currentMembershipPlanId;
 
-  bool get _canUpdateSubscription => !_isSaving && selectedPlanId != null && !_isSameAsCurrentPlan;
+  PlanModel? get _selectedPlanModel {
+    if (selectedPlanId == null) return null;
+    for (final p in controller.availablePlans) {
+      if (p.id == selectedPlanId) return p;
+    }
+    return null;
+  }
+
+  bool get _canUpdateSubscription {
+    if (_isSaving || selectedPlanId == null || _isSameAsCurrentPlan) return false;
+    return _selectedPlanModel?.availableForPurchase == true;
+  }
 
   @override
   void initState() {
@@ -40,18 +51,23 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
     }
     controller.loadPlans().then((_) {
       if (!mounted) return;
-      final id = selectedPlanId;
-      if (id == null) return;
-      PlanModel? match;
-      for (final p in controller.availablePlans) {
-        if (p.id == id) {
-          match = p;
-          break;
+      final plans = controller.availablePlans;
+      if (plans.isEmpty) return;
+
+      var found = false;
+      if (selectedPlanId != null) {
+        for (final p in plans) {
+          if (p.id == selectedPlanId) {
+            found = true;
+            break;
+          }
         }
       }
-      if (match != null && (match.isComingSoonPlan || !match.isFree)) {
-        setState(() => selectedPlanId = null);
-      }
+      setState(() {
+        if (!found) {
+          selectedPlanId = PlanModel.initialSelectionForUpgrade(plans)?.id;
+        }
+      });
     });
   }
 
@@ -65,19 +81,9 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
       return;
     }
 
-    PlanModel? selectedPlan;
-    for (final p in controller.availablePlans) {
-      if (p.id == selectedPlanId) {
-        selectedPlan = p;
-        break;
-      }
-    }
-    if (selectedPlan?.isComingSoonPlan == true) {
-      ToastHelper.showError('This plan is not available yet');
-      return;
-    }
-    if (selectedPlan?.isFree != true) {
-      ToastHelper.showError('Only the free plan can be selected');
+    final selectedPlan = _selectedPlanModel;
+    if (selectedPlan?.availableForPurchase != true) {
+      ToastHelper.showError('This plan is not available for purchase');
       return;
     }
 
@@ -173,7 +179,8 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                             return PlanOptionCard(
                               plan: plan,
                               isSelected: selectedPlanId == plan.id,
-                              onTap: plan.isFree && !plan.isComingSoonPlan
+                              currentMembershipPlanId: _currentMembershipPlanId,
+                              onTap: plan.availableForPurchase
                                   ? () {
                                       setState(() {
                                         selectedPlanId = plan.id;
@@ -190,11 +197,14 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: CustomButton(
-                  text: _isSaving ? 'Updating...' : 'Update Subscription',
-                  isEnabled: _canUpdateSubscription,
-                  onPressed: _handleSubscribe,
-                ),
+                child: Obx(() {
+                  controller.availablePlans.length;
+                  return CustomButton(
+                    text: _isSaving ? 'Updating...' : 'Update Subscription',
+                    isEnabled: _canUpdateSubscription,
+                    onPressed: _handleSubscribe,
+                  );
+                }),
               ),
             ],
           ),

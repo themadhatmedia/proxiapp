@@ -39,12 +39,8 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
       ToastHelper.showError('Please select a plan');
       return;
     }
-    if (selected.isComingSoonPlan) {
-      ToastHelper.showError('This plan is not available yet');
-      return;
-    }
-    if (!selected.isFree) {
-      ToastHelper.showError('Only the free plan can be selected');
+    if (!selected.availableForPurchase) {
+      ToastHelper.showError('This plan is not available for purchase');
       return;
     }
     if (authController.token == null) {
@@ -132,7 +128,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                             return PlanOptionCard(
                               plan: plan,
                               isSelected: isSelected,
-                              onTap: plan.isFree && !plan.isComingSoonPlan
+                              onTap: plan.availableForPurchase
                                   ? () => onboardingController.selectPlan(plan)
                                   : null,
                             );
@@ -147,6 +143,8 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                 padding: const EdgeInsets.all(20.0),
                 child: Obx(() {
                   final selectedPlan = onboardingController.selectedPlan.value;
+                  final canContinue =
+                      selectedPlan != null && selectedPlan.availableForPurchase && !_isSaving;
                   String buttonText;
                   if (_isSaving) {
                     buttonText = 'Saving...';
@@ -157,7 +155,8 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> {
                   }
                   return CustomButton(
                     text: buttonText,
-                    onPressed: _isSaving ? () {} : _handleContinue,
+                    isEnabled: canContinue,
+                    onPressed: _handleContinue,
                   );
                 }),
               ),

@@ -112,12 +112,7 @@ class OnboardingController extends GetxController {
       final plans = await _apiService.getMemberships(token);
       availablePlans.value = plans;
 
-      final freePlan = plans.firstWhereOrNull((plan) => plan.isFree);
-      if (freePlan != null) {
-        selectedPlan.value = freePlan;
-      } else if (plans.isNotEmpty) {
-        selectedPlan.value = plans.first;
-      }
+      selectedPlan.value = PlanModel.initialSelectionForOnboarding(plans);
     } catch (e) {
       ToastHelper.showError('Failed to load plans: $e');
     } finally {
@@ -202,7 +197,7 @@ class OnboardingController extends GetxController {
   }
 
   void selectPlan(PlanModel plan) {
-    if (plan.isComingSoonPlan || !plan.isFree) return;
+    if (!plan.availableForPurchase) return;
     selectedPlan.value = plan;
   }
 

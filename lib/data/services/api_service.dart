@@ -865,15 +865,20 @@ class ApiService {
           if (rawData is List) {
             list = rawData;
           } else if (rawData is Map<String, dynamic>) {
-            final nested = rawData.values.firstWhere(
-              (v) => v is List,
-              orElse: () => <dynamic>[],
-            );
-            list = nested is List ? nested : <dynamic>[];
+            final memberships = rawData['memberships'];
+            if (memberships is List) {
+              list = memberships;
+            } else {
+              final nested = rawData.values.firstWhere(
+                (v) => v is List,
+                orElse: () => <dynamic>[],
+              );
+              list = nested is List ? nested : <dynamic>[];
+            }
           } else {
             list = <dynamic>[];
           }
-          return list.map((json) => PlanModel.fromJson(json)).toList();
+          return list.map((e) => PlanModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to get memberships';
           throw Exception(errorMessage);

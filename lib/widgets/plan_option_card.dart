@@ -9,18 +9,26 @@ class PlanOptionCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onTap;
 
+  /// When set (upgrade flow), the user's current tier is not dimmed as "unavailable"
+  /// even if [PlanModel.availableForPurchase] is false.
+  final int? currentMembershipPlanId;
+
   const PlanOptionCard({
     super.key,
     required this.plan,
     required this.isSelected,
     this.onTap,
+    this.currentMembershipPlanId,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final comingSoon = plan.isComingSoonPlan;
-    final effectiveOnTap = comingSoon ? null : onTap;
+    final isCurrentTier =
+        currentMembershipPlanId != null && plan.id == currentMembershipPlanId;
+    final showUnavailableOverlay =
+        !plan.availableForPurchase && !isCurrentTier;
+    final effectiveOnTap = showUnavailableOverlay ? null : onTap;
 
     final priceLabel = plan.isFree ? 'Free' : plan.displayPrice.split(' ').first;
 
@@ -90,11 +98,11 @@ class PlanOptionCard extends StatelessWidget {
             onTap: effectiveOnTap,
             behavior: HitTestBehavior.opaque,
             child: Opacity(
-              opacity: comingSoon ? 0.48 : 1,
+              opacity: showUnavailableOverlay ? 0.48 : 1,
               child: card,
             ),
           ),
-          if (comingSoon)
+          if (showUnavailableOverlay)
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -110,10 +118,12 @@ class PlanOptionCard extends StatelessWidget {
                         border: Border.all(color: cs.outline.withOpacity(0.4)),
                       ),
                       child: Text(
-                        'Coming in 2027',
+                        plan.isAmbassadorOrCoachTier
+                            ? 'Coming in 2027'
+                            : 'Not available for purchase',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: plan.isAmbassadorOrCoachTier ? 16 : 14,
                           fontWeight: FontWeight.w700,
                           color: cs.onSurface,
                           letterSpacing: 0.2,
