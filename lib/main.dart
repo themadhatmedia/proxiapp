@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+﻿import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +27,16 @@ import 'views/onboarding/proxi_circles_screen.dart';
 import 'utils/app_keyboard_dismiss.dart';
 import 'views/bookmarks/bookmarks_screen.dart';
 
+Future<void> _initializeFirebaseSafe() async {
+  // Prefer native platform config files (GoogleService-Info.plist / google-services.json).
+  // Fallback to explicit options to keep development builds resilient.
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
+}
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +45,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       defaultTargetPlatform != TargetPlatform.iOS) {
     return;
   }
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _initializeFirebaseSafe();
 }
 
 void main() async {
@@ -45,7 +55,7 @@ void main() async {
   if (!kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS)) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await _initializeFirebaseSafe();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await FcmService.instance.install();
   }
