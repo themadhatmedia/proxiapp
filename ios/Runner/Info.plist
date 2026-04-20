@@ -33,9 +33,14 @@
 	<key>NSContactsUsageDescription</key>
 	<string>This app accesses your contacts to help you find and connect with friends on Proxi.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>fetch location time to time</string>
+	<string>Proxi uses your location to send proximity alerts and refresh nearby contacts even when the app is in the background. Please choose Always Allow so we can keep your map and matches up to date.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>to fetch location when signup</string>
+	<string>Proxi uses your location to show nearby people and proximity alerts while you use the app.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>to use image from gallery</string>
 	<key>UIApplicationSceneManifest</key>

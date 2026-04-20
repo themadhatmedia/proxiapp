@@ -29,18 +29,25 @@ import 'views/bookmarks/bookmarks_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) return;
+  if (defaultTargetPlatform != TargetPlatform.android &&
+      defaultTargetPlatform != TargetPlatform.iOS) {
+    return;
+  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
 
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS)) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    await FcmService.instance.installAndroid();
+    await FcmService.instance.install();
   }
 
   runApp(const MyApp());

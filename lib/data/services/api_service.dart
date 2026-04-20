@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
 
@@ -19,6 +20,19 @@ class ApiService {
   static const String baseUrl = 'https://myproxi.app/index.php/api/v1';
   static const int maxRetries = 3;
   static const Duration timeout = Duration(seconds: 30);
+
+  /// `android` / `ios` for mobile; other platforms get a stable string for the API.
+  static String _registerDeviceType() {
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      default:
+        return 'unknown';
+    }
+  }
 
   void _logApiCall({
     required String method,
@@ -111,6 +125,8 @@ class ApiService {
   }) async {
     final url = '$baseUrl/register';
 
+    final deviceType = _registerDeviceType();
+
     return _retryRequest(
       method: 'POST',
       url: url,
@@ -123,6 +139,7 @@ class ApiService {
           request.fields['name'] = name;
           request.fields['email'] = email;
           request.fields['password'] = password;
+          request.fields['device_type'] = deviceType;
 
           if (displayName != null && displayName.isNotEmpty) {
             request.fields['display_name'] = displayName;
@@ -159,6 +176,7 @@ class ApiService {
             'name': name,
             'email': email,
             'password': password,
+            'device_type': deviceType,
             if (displayName != null && displayName.isNotEmpty) 'display_name': displayName,
             if (bio != null && bio.isNotEmpty) 'bio': bio,
             if (dateOfBirth != null && dateOfBirth.isNotEmpty) 'date_of_birth': dateOfBirth,

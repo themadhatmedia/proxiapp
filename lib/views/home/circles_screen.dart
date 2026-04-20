@@ -95,6 +95,11 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
       case 'add_outer':
         _addToOuterCircle(data);
         break;
+      case 'move_to_outer':
+        if (data is CircleConnectionModel) {
+          _showMoveToOuterConfirmation(data);
+        }
+        break;
     }
   }
 
@@ -193,6 +198,57 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
           userId: userId!,
           userName: userName!,
         ),
+      ),
+    );
+  }
+
+  void _showMoveToOuterConfirmation(CircleConnectionModel connection) {
+    final cs = Theme.of(context).colorScheme;
+    final name = connection.connectedUser?.name ?? 'This user';
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.swap_horiz, color: cs.primary, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Move to outer circle?',
+                style: TextStyle(fontSize: 18, color: cs.onSurface),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '$name will be removed from your inner circle and added to your outer circle.',
+          style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final uid = connection.connectedUser?.id ?? connection.connectedUserId;
+              await ProgressDialogHelper.show(context);
+              await controller.moveInnerConnectionToOuter(uid);
+              await ProgressDialogHelper.hide();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
       ),
     );
   }
@@ -1031,6 +1087,29 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'move_to_outer',
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              height: 40,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.group_work_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Move to outer circle',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

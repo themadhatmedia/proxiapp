@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
+import '../../controllers/circles_controller.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../utils/pulse_distance_format.dart';
 import '../../widgets/safe_avatar.dart';
 import 'user_profile_detail_screen.dart';
@@ -30,11 +33,79 @@ class NearbyUsersScreen extends StatefulWidget {
 
 class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
   late int _localFilterRadius;
+  int? _movingUserIdForOuter;
 
   @override
   void initState() {
     super.initState();
     _localFilterRadius = widget.selectedRadius;
+  }
+
+  Future<void> _confirmMoveToOuterFromList(dynamic userPulseEntry) async {
+    final userData = userPulseEntry['user'] ?? userPulseEntry;
+    final id = userData['id'];
+    final userId = id is int ? id : int.tryParse('$id');
+    if (userId == null) return;
+
+    final cs = Theme.of(context).colorScheme;
+    final name = userData['name']?.toString() ?? 'This user';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.swap_horiz, color: cs.primary, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Move to outer circle?',
+                style: TextStyle(color: cs.onSurface, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '$name will be removed from your inner circle and added to your outer circle.',
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    if (!Get.isRegistered<CirclesController>()) {
+      Get.put(CirclesController());
+    }
+    final circles = Get.find<CirclesController>();
+
+    setState(() => _movingUserIdForOuter = userId);
+    await ProgressDialogHelper.show(context);
+    try {
+      await circles.moveInnerConnectionToOuter(userId);
+      userPulseEntry['in_inner_circle'] = false;
+      userPulseEntry['in_outer_circle'] = true;
+      if (mounted) setState(() {});
+    } finally {
+      await ProgressDialogHelper.hide();
+      if (mounted) {
+        setState(() => _movingUserIdForOuter = null);
+      }
+    }
   }
 
   List<int> _buildLocalFilterOptions() {
@@ -303,6 +374,9 @@ class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
     final cs = Theme.of(context).colorScheme;
     final userData = user['user'] ?? user;
     final profile = userData['profile'] ?? {};
+    final rawId = userData['id'];
+    final userIdForActions = rawId is int ? rawId : int.tryParse('$rawId');
+    final inInnerCircle = user['in_inner_circle'] == true;
 
     final name = userData['name'] ?? profile['display_name'] ?? 'Unknown User';
     final bio = profile['bio'] ?? '';
@@ -346,27 +420,13 @@ class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
                         color: _getMatchColor(matchScore).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$matchScore%',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: _getMatchColor(matchScore),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _getMatchLabel(matchScore),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _getMatchColor(matchScore).withOpacity(0.9),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        _getMatchLabel(matchScore),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: _getMatchColor(matchScore),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -409,6 +469,38 @@ class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
                         ),
                       ],
                     ),
+                    if (inInnerCircle && userIdForActions != null) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _movingUserIdForOuter == userIdForActions
+                              ? null
+                              : () => _confirmMoveToOuterFromList(user),
+                          icon: _movingUserIdForOuter == userIdForActions
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: cs.primary,
+                                  ),
+                                )
+                              : const Icon(Icons.swap_horiz, size: 18),
+                          label: Text(
+                            _movingUserIdForOuter == userIdForActions ? 'Moving...' : 'Move to outer circle',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: cs.primary,
+                            side: BorderSide(color: cs.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -502,11 +594,11 @@ class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
 
   String _getMatchLabel(int score) {
     if (score > 80) {
-      return 'Great Potential';
+      return 'Great Potential Match';
     } else if (score >= 50) {
-      return 'Good Potential';
+      return 'Good Potential Match';
     } else {
-      return 'Potential';
+      return 'Potential Match';
     }
   }
 }

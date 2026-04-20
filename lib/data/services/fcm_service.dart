@@ -16,31 +16,65 @@ class FcmService {
 
   bool _listenerAttached = false;
 
-  /// Call once after [Firebase.initializeApp] on Android.
-  Future<void> installAndroid() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  /// Call once after [Firebase.initializeApp] on Android and iOS.
+  Future<void> install() async {
+    if (kIsWeb) return;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
     if (_listenerAttached) return;
     _listenerAttached = true;
+
     FirebaseMessaging.instance.onTokenRefresh.listen((_) {
       syncTokenToProfileIfNeeded();
     });
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
   }
 
-  /// Clears the last successful sync so the next login or screen visit can push again.
+  /// Kept for call sites that still reference the old name.
+  Future<void> installAndroid() => install();
+
   static void clearStoredSyncSignature() {
     GetStorage().remove(_storageKey);
   }
 
-  /// Requests notification permission (Android 13+), reads the FCM token, and POSTs profile
+  /// Requests notification permission, reads the FCM token, and POSTs profile
   /// with [firebase_token] only when it changed for this user.
   Future<void> syncTokenToProfileIfNeeded() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    if (kIsWeb) return;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
     if (!Get.isRegistered<AuthController>()) return;
     final auth = Get.find<AuthController>();
     if (!auth.isAuthenticated || auth.token == null || auth.user == null) return;
 
-    final perm = await Permission.notification.request();
-    if (!perm.isGranted) return;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      final ok = settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+      if (!ok) return;
+    } else {
+      final perm = await Permission.notification.request();
+      if (!perm.isGranted) return;
+    }
 
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;

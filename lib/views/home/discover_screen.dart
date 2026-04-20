@@ -27,7 +27,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   Worker? _homeTabWorker;
 
   Future<void> _printFirebaseToken() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      return;
+    }
     final token = await FirebaseMessaging.instance.getToken();
     print('FCM Token (DiscoverScreen): $token');
   }
@@ -45,7 +49,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       });
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)) {
         _printFirebaseToken();
         FcmService.instance.syncTokenToProfileIfNeeded();
       }

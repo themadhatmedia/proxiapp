@@ -22,6 +22,11 @@ class AuthController extends GetxController {
   final ApiService _apiService = ApiService();
   final StorageService _storageService = StorageService();
 
+  static bool get _shouldSyncFcm =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
   final _user = Rxn<User>();
   final _token = Rxn<String>();
   final _isLoading = false.obs;
@@ -29,6 +34,10 @@ class AuthController extends GetxController {
   User? get user => _user.value;
   Rxn<User> get currentUser => _user;
   String? get token => _token.value;
+
+  /// Observable token so services (e.g. location) can stop work when the user logs out.
+  Rxn<String> get reactiveToken => _token;
+
   bool get isLoading => _isLoading.value;
   bool get isAuthenticated => _token.value != null;
 
@@ -83,7 +92,7 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(response.user.toJson()));
 
       _isLoading.value = false;
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      if (_shouldSyncFcm) {
         unawaited(FcmService.instance.syncTokenToProfileIfNeeded());
       }
       ToastHelper.showSuccess('Account created successfully');
@@ -137,7 +146,7 @@ class AuthController extends GetxController {
       _token.value = null;
       _user.value = null;
       _storageService.clearAll();
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      if (_shouldSyncFcm) {
         FcmService.clearStoredSyncSignature();
       }
 

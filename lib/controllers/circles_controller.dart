@@ -310,6 +310,52 @@ class CirclesController extends GetxController {
     }
   }
 
+  /// Removes the inner-circle connection then adds the user to outer circle (two API calls).
+  Future<void> moveInnerConnectionToOuter(int toUserId) async {
+    final token = _authController.token;
+    if (token == null) {
+      ToastHelper.showError('Authentication required');
+      return;
+    }
+
+    await fetchInnerCircle();
+
+    CircleConnectionModel? conn;
+    for (final c in activeConnections) {
+      if (c.circleType.toLowerCase() != 'inner') continue;
+      final uid = c.connectedUser?.id ?? c.connectedUserId;
+      if (uid == toUserId) {
+        conn = c;
+        break;
+      }
+    }
+
+    if (conn == null) {
+      ToastHelper.showError('Could not find inner circle connection');
+      return;
+    }
+
+    final connectionId = conn.id;
+    setActionLoading(connectionId, true);
+    try {
+      await _apiService.removeConnection(
+        token: token,
+        connectionId: connectionId,
+      );
+      await _apiService.addToOuterCircle(
+        token: token,
+        toUserId: toUserId,
+      );
+      ToastHelper.showSuccess('Moved to outer circle');
+      await loadAllData();
+    } catch (e) {
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
+      ToastHelper.showError(errorMessage);
+    } finally {
+      setActionLoading(connectionId, false);
+    }
+  }
+
   Future<void> acceptCircleRequest(int requestId) async {
     final token = _authController.token;
     if (token == null) {

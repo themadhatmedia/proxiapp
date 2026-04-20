@@ -8,6 +8,7 @@ import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/bookmarks_controller.dart';
+import '../../controllers/circles_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/app_vibration.dart';
 import '../../utils/pulse_distance_format.dart';
@@ -57,6 +58,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
   int? pendingRequestId;
   bool isBookmarked = false;
   bool _isTogglingBookmark = false;
+  bool _isMovingToOuter = false;
 
   static Map<String, dynamic> _clonePayload(dynamic raw) {
     try {
@@ -531,6 +533,77 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     }
   }
 
+  Future<void> _confirmMoveInnerToOuter() async {
+    if (_isOwnProfile) return;
+    final userData = _payload['user'] ?? _payload;
+    final id = userData['id'];
+    final userId = id is int ? id : int.tryParse('$id');
+    if (userId == null) return;
+
+    final cs = Theme.of(context).colorScheme;
+    final name = userData['name']?.toString() ?? 'This user';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.swap_horiz, color: cs.primary, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Move to outer circle?',
+                style: TextStyle(color: cs.onSurface, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '$name will be removed from your inner circle and added to your outer circle.',
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    if (!Get.isRegistered<CirclesController>()) {
+      Get.put(CirclesController());
+    }
+    final circles = Get.find<CirclesController>();
+
+    setState(() => _isMovingToOuter = true);
+    try {
+      await circles.moveInnerConnectionToOuter(userId);
+      if (!mounted) return;
+      setState(() {
+        inInnerCircle = false;
+        inOuterCircle = true;
+        innerRequestStatus = 'not_sent';
+        _payload['in_inner_circle'] = false;
+        _payload['in_outer_circle'] = true;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isMovingToOuter = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -566,7 +639,9 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
         : null;
     final city = profile['city'];
     final state = profile['state'];
-    final matchScore = _payload['match_score'] ?? 0;
+    final matchScoreRaw = _payload['match_score'] ?? 0;
+    final matchScoreInt =
+        matchScoreRaw is int ? matchScoreRaw : int.tryParse('$matchScoreRaw') ?? 0;
     final distance = _payload['distance'] != null ? (_payload['distance'] as num).toDouble() : null;
     final unitForDistance = widget.distanceUnit ??
         (_payload['distance_unit'] as String?) ??
@@ -706,7 +781,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (matchScore != null && matchScore > 0)
+                      if (matchScoreInt > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -714,11 +789,11 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                           ),
                           decoration: BoxDecoration(
                             // color: Colors.white.withOpacity(0.95),
-                            color: _getMatchColor(matchScore).withOpacity(0.2),
+                            color: _getMatchColor(matchScoreInt).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               // color: Colors.white,
-                              color: _getMatchColor(matchScore),
+                              color: _getMatchColor(matchScoreInt),
                               width: 1,
                             ),
                           ),
@@ -727,15 +802,15 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                               Icon(
                                 Icons.star,
                                 size: 16,
-                                color: _getMatchColor(matchScore),
+                                color: _getMatchColor(matchScoreInt),
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '$matchScore% Match',
+                                _getMatchLabel(matchScoreInt),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: _getMatchColor(matchScore),
+                                  color: _getMatchColor(matchScoreInt),
                                 ),
                               ),
                             ],
@@ -778,7 +853,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
                     ],
                   ),
                   if (bio.isNotEmpty) ...[
-                    if (matchScore != null && matchScore > 0 && distance != null && distance > 0) SizedBox(height: 16),
+                    if (matchScoreInt > 0 && distance != null && distance > 0) SizedBox(height: 16),
                     Text(
                       bio,
                       textAlign: TextAlign.center,
@@ -1063,35 +1138,69 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     final cs = Theme.of(context).colorScheme;
 
     if (inInnerCircle) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.green.withOpacity(0.5),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Inner Circle Connection',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.green.shade700,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.green.withOpacity(0.5),
+                width: 1,
               ),
             ),
-          ],
-        ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Inner Circle Connection',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: _isMovingToOuter ? null : _confirmMoveInnerToOuter,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: cs.primary,
+              side: BorderSide(color: cs.primary),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _isMovingToOuter
+                ? SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: cs.primary,
+                    ),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.swap_horiz, size: 20),
+                      SizedBox(width: 8),
+                      Text('Move to outer circle'),
+                    ],
+                  ),
+          ),
+        ],
       );
     }
 
@@ -1281,6 +1390,16 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
       return const Color(0xFFFFA726);
     } else {
       return const Color(0xFFE74C3C);
+    }
+  }
+
+  String _getMatchLabel(int score) {
+    if (score > 80) {
+      return 'Great Potential Match';
+    } else if (score >= 50) {
+      return 'Good Potential Match';
+    } else {
+      return 'Potential Match';
     }
   }
 

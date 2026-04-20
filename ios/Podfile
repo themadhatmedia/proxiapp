@@ -1,5 +1,5 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# Match Flutter/AppFrameworkInfo MinimumOSVersion and Xcode IPHONEOS_DEPLOYMENT_TARGET.
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -44,6 +44,7 @@ post_install do |installer|
         '$(inherited)',
         'PERMISSION_CONTACTS=1',
         'PERMISSION_LOCATION=1',
+        'PERMISSION_NOTIFICATIONS=1',
       ]
     end
   end

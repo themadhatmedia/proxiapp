@@ -100,6 +100,7 @@ class _MainNavigationState extends State<MainNavigation> {
       if (!mounted) return;
       if (_isOnboardingRouteActive(Get.currentRoute)) return;
       await _updateUserLocation();
+      await _locationService.startBackgroundLocationUpdates();
     });
   }
 
