@@ -1,5 +1,4 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -40,11 +39,31 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
+      # Xcode 15+: DT_TOOLCHAIN_DIR is invalid in LIBRARY_SEARCH_PATHS etc.
+      config.build_settings.each do |key, value|
+        if value.is_a?(String) && value.include?('DT_TOOLCHAIN_DIR')
+          config.build_settings[key] = value.gsub('DT_TOOLCHAIN_DIR', 'TOOLCHAIN_DIR')
+        elsif value.is_a?(Array)
+          config.build_settings[key] = value.map do |item|
+            item.is_a?(String) && item.include?('DT_TOOLCHAIN_DIR') ? item.gsub('DT_TOOLCHAIN_DIR', 'TOOLCHAIN_DIR') : item
+          end
+        end
+      end
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CONTACTS=1',
         'PERMISSION_LOCATION=1',
       ]
+    end
+  end
+
+  # Some pods only reference DT_TOOLCHAIN_DIR in *.xcconfig / *.sh; patch those too.
+  support_root = File.join(installer.sandbox.root, 'Target Support Files')
+  %w[xcconfig sh].each do |ext|
+    Dir.glob(File.join(support_root, '**', "*.#{ext}")).each do |path|
+      contents = File.read(path)
+      next unless contents.include?('DT_TOOLCHAIN_DIR')
+      File.write(path, contents.gsub('DT_TOOLCHAIN_DIR', 'TOOLCHAIN_DIR'))
     end
   end
 end
