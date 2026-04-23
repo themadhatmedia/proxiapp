@@ -2034,6 +2034,53 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> getPostDetail({
+    required String token,
+    required int postId,
+  }) async {
+    final url = '$baseUrl/posts/$postId';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          if (responseData is Map<String, dynamic>) return responseData;
+          if (responseData is Map) return Map<String, dynamic>.from(responseData);
+          return <String, dynamic>{};
+        }
+
+        final errorMessage = responseData is Map ? responseData['message'] : null;
+        throw Exception(errorMessage ?? 'Failed to fetch post details');
+      },
+    );
+  }
+
   Future<Map<String, dynamic>> addComment(
     String token,
     int postId,
@@ -2276,6 +2323,145 @@ class ApiService {
           final errorMessage = responseData?['message'] ?? 'Failed to load bookmarks';
           throw Exception(errorMessage);
         }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getNotifications({
+    required String token,
+  }) async {
+    final url = '$baseUrl/notifications';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          if (responseData is Map<String, dynamic>) return responseData;
+          if (responseData is Map) return Map<String, dynamic>.from(responseData);
+          return <String, dynamic>{};
+        }
+
+        final errorMessage = responseData is Map ? responseData['message'] : null;
+        throw Exception(errorMessage ?? 'Failed to load notifications');
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> markNotificationAsRead({
+    required String token,
+    required String notificationId,
+  }) async {
+    final url = '$baseUrl/notifications/$notificationId/read';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (responseData is Map<String, dynamic>) return responseData;
+          if (responseData is Map) return Map<String, dynamic>.from(responseData);
+          return {'success': true};
+        }
+
+        final errorMessage = responseData is Map ? responseData['message'] : null;
+        throw Exception(errorMessage ?? 'Failed to mark notification as read');
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> markAllNotificationsAsRead({
+    required String token,
+  }) async {
+    final url = '$baseUrl/notifications/read-all';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+        );
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+        );
+
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (responseData is Map<String, dynamic>) return responseData;
+          if (responseData is Map) return Map<String, dynamic>.from(responseData);
+          return {'success': true};
+        }
+
+        final errorMessage = responseData is Map ? responseData['message'] : null;
+        throw Exception(errorMessage ?? 'Failed to mark all notifications as read');
       },
     );
   }

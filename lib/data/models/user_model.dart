@@ -174,6 +174,46 @@ class User {
     );
   }
 
+  /// Updates circle-related fields after a successful API action (e.g. circles search, pulse list).
+  /// Pass only the fields that should change; others are kept from this instance.
+  User withCircleRelation({
+    bool? inInnerCircle,
+    bool? inOuterCircle,
+    String? innerRequestStatus,
+  }) {
+    return User(
+      id: id,
+      name: name,
+      email: email,
+      profile: profile,
+      interests: interests,
+      coreValues: coreValues,
+      skills: skills,
+      ambitions: ambitions,
+      createdAt: createdAt,
+      displayName: displayName,
+      avatarUrl: avatarUrl,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      city: city,
+      state: state,
+      profession: profession,
+      membership: membership,
+      linkedinUrl: linkedinUrl,
+      facebookUrl: facebookUrl,
+      instagramUrl: instagramUrl,
+      xUrl: xUrl,
+      snapchatUrl: snapchatUrl,
+      tiktokUrl: tiktokUrl,
+      otherUrl: otherUrl,
+      accountType: accountType,
+      inInnerCircle: inInnerCircle ?? this.inInnerCircle,
+      inOuterCircle: inOuterCircle ?? this.inOuterCircle,
+      innerRequestStatus: innerRequestStatus ?? this.innerRequestStatus,
+      isFavorite: isFavorite,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     final profileData = <String, dynamic>{};
     if (profile != null) {

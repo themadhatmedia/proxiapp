@@ -33,7 +33,9 @@ Future<void> _initializeFirebaseSafe() async {
   try {
     await Firebase.initializeApp();
   } catch (_) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 }
 
@@ -80,7 +82,9 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: themeController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        themeMode: themeController.isDarkMode
+            ? ThemeMode.dark
+            : ThemeMode.light,
         // Full-screen brand gradient behind all routes; fixed text scale.
         builder: (context, child) {
           final data = MediaQuery.of(context);
@@ -109,19 +113,45 @@ class MyApp extends StatelessWidget {
             ),
           );
         },
-        home: authController.isAuthenticated ? const MainNavigation() : const AuthScreen(),
+        home: authController.isAuthenticated
+            ? const MainNavigation()
+            : const AuthScreen(),
         getPages: [
           GetPage(name: '/auth', page: () => const AuthScreen()),
           GetPage(name: '/home', page: () => const MainNavigation()),
-          GetPage(name: '/profile-creation', page: () => const ProfileCreationScreen()),
-          GetPage(name: '/terms-conditions', page: () => const TermsConditionsScreen()),
-          GetPage(name: '/select-interests', page: () => const SelectInterestsScreen()),
-          GetPage(name: '/select-core-values', page: () => const SelectCoreValuesScreen()),
-          GetPage(name: '/select-skills', page: () => const SelectSkillsScreen()),
-          GetPage(name: '/select-ambitions', page: () => const SelectAmbitionsScreen()),
+          GetPage(
+            name: '/profile-creation',
+            page: () => const ProfileCreationScreen(),
+          ),
+          GetPage(
+            name: '/terms-conditions',
+            page: () => const TermsConditionsScreen(),
+          ),
+          GetPage(
+            name: '/select-interests',
+            page: () => const SelectInterestsScreen(),
+          ),
+          GetPage(
+            name: '/select-core-values',
+            page: () => const SelectCoreValuesScreen(),
+          ),
+          GetPage(
+            name: '/select-skills',
+            page: () => const SelectSkillsScreen(),
+          ),
+          GetPage(
+            name: '/select-ambitions',
+            page: () => const SelectAmbitionsScreen(),
+          ),
           GetPage(name: '/select-plan', page: () => const SelectPlanScreen()),
-          GetPage(name: '/setup-permissions', page: () => const SetupPermissionsScreen()),
-          GetPage(name: '/proxi-circles', page: () => const ProxiCirclesScreen()),
+          GetPage(
+            name: '/setup-permissions',
+            page: () => const SetupPermissionsScreen(),
+          ),
+          GetPage(
+            name: '/proxi-circles',
+            page: () => const ProxiCirclesScreen(),
+          ),
           GetPage(name: '/bookmarks', page: () => const BookmarksScreen()),
           GetPage(name: '/favorites', page: () => const BookmarksScreen()),
         ],

@@ -81,6 +81,7 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
 
   Future<void> _sendInnerCircleRequest(User user) async {
     final userId = user.id;
+    final wasInOuterCircle = user.inOuterCircle ?? false;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -99,7 +100,9 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
             ),
           ),
           content: Text(
-            'This will send a request to add this user to your inner circle. They will need to accept your request.',
+            wasInOuterCircle
+                ? 'This user is currently in your outer circle. They will be removed from outer circle first, then an inner circle request will be sent.'
+                : 'This will send a request to add this user to your inner circle. They will need to accept your request.',
             style: TextStyle(
               color: cs.onSurfaceVariant,
               fontSize: 16,
@@ -132,8 +135,21 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
     if (confirmed != true) return;
 
     await ProgressDialogHelper.show(context);
-    await controller.sendInnerCircleRequest(userId);
-    await ProgressDialogHelper.hide();
+    try {
+      await controller.sendInnerCircleRequest(
+        userId,
+        removeOuterConnectionFirst: wasInOuterCircle,
+      );
+      if (mounted) {
+        _patchSearchResultCircleStatus(
+          userId,
+          inOuterCircle: false,
+          innerRequestStatus: 'pending',
+        );
+      }
+    } finally {
+      await ProgressDialogHelper.hide();
+    }
   }
 
   Future<void> _addToOuterCircle(User user) async {
@@ -189,8 +205,36 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
     if (confirmed != true) return;
 
     await ProgressDialogHelper.show(context);
-    await controller.addToOuterCircle(userId);
-    await ProgressDialogHelper.hide();
+    try {
+      await controller.addToOuterCircle(userId);
+      if (mounted) {
+        _patchSearchResultCircleStatus(
+          userId,
+          inOuterCircle: true,
+        );
+      }
+    } finally {
+      await ProgressDialogHelper.hide();
+    }
+  }
+
+  void _patchSearchResultCircleStatus(
+    int userId, {
+    bool? inInnerCircle,
+    bool? inOuterCircle,
+    String? innerRequestStatus,
+  }) {
+    final idx = searchResults.indexWhere((u) => u.id == userId);
+    if (idx == -1) return;
+    final u = searchResults[idx];
+    final updated = u.withCircleRelation(
+      inInnerCircle: inInnerCircle,
+      inOuterCircle: inOuterCircle,
+      innerRequestStatus: innerRequestStatus,
+    );
+    final next = List<User>.from(searchResults);
+    next[idx] = updated;
+    searchResults.assignAll(next);
   }
 
   @override

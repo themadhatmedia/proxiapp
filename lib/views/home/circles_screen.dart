@@ -5,6 +5,7 @@ import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/circles_controller.dart';
+import '../../controllers/navigation_controller.dart';
 import '../../data/models/circle_connection_model.dart';
 import '../../data/models/circle_request_model.dart';
 import '../../utils/progress_dialog_helper.dart';
@@ -24,6 +25,7 @@ class CirclesScreen extends StatefulWidget {
 class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProviderStateMixin {
   late CirclesController controller;
   late TabController _tabController;
+  Worker? _pendingRequestsWorker;
   final RxBool showIncomingRequests = false.obs;
   final RxBool showSentRequests = false.obs;
   final RxBool showRejectedRequests = false.obs;
@@ -34,6 +36,18 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _ensureControllerInitialized();
+    _setupPendingRequestsListener();
+  }
+
+  void _setupPendingRequestsListener() {
+    if (!Get.isRegistered<NavigationController>()) return;
+    final nav = Get.find<NavigationController>();
+    _pendingRequestsWorker = ever<int>(nav.circlesPendingRequestsOpenSignal, (_) {
+      if (!mounted) return;
+      _tabController.animateTo(0);
+      showIncomingRequests.value = true;
+      controller.loadAllData();
+    });
   }
 
   void _ensureControllerInitialized() {
@@ -46,6 +60,7 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
 
   @override
   void dispose() {
+    _pendingRequestsWorker?.dispose();
     _tabController.dispose();
     super.dispose();
   }

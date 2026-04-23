@@ -7,6 +7,7 @@ import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/discover_controller.dart';
 import '../../controllers/navigation_controller.dart';
+import '../../controllers/notification_controller.dart';
 import '../../data/services/fcm_service.dart';
 import '../../widgets/discover_post_card.dart';
 import '../posts/create_post_screen.dart';
@@ -24,6 +25,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   late TabController _tabController;
   bool _isFabExpanded = false;
   final DiscoverController _controller = Get.put(DiscoverController());
+  late final NotificationController _notificationController;
   Worker? _homeTabWorker;
 
   Future<void> _printFirebaseToken() async {
@@ -40,11 +42,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    if (Get.isRegistered<NotificationController>()) {
+      _notificationController = Get.find<NotificationController>();
+    } else {
+      _notificationController = Get.put(NotificationController());
+    }
+    _notificationController.fetchNotifications(showLoader: false);
     if (Get.isRegistered<NavigationController>()) {
       final navigationController = Get.find<NavigationController>();
       _homeTabWorker = ever<int>(navigationController.currentIndex, (index) {
         if (index == 0) {
           _printFirebaseToken();
+          _notificationController.fetchNotifications(showLoader: false);
         }
       });
     }
@@ -119,27 +128,60 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
 
   Widget _buildNotificationIcon() {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(
-            builder: (context) => const NotificationsScreen(),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: cs.primary.withOpacity(0.12),
-          shape: BoxShape.circle,
+    return Obx(() {
+      final unread = _notificationController.unreadCount.value;
+      return GestureDetector(
+        onTap: () async {
+          await Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (context) => const NotificationsScreen(),
+            ),
+          );
+          _notificationController.fetchNotifications(showLoader: false);
+        },
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: cs.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.notifications_outlined,
+                color: cs.onSurface,
+                size: 24,
+              ),
+            ),
+            if (unread > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: context.proxi.surfaceCard, width: 1.2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      unread > 99 ? '99+' : '$unread',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
-        child: Icon(
-          Icons.notifications_outlined,
-          color: cs.onSurface,
-          size: 24,
-        ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildSpeedDialFab() {

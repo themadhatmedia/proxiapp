@@ -573,8 +573,8 @@ class PostCard extends StatelessWidget {
 
   Widget _buildActions(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final canLike = post.permissions?.canLike ?? true;
-    final canComment = post.permissions?.canComment ?? true;
+    final canLike = post.permissions?.canLike ?? false;
+    final canComment = post.permissions?.canComment ?? false;
     final statsMeta = TextStyle(
       color: cs.onSurfaceVariant,
       fontSize: 13,
@@ -586,70 +586,65 @@ class PostCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if ((post.likesCount) > 0 || (post.commentsCount) > 0)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  if ((post.likesCount) > 0) ...[
-                    if (onLikesTap != null)
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: onLikesTap,
-                          borderRadius: BorderRadius.circular(6),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                            child: Text(
-                              '${post.likesCount} ${(post.likesCount) == 1 || (post.likesCount) == 0 ? 'like' : 'likes'}',
-                              style: likesMeta,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        '${post.likesCount} ${(post.likesCount) == 1 || (post.likesCount) == 0 ? 'like' : 'likes'}',
-                        style: statsMeta,
-                      ),
-                  ],
-                  if ((post.likesCount) > 0 && (post.commentsCount) > 0)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Text(
-                        '|',
-                        style: statsMeta.copyWith(
-                          color: cs.onSurfaceVariant.withOpacity(0.62),
-                          fontWeight: FontWeight.w300,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                if (post.likesCount > 0 && post.id != null && onLikesTap != null)
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onLikesTap,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                        child: Text(
+                          '${post.likesCount} ${post.likesCount == 1 || post.likesCount == 0 ? 'like' : 'likes'}',
+                          style: likesMeta,
                         ),
                       ),
                     ),
-                  if ((post.commentsCount) > 0) ...[
-                    if (onCommentCountTap != null)
-                      GestureDetector(
-                        onTap: () {
-                          AppVibration.likesListOpen();
-                          onCommentCountTap!();
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                          child: Text(
-                            '${post.commentsCount} ${(post.commentsCount) == 1 || (post.commentsCount) == 0 ? 'comment' : 'comments'}',
-                            style: likesMeta,
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        '${post.commentsCount} ${(post.commentsCount) == 1 || (post.commentsCount) == 0 ? 'comment' : 'comments'}',
-                        style: statsMeta,
+                  )
+                else
+                  Text(
+                    '${post.likesCount} ${post.likesCount == 1 || post.likesCount == 0 ? 'like' : 'likes'}',
+                    style: statsMeta,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Text(
+                    '|',
+                    style: statsMeta.copyWith(
+                      color: cs.onSurfaceVariant.withOpacity(0.62),
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+                if (post.commentsCount > 0 && post.id != null && onCommentCountTap != null)
+                  GestureDetector(
+                    onTap: () {
+                      AppVibration.likesListOpen();
+                      onCommentCountTap!();
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                      child: Text(
+                        '${post.commentsCount} ${post.commentsCount == 1 || post.commentsCount == 0 ? 'comment' : 'comments'}',
+                        style: likesMeta,
                       ),
-                  ],
-                ],
-              ),
+                    ),
+                  )
+                else
+                  Text(
+                    '${post.commentsCount} ${post.commentsCount == 1 || post.commentsCount == 0 ? 'comment' : 'comments'}',
+                    style: statsMeta,
+                  ),
+              ],
             ),
+          ),
           Row(
             children: [
               Expanded(
@@ -657,19 +652,19 @@ class PostCard extends StatelessWidget {
                   context: context,
                   icon: post.liked == true ? Icons.favorite : Icons.favorite_border,
                   label: 'Like',
-                  color: post.liked == true ? Colors.red : cs.onSurface,
+                  color: post.liked == true ? Colors.red : cs.onSurfaceVariant,
                   onTap: canLike && !isLiking ? onLike : null,
                   isLoading: isLiking,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton(
                   context: context,
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
-                  color: canComment ? cs.onSurface : cs.onSurfaceVariant,
-                  onTap: onComment, // Always allow viewing comments
+                  color: canComment ? cs.onSurfaceVariant : cs.onSurfaceVariant.withOpacity(0.45),
+                  onTap: onComment,
                 ),
               ),
             ],
@@ -696,10 +691,14 @@ class PostCard extends StatelessWidget {
         onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
-            color: cs.surfaceContainerHighest.withOpacity(0.35),
+            color: cs.primary.withOpacity(0.08),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: cs.outline.withOpacity(0.35),
+              width: 1,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -710,19 +709,16 @@ class PostCard extends StatelessWidget {
               else
                 Icon(
                   icon,
-                  color: isEnabled ? color.withOpacity(0.9) : color.withOpacity(0.3),
+                  color: isEnabled ? color : color.withOpacity(0.3),
                   size: 20,
                 ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: isEnabled ? cs.onSurface.withOpacity(0.95) : cs.onSurfaceVariant.withOpacity(0.45),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isEnabled ? cs.onSurface.withOpacity(0.95) : cs.onSurface.withOpacity(0.35),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
