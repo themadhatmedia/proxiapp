@@ -78,4 +78,26 @@ class AppVibration {
     await Future<void>.delayed(Duration(milliseconds: longGap ? 110 : 45));
     await HapticFeedback.heavyImpact();
   }
+
+  /// Subtle haptic for incoming message (foreground push).
+  static void newMessageSoft() {
+    unawaited(_newMessageSoft());
+  }
+
+  static Future<void> _newMessageSoft() async {
+    try {
+      if (await Vibration.hasVibrator() == true) {
+        final amp = await Vibration.hasAmplitudeControl() == true;
+        if (amp) {
+          await Vibration.vibrate(duration: 50, amplitude: 96);
+        } else {
+          await Vibration.vibrate(duration: 60);
+        }
+        return;
+      }
+      await HapticFeedback.lightImpact();
+    } catch (_) {
+      await HapticFeedback.selectionClick();
+    }
+  }
 }

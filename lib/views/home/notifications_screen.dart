@@ -8,6 +8,7 @@ import '../../controllers/notification_controller.dart';
 import '../../data/models/notification_model.dart';
 import '../../widgets/safe_avatar.dart';
 import '../posts/single_post_screen.dart';
+import '../messages/conversation_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -146,6 +147,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _handleNotificationTap(NotificationModel item) async {
+    if (_isMessageNotification(item)) {
+      final id = item.conversationId ?? item.senderId;
+      if (id != null && id > 0) {
+        await _controller.markAsRead(item.id);
+        await Get.to(
+          () => ConversationScreen(
+            otherUserId: id,
+            conversationId: item.conversationId,
+            otherDisplayName: item.userName,
+            otherAvatarUrl: item.userProfileImage,
+          ),
+        );
+      } else {
+        await _controller.markAsRead(item.id);
+      }
+      return;
+    }
+
     if (_isInnerCircleRequest(item)) {
       await _controller.markAsRead(item.id);
       if (Get.isRegistered<NavigationController>()) {
@@ -173,6 +192,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
     await _controller.markAsRead(item.id);
+  }
+
+  bool _isMessageNotification(NotificationModel item) {
+    final t = item.normalizedType;
+    if (t.contains('inner_circle_request')) {
+      return false;
+    }
+    if (t.contains('post_comment') || t == 'post_comment' || t == 'post_like' || t.contains('post_like')) {
+      if (!t.contains('message')) {
+        return false;
+      }
+    }
+    if (t == 'message' || t == 'new_message' || t == 'chat' || t == 'new_message' || t.contains('direct_message')) {
+      return (item.conversationId ?? item.senderId) != null;
+    }
+    if (item.conversationId != null) {
+      return t.isEmpty || t.contains('message') || t.contains('chat');
+    }
+    return false;
   }
 
   bool _isInnerCircleRequest(NotificationModel item) {

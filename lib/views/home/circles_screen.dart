@@ -8,6 +8,7 @@ import '../../controllers/circles_controller.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../data/models/circle_connection_model.dart';
 import '../../data/models/circle_request_model.dart';
+import '../../utils/messaging_entry.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/circle_user_card.dart';
@@ -96,7 +97,17 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
         _showRemoveConfirmation(data, circleType);
         break;
       case 'message':
-        ToastHelper.showInfo('Messaging feature coming soon');
+        if (data is CircleConnectionModel) {
+          final o = data.connectedUser;
+          final otherId = o?.id ?? data.connectedUserId;
+          if (otherId > 0) {
+            openProxiConversation(
+              otherUserId: otherId,
+              displayName: o?.name ?? 'User',
+              profilePicture: o?.profile?.avatar,
+            );
+          }
+        }
         break;
       case 'posts':
         _navigateToUserPosts(data);

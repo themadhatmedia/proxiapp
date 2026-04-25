@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 class NavigationController extends GetxController {
   final RxInt currentIndex = 0.obs;
   final RxInt circlesPendingRequestsOpenSignal = 0.obs;
+  final RxBool skipInitialHomeReset = false.obs;
 
   void navigateToTab(int index) {
     currentIndex.value = index;

@@ -5,8 +5,8 @@ import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/circles_controller.dart';
 import '../../data/models/user_model.dart';
+import '../../utils/messaging_entry.dart';
 import '../../utils/progress_dialog_helper.dart';
-import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
 import '../pulse/user_profile_detail_screen.dart';
 
@@ -550,7 +550,11 @@ class _SearchUsersScreenState extends State<SearchUsersScreen> {
                         const SizedBox(width: 8),
                         InkWell(
                           onTap: () {
-                            ToastHelper.showInfo('Message feature is coming soon');
+                            openProxiConversation(
+                              otherUserId: user.id,
+                              displayName: user.name,
+                              profilePicture: user.avatarUrl ?? user.profile?.avatar,
+                            );
                           },
                           borderRadius: BorderRadius.circular(20),
                           child: Container(

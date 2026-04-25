@@ -14,6 +14,7 @@ import '../models/skill_model.dart';
 import '../models/plan_model.dart';
 import '../models/post_like_models.dart';
 import '../models/post_model.dart';
+import '../models/messaging_model.dart';
 import '../models/user_model.dart';
 
 class ApiService {
@@ -66,6 +67,33 @@ class ApiService {
       sanitized['Authorization'] = 'Bearer ***';
     }
     return sanitized;
+  }
+
+  /// Parses JSON object responses; avoids [FormatException] when the server returns HTML (404/WAF/login page).
+  Map<String, dynamic> _decodeJsonObjectFromResponse(http.Response response) {
+    final trimmed = response.body.trim();
+    if (trimmed.isEmpty) {
+      return <String, dynamic>{};
+    }
+    if (trimmed.startsWith('<') &&
+        (trimmed.startsWith('<!') || trimmed.toLowerCase().startsWith('<html'))) {
+      throw Exception(
+        'Server returned HTML instead of JSON (HTTP ${response.statusCode}). '
+        'Check the API path or your auth token.',
+      );
+    }
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+    } on FormatException catch (e) {
+      throw Exception('Invalid JSON from server (HTTP ${response.statusCode}): ${e.message}');
+    }
+    return <String, dynamic>{};
   }
 
   Future<T> _retryRequest<T>({
@@ -2462,6 +2490,481 @@ class ApiService {
 
         final errorMessage = responseData is Map ? responseData['message'] : null;
         throw Exception(errorMessage ?? 'Failed to mark all notifications as read');
+      },
+    );
+  }
+
+  // —— Messaging (REST, no sockets: client poll + FCM) ——
+  // Live Proxi routes (Laravel): conversations/* for list/thread/read/delete-thread; POST /messages to send;
+  // DELETE /messages/{id} deletes one message. Mark-unread path may differ on your build—adjust if needed.
+  // ——
+
+  Future<ChatMessageModel> sendMessage({
+    required String token,
+    required int messageTo,
+    String? text,
+    File? file,
+  }) async {
+    final url = '$baseUrl/messages';
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        if (file != null) {
+          final request = http.MultipartRequest('POST', Uri.parse(url));
+          request.headers['Authorization'] = 'Bearer $token';
+          request.fields['receiver_id'] = messageTo.toString();
+          final trimmed = text?.trim() ?? '';
+          if (trimmed.isNotEmpty) {
+            request.fields['message'] = trimmed;
+          }
+          final ext = file.path.split('.').last.toLowerCase();
+          final String mime;
+          if (['jpg', 'jpeg'].contains(ext)) {
+            mime = 'image/jpeg';
+          } else if (ext == 'png') {
+            mime = 'image/png';
+          } else if (ext == 'webp') {
+            mime = 'image/webp';
+          } else if (ext == 'gif') {
+            mime = 'image/gif';
+          } else if (ext == 'mp4') {
+            mime = 'video/mp4';
+          } else if (ext == 'mov') {
+            mime = 'video/quicktime';
+          } else if (ext == 'avi') {
+            mime = 'video/x-msvideo';
+          } else if (ext == 'mkv') {
+            mime = 'video/x-matroska';
+          } else if (ext == 'webm') {
+            mime = 'video/webm';
+          } else if (ext == 'pdf') {
+            mime = 'application/pdf';
+          } else if (ext == 'doc') {
+            mime = 'application/msword';
+          } else if (ext == 'docx') {
+            mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          } else if (ext == 'xls') {
+            mime = 'application/vnd.ms-excel';
+          } else if (ext == 'xlsx') {
+            mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          } else if (ext == 'ppt') {
+            mime = 'application/vnd.ms-powerpoint';
+          } else if (ext == 'pptx') {
+            mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+          } else if (ext == 'txt') {
+            mime = 'text/plain';
+          } else {
+            mime = 'application/octet-stream';
+          }
+          final stream = http.ByteStream(file.openRead());
+          final length = await file.length();
+          final multipart = http.MultipartFile(
+            'file',
+            stream,
+            length,
+            filename: file.path.split(Platform.pathSeparator).last,
+            contentType: http_parser.MediaType.parse(mime),
+          );
+          request.files.add(multipart);
+          _logApiCall(
+            method: 'POST (multipart)',
+            url: url,
+            headers: request.headers,
+            requestData: {
+              'receiver_id': messageTo,
+              if (trimmed.isNotEmpty) 'message': trimmed,
+              'file': '…',
+            },
+          );
+          final sent = await request.send();
+          final res = await http.Response.fromStream(sent);
+          final responseData = _decodeJsonObjectFromResponse(res);
+          _logApiCall(
+            method: 'POST',
+            url: url,
+            statusCode: res.statusCode,
+            responseData: responseData,
+          );
+          if (res.statusCode == 200 || res.statusCode == 201) {
+            final payload = responseData['data'] ?? responseData['message'];
+            if (payload is Map) {
+              return ChatMessageModel.fromJson(Map<String, dynamic>.from(payload));
+            }
+            throw Exception(responseData['message']?.toString() ?? 'Invalid message response');
+          }
+          throw Exception(
+            responseData['message']?.toString() ?? 'Failed to send message',
+          );
+        }
+
+        final headers = {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        final trimmed = text?.trim() ?? '';
+        final payload = <String, dynamic>{
+          'receiver_id': messageTo,
+          if (trimmed.isNotEmpty) 'message': trimmed,
+        };
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: payload,
+        );
+        final res = await http
+            .post(
+              Uri.parse(url),
+              headers: headers,
+              body: jsonEncode(payload),
+            )
+            .timeout(timeout);
+        final body = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: body,
+        );
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          final payload = body['data'] ?? body['message'] ?? body;
+          if (payload is Map) {
+            return ChatMessageModel.fromJson(Map<String, dynamic>.from(payload));
+          }
+          throw Exception(body['message']?.toString() ?? 'Invalid message response');
+        }
+        throw Exception(body['message']?.toString() ?? 'Failed to send message');
+      },
+    );
+  }
+
+  Future<void> markMessagesAsReadForUser({
+    required String token,
+    required int conversationId,
+  }) async {
+    final url = '$baseUrl/conversations/$conversationId/read';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: const <String, dynamic>{},
+        );
+        final res = await http
+            .post(
+              Uri.parse(url),
+              headers: headers,
+              body: jsonEncode(<String, dynamic>{}),
+            )
+            .timeout(timeout);
+        final data = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: data,
+        );
+        if (res.statusCode == 200 || res.statusCode == 201) return;
+        if (data['message'] != null) {
+          throw Exception(data['message']?.toString() ?? 'Failed to update read state');
+        }
+        throw Exception('Failed to mark messages as read');
+      },
+    );
+  }
+
+  Future<List<ConversationListItem>> getConversations({
+    required String token,
+    String? search,
+  }) async {
+    var url = '$baseUrl/conversations';
+    if (search != null && search.trim().isNotEmpty) {
+      final q = Uri(queryParameters: {'search': search.trim()});
+      url = '$url?${q.query}';
+    }
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+        final res = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+        final body = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: body,
+        );
+        if (res.statusCode == 200) {
+          return mapApiDataList(body, ConversationListItem.fromJson);
+        }
+        final err = body['message']?.toString() ?? 'Failed to load conversations';
+        throw Exception(err);
+      },
+    );
+  }
+
+  /// Returns [messages, nextPage]. Pass [page] 1 for newest page.
+  Future<({List<ChatMessageModel> items, int? nextPage})> getConversationThread({
+    required String token,
+    required int conversationId,
+    int page = 1,
+  }) async {
+    final url = '$baseUrl/conversations/$conversationId/messages?page=$page';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+        );
+        final res = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+        final body = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: body,
+        );
+        if (res.statusCode == 200) {
+          // Shape A: { "success": true, "messages": { "data": [...], "current_page": 1, ... } }
+          // Shape B: { "data": { "data": [...] } } or top-level { "data": [...] }
+          final threadPaginated = conversationThreadPaginatedMap(body);
+          final Map<String, dynamic> paginationRoot;
+          if (threadPaginated != null) {
+            paginationRoot = threadPaginated;
+          } else {
+            paginationRoot = body;
+          }
+          final list = extractListPayload(
+            threadPaginated != null
+                ? (threadPaginated['data'] ?? threadPaginated)
+                : (body['data'] ?? body),
+          );
+          final out = list.map(ChatMessageModel.fromJson).toList();
+          out.sort((a, b) {
+            final ta = a.createdAt;
+            final tb = b.createdAt;
+            if (ta == null && tb == null) return a.id.compareTo(b.id);
+            if (ta == null) return -1;
+            if (tb == null) return 1;
+            return ta.compareTo(tb);
+          });
+          return (items: out, nextPage: readNextPage(paginationRoot));
+        }
+        throw Exception(body['message']?.toString() ?? 'Failed to load messages');
+      },
+    );
+  }
+
+  Future<void> markMessageAsUnread({
+    required String token,
+    required int messageId,
+  }) async {
+    final url = '$baseUrl/messages/$messageId/unread';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'PATCH',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'PATCH',
+          url: url,
+          headers: headers,
+        );
+        final res = await http
+            .patch(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+        final data = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'PATCH',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: data,
+        );
+        if (res.statusCode == 200) return;
+        if (data['message'] != null) {
+          throw Exception(data['message']?.toString() ?? 'Failed to mark as unread');
+        }
+        throw Exception('Failed to mark as unread');
+      },
+    );
+  }
+
+  Future<void> markConversationAsUnread({
+    required String token,
+    required int conversationId,
+  }) async {
+    final url = '$baseUrl/conversations/$conversationId/unread';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'POST/PATCH',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+        );
+        http.Response res;
+        try {
+          res = await http
+              .post(
+                Uri.parse(url),
+                headers: headers,
+                body: jsonEncode(<String, dynamic>{}),
+              )
+              .timeout(timeout);
+        } catch (_) {
+          res = await http
+              .patch(
+                Uri.parse(url),
+                headers: headers,
+              )
+              .timeout(timeout);
+        }
+        final data = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'POST/PATCH',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: data,
+        );
+        if (res.statusCode == 200 || res.statusCode == 201) return;
+        throw Exception(data['message']?.toString() ?? 'Failed to mark conversation unread');
+      },
+    );
+  }
+
+  Future<void> deleteConversationWithUser({
+    required String token,
+    required int conversationId,
+  }) async {
+    final url = '$baseUrl/conversations/$conversationId';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+        final res = await http
+            .delete(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+        final data = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: data,
+        );
+        if (res.statusCode == 200) return;
+        if (res.statusCode == 204) return;
+        if (data['message'] != null) {
+          throw Exception(data['message']?.toString() ?? 'Failed to delete');
+        }
+        throw Exception('Failed to delete conversation');
+      },
+    );
+  }
+
+  Future<void> deleteMessageById({
+    required String token,
+    required int messageId,
+  }) async {
+    final url = '$baseUrl/messages/$messageId';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    };
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+        );
+        final res = await http
+            .delete(
+              Uri.parse(url),
+              headers: headers,
+            )
+            .timeout(timeout);
+        final data = _decodeJsonObjectFromResponse(res);
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: res.statusCode,
+          responseData: data,
+        );
+        if (res.statusCode == 200) return;
+        if (res.statusCode == 204) return;
+        if (data['message'] != null) {
+          throw Exception(data['message']?.toString() ?? 'Failed to delete message');
+        }
+        throw Exception('Failed to delete message');
       },
     );
   }
