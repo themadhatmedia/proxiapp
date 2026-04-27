@@ -17,6 +17,7 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/messages_controller.dart';
 import '../../data/models/messaging_model.dart';
 import '../../data/services/api_service.dart';
+import '../../utils/app_vibration.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
 
@@ -53,6 +54,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
   int _page = 1;
   int? _nextPage;
   bool _loadMoreInFlight = false;
+  bool _initialScrollPending = false;
   late String _title;
   String? _avatar;
   String? _token;
@@ -175,8 +177,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
           _messages = r.items;
           _page = 1;
           _nextPage = r.nextPage;
+          _initialScrollPending = r.items.isNotEmpty;
         });
-        _scrollToEnd(animate: false);
       }
     } catch (e) {
       if (mounted) {
@@ -187,6 +189,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
         setState(() {
           _loading = false;
         });
+        if (_initialScrollPending) {
+          _initialScrollPending = false;
+          _scrollToEnd(animate: false);
+        }
       }
     }
   }
@@ -258,6 +264,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
         _nextPage = _page == 1 ? r.nextPage : _nextPage;
       });
       if (next.length > prevCount) {
+        final hasIncoming = next.any(
+          (m) => !m.isMine(_myId ?? -1) && !m.isRead,
+        );
+        if (hasIncoming) {
+          AppVibration.newMessageSoft();
+        }
         _scrollToEnd();
       }
       await _readAll();

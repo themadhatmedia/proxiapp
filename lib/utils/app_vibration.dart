@@ -79,7 +79,7 @@ class AppVibration {
     await HapticFeedback.heavyImpact();
   }
 
-  /// Subtle haptic for incoming message (foreground push).
+  /// Strong vibration for incoming message (foreground push).
   static void newMessageSoft() {
     unawaited(_newMessageSoft());
   }
@@ -87,17 +87,22 @@ class AppVibration {
   static Future<void> _newMessageSoft() async {
     try {
       if (await Vibration.hasVibrator() == true) {
-        final amp = await Vibration.hasAmplitudeControl() == true;
-        if (amp) {
-          await Vibration.vibrate(duration: 50, amplitude: 96);
+        final custom = await Vibration.hasCustomVibrationsSupport() == true;
+        if (custom) {
+          await Vibration.vibrate(pattern: [0, 220, 110, 260]);
         } else {
-          await Vibration.vibrate(duration: 60);
+          final amp = await Vibration.hasAmplitudeControl() == true;
+          if (amp) {
+            await Vibration.vibrate(duration: 320, amplitude: 255);
+          } else {
+            await Vibration.vibrate(duration: 360);
+          }
         }
         return;
       }
-      await HapticFeedback.lightImpact();
+      await _heavyHapticDouble(longGap: true);
     } catch (_) {
-      await HapticFeedback.selectionClick();
+      await _heavyHapticDouble(longGap: true);
     }
   }
 }
