@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -9,6 +11,8 @@ import '../../controllers/circles_controller.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
+import '../../data/services/messaging_fcm_listeners.dart';
+import '../../controllers/messages_controller.dart';
 import '../home/circles_screen.dart';
 import '../home/discover_screen.dart';
 import '../home/messages_screen.dart';
@@ -88,7 +92,10 @@ class _MainNavigationState extends State<MainNavigation> {
       _navigationController = Get.find<NavigationController>();
       // Reset to home screen after build completes
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigationController.navigateToHome();
+        if (!_navigationController.skipInitialHomeReset.value) {
+          _navigationController.navigateToHome();
+        }
+        _navigationController.skipInitialHomeReset.value = false;
       });
     } else {
       _navigationController = Get.put(NavigationController());
@@ -98,6 +105,13 @@ class _MainNavigationState extends State<MainNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 120));
       if (!mounted) return;
+      if (_authController.isAuthenticated) {
+        if (!Get.isRegistered<MessagesController>()) {
+          Get.put(MessagesController(), permanent: true);
+        }
+        registerMessagingFcmListeners();
+        handleInitialMessagingFcm();
+      }
       if (_isOnboardingRouteActive(Get.currentRoute)) return;
       await _updateUserLocation();
       await _locationService.startBackgroundLocationUpdates();
@@ -213,6 +227,11 @@ class _MainNavigationState extends State<MainNavigation> {
           // Refresh circles data when navigating to circles screen
           if (index == 2) {
             _refreshCirclesData();
+          }
+          if (index == 3 && Get.isRegistered<MessagesController>()) {
+            unawaited(
+              Get.find<MessagesController>().loadConversations(showSpinner: false),
+            );
           }
         },
         child: Container(

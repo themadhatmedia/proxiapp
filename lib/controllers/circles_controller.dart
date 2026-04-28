@@ -262,7 +262,10 @@ class CirclesController extends GetxController {
     }
   }
 
-  Future<void> sendInnerCircleRequest(int userId) async {
+  Future<void> sendInnerCircleRequest(
+    int userId, {
+    bool removeOuterConnectionFirst = false,
+  }) async {
     final token = _authController.token;
     if (token == null) {
       ToastHelper.showError('Authentication required');
@@ -271,13 +274,34 @@ class CirclesController extends GetxController {
 
     setActionLoading(userId, true);
     try {
+      if (removeOuterConnectionFirst) {
+        await fetchOuterCircle();
+
+        CircleConnectionModel? outerConnection;
+        for (final c in outerConnections) {
+          if (c.circleType.toLowerCase() != 'outer') continue;
+          final uid = c.connectedUser?.id ?? c.connectedUserId;
+          if (uid == userId) {
+            outerConnection = c;
+            break;
+          }
+        }
+
+        if (outerConnection != null) {
+          await _apiService.removeConnection(
+            token: token,
+            connectionId: outerConnection.id,
+          );
+        }
+      }
+
       await _apiService.sendCircleRequest(
         token: token,
         toUserId: userId,
       );
 
       ToastHelper.showSuccess('Inner circle request sent');
-      await fetchInnerCircle();
+      await loadAllData();
     } catch (e) {
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);

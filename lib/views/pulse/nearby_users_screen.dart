@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/circles_controller.dart';
+import '../../utils/messaging_entry.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/pulse_distance_format.dart';
 import '../../widgets/safe_avatar.dart';
@@ -511,9 +512,15 @@ class _NearbyUsersScreenState extends State<NearbyUsersScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement messaging feature
-                  },
+                  onPressed: userIdForActions == null
+                      ? null
+                      : () {
+                          openProxiConversation(
+                            otherUserId: userIdForActions,
+                            displayName: name,
+                            profilePicture: avatarUrl?.toString(),
+                          );
+                        },
                   icon: const Icon(Icons.message, size: 18),
                   label: const Text(
                     'Send Message',

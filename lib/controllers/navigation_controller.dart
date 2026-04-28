@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 
 class NavigationController extends GetxController {
   final RxInt currentIndex = 0.obs;
+  final RxInt circlesPendingRequestsOpenSignal = 0.obs;
+  final RxBool skipInitialHomeReset = false.obs;
 
   void navigateToTab(int index) {
     currentIndex.value = index;
@@ -19,8 +21,11 @@ class NavigationController extends GetxController {
     currentIndex.value = 1;
   }
 
-  void navigateToCircles() {
+  void navigateToCircles({bool openPendingRequests = false}) {
     currentIndex.value = 2;
+    if (openPendingRequests) {
+      circlesPendingRequestsOpenSignal.value++;
+    }
   }
 
   void navigateToMessages() {
