@@ -10,9 +10,14 @@ import '../utils/app_vibration.dart';
 class MessagesController extends GetxController {
   final ApiService _api = ApiService();
   final conversations = <ConversationListItem>[].obs;
+  final unreadConversationsCount = 0.obs;
   final isLoading = false.obs;
   final isRefreshing = false.obs;
   String? _search;
+
+  void _syncUnreadCountFromList() {
+    unreadConversationsCount.value = conversations.where((c) => c.unreadCount > 0).length;
+  }
 
   void softRefresh() {
     unawaited(_safeSilentRefresh());
@@ -43,6 +48,7 @@ class MessagesController extends GetxController {
         search: _search,
       );
       conversations.assignAll(list);
+      _syncUnreadCountFromList();
       if (showSpinner == false && _hasNewIncoming(before, list)) {
         AppVibration.newMessageSoft();
       }
@@ -56,10 +62,27 @@ class MessagesController extends GetxController {
 
   void removeByOtherUserId(int otherUserId) {
     conversations.removeWhere((c) => c.otherUser.id == otherUserId);
+    _syncUnreadCountFromList();
   }
 
   void removeByConversationId(int conversationId) {
     conversations.removeWhere((c) => c.conversationId == conversationId);
+    _syncUnreadCountFromList();
+  }
+
+  void markConversationUnreadLocal(int conversationId, {int unreadCount = 1}) {
+    final i = conversations.indexWhere((c) => c.conversationId == conversationId);
+    if (i < 0) return;
+    final current = conversations[i];
+    conversations[i] = ConversationListItem(
+      conversationId: current.conversationId,
+      otherUser: current.otherUser,
+      lastMessage: current.lastMessage,
+      lastMessageText: current.lastMessageText,
+      lastMessageAt: current.lastMessageAt,
+      unreadCount: unreadCount < 1 ? 1 : unreadCount,
+    );
+    _syncUnreadCountFromList();
   }
 
   String? get _auth {

@@ -1937,6 +1937,150 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> reactToPost({
+    required String token,
+    required int postId,
+    required String emoji,
+  }) async {
+    final url = '$baseUrl/posts/$postId/react';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+    final payload = jsonEncode(<String, dynamic>{'emoji': emoji});
+
+    return _retryRequest<Map<String, dynamic>>(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: {'emoji': emoji},
+        );
+        final response =
+            await http.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
+        final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          throw Exception(responseData['message'] ?? 'Failed to react');
+        }
+        return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> removePostReaction({
+    required String token,
+    required int postId,
+  }) async {
+    final url = '$baseUrl/posts/$postId/react';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest<Map<String, dynamic>>(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'DELETE', url: url, headers: headers);
+        final response = await http.delete(Uri.parse(url), headers: headers).timeout(timeout);
+        final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          throw Exception(responseData['message'] ?? 'Failed to remove reaction');
+        }
+        return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> reactToMessage({
+    required String token,
+    required int messageId,
+    required String emoji,
+  }) async {
+    final url = '$baseUrl/messages/$messageId/react';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+    final payload = jsonEncode(<String, dynamic>{'emoji': emoji});
+
+    return _retryRequest<Map<String, dynamic>>(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: {'emoji': emoji},
+        );
+        final response =
+            await http.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
+        final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          throw Exception(responseData['message'] ?? 'Failed to react');
+        }
+        return responseData;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> removeMessageReaction({
+    required String token,
+    required int messageId,
+  }) async {
+    final url = '$baseUrl/messages/$messageId/react';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    return _retryRequest<Map<String, dynamic>>(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'DELETE', url: url, headers: headers);
+        final response = await http.delete(Uri.parse(url), headers: headers).timeout(timeout);
+        final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          throw Exception(responseData['message'] ?? 'Failed to remove reaction');
+        }
+        return responseData;
+      },
+    );
+  }
+
   Future<PostLikesResult> getPostLikes({
     required String token,
     required int postId,
@@ -2845,44 +2989,30 @@ class ApiService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    return _retryRequest(
-      method: 'POST/PATCH',
+    _logApiCall(
+      method: 'POST',
       url: url,
-      request: () async {
-        _logApiCall(
-          method: 'POST',
-          url: url,
-          headers: headers,
-        );
-        http.Response res;
-        try {
-          res = await http
-              .post(
-                Uri.parse(url),
-                headers: headers,
-                body: jsonEncode(<String, dynamic>{}),
-              )
-              .timeout(timeout);
-        } catch (_) {
-          res = await http
-              .patch(
-                Uri.parse(url),
-                headers: headers,
-              )
-              .timeout(timeout);
-        }
-        final data = _decodeJsonObjectFromResponse(res);
-        _logApiCall(
-          method: 'POST/PATCH',
-          url: url,
-          headers: headers,
-          statusCode: res.statusCode,
-          responseData: data,
-        );
-        if (res.statusCode == 200 || res.statusCode == 201) return;
-        throw Exception(data['message']?.toString() ?? 'Failed to mark conversation unread');
-      },
+      headers: headers,
     );
+    final res = await http
+        .post(
+          Uri.parse(url),
+          headers: headers,
+        )
+        .timeout(timeout);
+    final data = _decodeJsonObjectFromResponse(res);
+    _logApiCall(
+      method: 'POST',
+      url: url,
+      headers: headers,
+      statusCode: res.statusCode,
+      responseData: data,
+    );
+    if (res.statusCode == 200 || res.statusCode == 201) return;
+    if (res.statusCode == 409) {
+      throw Exception(data['message']?.toString() ?? 'No incoming message to mark unread');
+    }
+    throw Exception(data['message']?.toString() ?? 'Failed to mark conversation unread');
   }
 
   Future<void> deleteConversationWithUser({

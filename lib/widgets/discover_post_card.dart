@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -12,9 +14,13 @@ import '../controllers/navigation_controller.dart';
 import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../utils/app_vibration.dart';
+import '../utils/clipboard_rich_paste.dart';
 import '../utils/progress_dialog_helper.dart';
+import '../utils/toast_helper.dart';
 import '../views/posts/media_viewer_screen.dart';
 import '../views/posts/post_likes_bottom_sheet.dart';
+import '../views/posts/post_reactions_bottom_sheet.dart';
+import 'post_reaction_action_button.dart';
 import '../views/pulse/user_profile_detail_screen.dart';
 import '../widgets/comment_card.dart';
 import 'safe_avatar.dart';
@@ -497,6 +503,19 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     );
   }
 
+  Future<void> _openReactionSummary(BuildContext context) async {
+    PostReactionActionButton.dismissFloatingReactionPicker();
+    final id = widget.post.id;
+    final total = widget.post.reactionOrLikeTotal;
+    if (id == null || total <= 0) return;
+    final rx = widget.post.reactions;
+    if (rx != null && rx.users.isNotEmpty) {
+      await showPostReactionsBottomSheet(context, widget.post);
+    } else {
+      await showPostLikesBottomSheet(context, postId: id);
+    }
+  }
+
   Widget _buildActions(BuildContext context, DiscoverController controller) {
     final canLike = widget.post.permissions?.canLike ?? false;
     final canComment = widget.post.permissions?.canComment ?? false;
@@ -509,6 +528,11 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
       fontWeight: FontWeight.w400,
     );
     final likesMeta = statsMeta.copyWith(fontWeight: FontWeight.w500);
+    final summaryTotal = widget.post.reactionOrLikeTotal;
+    final summaryUsesReactions = widget.post.reactions != null;
+    final summaryLabel = summaryTotal == 1
+        ? (summaryUsesReactions ? 'reaction' : 'like')
+        : (summaryUsesReactions ? 'reactions' : 'likes');
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -520,16 +544,19 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                if (widget.post.likesCount > 0 && widget.post.id != null)
+                if (summaryTotal > 0 && widget.post.id != null)
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => showPostLikesBottomSheet(context, postId: widget.post.id!),
+                      onTap: () {
+                        PostReactionActionButton.dismissFloatingReactionPicker();
+                        _openReactionSummary(context);
+                      },
                       borderRadius: BorderRadius.circular(6),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                         child: Text(
-                          '${widget.post.likesCount} ${widget.post.likesCount == 1 || widget.post.likesCount == 0 ? 'like' : 'likes'}',
+                          '$summaryTotal $summaryLabel',
                           style: likesMeta,
                         ),
                       ),
@@ -537,7 +564,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   )
                 else
                   Text(
-                    '${widget.post.likesCount} ${widget.post.likesCount == 1 || widget.post.likesCount == 0 ? 'like' : 'likes'}',
+                    '$summaryTotal $summaryLabel',
                     style: statsMeta,
                   ),
                 Padding(
@@ -553,6 +580,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 if (widget.post.commentsCount > 0 && widget.post.id != null)
                   GestureDetector(
                     onTap: () {
+                      PostReactionActionButton.dismissFloatingReactionPicker();
                       AppVibration.likesListOpen();
                       controller.toggleComments(widget.post.id!);
                     },
@@ -577,13 +605,12 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
           Row(
             children: [
               Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: widget.post.liked ? Icons.favorite : Icons.favorite_border,
-                  label: 'Like',
-                  color: widget.post.liked ? Colors.red : cs.onSurfaceVariant,
-                  onTap: canLike && !isLiking ? () => controller.toggleLike(widget.post) : null,
+                child: PostReactionActionButton(
+                  post: widget.post,
+                  enabled: canLike,
                   isLoading: isLiking,
+                  onQuickTap: () => controller.toggleReactionQuick(widget.post),
+                  onEmojiChosen: (emoji) => controller.chooseReaction(widget.post, emoji),
                 ),
               ),
               const SizedBox(width: 12),
@@ -593,7 +620,10 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
                   color: canComment ? cs.onSurfaceVariant : cs.onSurfaceVariant.withOpacity(0.45),
-                  onTap: () => controller.toggleComments(widget.post.id!), // Always allow viewing comments
+                  onTap: () {
+                    PostReactionActionButton.dismissFloatingReactionPicker();
+                    controller.toggleComments(widget.post.id!);
+                  },
                 ),
               ),
             ],
@@ -777,7 +807,14 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                     maxLines: null,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () => unawaited(_pasteCommentText()),
+                  icon: const Icon(Icons.content_paste),
+                  color: cs.primary,
+                  tooltip: 'Paste text',
+                ),
+                const SizedBox(width: 4),
                 IconButton(
                   onPressed: () => _submitComment(controller),
                   icon: const Icon(Icons.send),
@@ -839,6 +876,24 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     }
 
     return widgets;
+  }
+
+  /// Comments are text-only; offer paste for text (and a clear message if the clipboard is an image).
+  Future<void> _pasteCommentText() async {
+    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
+    if (imageFile != null) {
+      try {
+        await imageFile.delete();
+      } catch (_) {}
+      ToastHelper.showError('Comments are text only. Use Create Post to share images or GIFs.');
+      return;
+    }
+    final text = await ClipboardRichPaste.clipboardPlainText();
+    if (text != null && text.trim().isNotEmpty) {
+      ClipboardRichPaste.insertTextAtSelection(_commentController, text);
+      return;
+    }
+    ToastHelper.showError('Nothing to paste');
   }
 
   Future<void> _submitComment(DiscoverController controller) async {

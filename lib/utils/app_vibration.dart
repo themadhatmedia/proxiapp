@@ -22,6 +22,11 @@ class AppVibration {
     unawaited(_likesListOpen());
   }
 
+  /// Long-press reaction emoji strip (messages / posts).
+  static void reactionPickerOpen() {
+    unawaited(_reactionPickerOpen());
+  }
+
   static Future<void> _interactionSuccess() async {
     try {
       if (await Vibration.hasVibrator() == true) {
@@ -53,6 +58,23 @@ class AppVibration {
       }
     } catch (_) {
       await HapticFeedback.mediumImpact();
+    }
+  }
+
+  static Future<void> _reactionPickerOpen() async {
+    try {
+      if (await Vibration.hasVibrator() == true) {
+        final amp = await Vibration.hasAmplitudeControl() == true;
+        if (amp) {
+          await Vibration.vibrate(duration: 65, amplitude: 200);
+        } else {
+          await Vibration.vibrate(duration: 85);
+        }
+      } else {
+        await HapticFeedback.mediumImpact();
+      }
+    } catch (_) {
+      await HapticFeedback.selectionClick();
     }
   }
 

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/navigation_controller.dart';
+import '../../controllers/notification_controller.dart';
+import '../../data/services/app_badge_service.dart';
 import '../../utils/app_vibration.dart';
 import '../../controllers/messages_controller.dart';
 
@@ -20,17 +22,29 @@ void registerMessagingFcmListeners() {
   _fcmMessageListenersRegistered = true;
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    unawaited(AppBadgeService.applyBadgeFromRemoteMessage(message));
     if (_looksLikeMessage(message)) {
       AppVibration.newMessageSoft();
       if (Get.isRegistered<MessagesController>()) {
         Get.find<MessagesController>().softRefresh();
       }
+    } else {
+      if (Get.isRegistered<NotificationController>()) {
+        unawaited(
+          Get.find<NotificationController>().fetchNotifications(showLoader: false),
+        );
+      }
     }
   });
 
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    unawaited(AppBadgeService.applyBadgeFromRemoteMessage(message));
     if (_looksLikeMessage(message)) {
       _openMessagesAndRefresh();
+    } else if (Get.isRegistered<NotificationController>()) {
+      unawaited(
+        Get.find<NotificationController>().fetchNotifications(showLoader: false),
+      );
     }
   });
 }
@@ -44,6 +58,7 @@ void handleInitialMessagingFcm() {
   _initialFcmMessageHandled = true;
   FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
     if (message == null) return;
+    unawaited(AppBadgeService.applyBadgeFromRemoteMessage(message));
     if (!_looksLikeMessage(message)) return;
     Future<void>.delayed(const Duration(milliseconds: 500), () {
       _openMessagesAndRefresh();

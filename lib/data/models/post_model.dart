@@ -1,3 +1,5 @@
+import 'post_reaction_models.dart';
+
 class Post {
   final int? id;
   final int? userId;
@@ -8,6 +10,7 @@ class Post {
   int likesCount;
   int commentsCount;
   bool liked;
+  PostReactionSummary? reactions;
   final bool? isModerated;
   final bool? isFlagged;
   final DateTime? createdAt;
@@ -32,7 +35,19 @@ class Post {
     this.user,
     this.permissions,
     this.connectionAudiences,
+    this.reactions,
   });
+
+  int get reactionOrLikeTotal => reactions?.total ?? likesCount;
+
+  void mergeReactionResponse(Map<String, dynamic> body) {
+    final raw = body['reactions'];
+    if (raw is Map) {
+      reactions = PostReactionSummary.fromJson(Map<String, dynamic>.from(raw));
+      likesCount = reactions!.total;
+      liked = reactions!.myEmoji != null;
+    }
+  }
 
   factory Post.fromJson(Map<String, dynamic> json) {
     List<MediaItem>? mediaItems;
@@ -41,6 +56,16 @@ class Post {
       mediaItems = mediaList.map((media) => MediaItem.fromJson(media as Map<String, dynamic>)).toList();
     }
 
+    PostReactionSummary? reactionSummary;
+    if (json['reactions'] != null && json['reactions'] is Map) {
+      reactionSummary = PostReactionSummary.fromJson(
+        Map<String, dynamic>.from(json['reactions'] as Map),
+      );
+    }
+
+    final fallbackLikes = json['likes_count'] ?? json['likes'] ?? 0;
+    final fallbackLiked = json['liked'] ?? false;
+
     return Post(
       id: json['id'],
       userId: json['user_id'],
@@ -48,9 +73,9 @@ class Post {
       type: json['type'],
       visibility: json['visibility'],
       media: mediaItems,
-      likesCount: json['likes_count'] ?? json['likes'] ?? 0,
+      likesCount: reactionSummary?.total ?? (fallbackLikes is int ? fallbackLikes : int.tryParse(fallbackLikes.toString()) ?? 0),
       commentsCount: json['comments_count'] ?? json['comments'] ?? 0,
-      liked: json['liked'] ?? false,
+      liked: reactionSummary != null ? (reactionSummary.myEmoji != null) : fallbackLiked,
       isModerated: json['is_moderated'] ?? false,
       isFlagged: json['is_flagged'] ?? false,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
@@ -59,6 +84,7 @@ class Post {
       connectionAudiences: json['connection_audiences'] != null
           ? List<String>.from(json['connection_audiences'] as List)
           : null,
+      reactions: reactionSummary,
     );
   }
 

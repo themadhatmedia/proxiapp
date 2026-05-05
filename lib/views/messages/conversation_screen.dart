@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -11,15 +12,49 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../config/message_reaction_emojis.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/messages_controller.dart';
 import '../../data/models/messaging_model.dart';
+import '../../data/models/post_reaction_models.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/app_vibration.dart';
+import '../../utils/clipboard_rich_paste.dart';
 import '../../utils/toast_helper.dart';
+import '../../widgets/emoji_reaction_action_button.dart';
 import '../../widgets/safe_avatar.dart';
+import '../posts/post_reactions_bottom_sheet.dart';
+
+/// Emoji keys for bubble badges: highest counts first (max 4), stable tie-break.
+List<String> _orderedMessageReactionEmojis(PostReactionSummary? rx) {
+  if (rx == null || rx.total <= 0) return [];
+
+  if (rx.counts.isNotEmpty) {
+    final sorted = rx.counts.entries.toList()
+      ..sort((a, b) {
+        final byCount = b.value.compareTo(a.value);
+        if (byCount != 0) return byCount;
+        return a.key.compareTo(b.key);
+      });
+    return sorted.map((e) => e.key).take(4).toList();
+  }
+
+  final tally = <String, int>{};
+  for (final row in rx.users) {
+    if (row.emoji.isEmpty) continue;
+    tally[row.emoji] = (tally[row.emoji] ?? 0) + 1;
+  }
+  if (tally.isEmpty) return [];
+  final sorted = tally.entries.toList()
+    ..sort((a, b) {
+      final byCount = b.value.compareTo(a.value);
+      if (byCount != 0) return byCount;
+      return a.key.compareTo(b.key);
+    });
+  return sorted.map((e) => e.key).take(4).toList();
+}
 
 class ConversationScreen extends StatefulWidget {
   const ConversationScreen({
@@ -62,6 +97,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
   int? _conversationId;
   Timer? _poll;
   bool _disposed = false;
+  final Map<int, bool> _messageReacting = {};
+  final Map<int, bool> _messageDeleting = {};
 
   @override
   void initState() {
@@ -292,6 +329,132 @@ class _ConversationScreenState extends State<ConversationScreen> {
         _scroll.jumpTo(t);
       }
     });
+  }
+
+  void _patchMessage(ChatMessageModel updated) {
+    final i = _messages.indexWhere((m) => m.id == updated.id);
+    if (i < 0) return;
+    setState(() => _messages[i] = updated);
+  }
+
+  Future<void> _handleMessageReactionEmoji(ChatMessageModel m, String emoji) async {
+    if (_token == null || m.id <= 0) return;
+    if (!MessageReactionEmojis.isAllowed(emoji)) return;
+    setState(() => _messageReacting[m.id] = true);
+    try {
+      final mine = m.reactions?.myEmoji;
+      final Map<String, dynamic> res;
+      if (mine == emoji) {
+        res = await _api.removeMessageReaction(token: _token!, messageId: m.id);
+      } else {
+        res = await _api.reactToMessage(token: _token!, messageId: m.id, emoji: emoji);
+      }
+      if (!mounted) return;
+      _patchMessage(m.withReactionResponse(res));
+    } catch (e) {
+      if (mounted) {
+        ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _messageReacting[m.id] = false);
+      }
+    }
+  }
+
+  Future<void> _openMessageReactions(ChatMessageModel m) async {
+    final rx = m.reactions;
+    if (rx == null || rx.users.isEmpty) return;
+    await showReactionParticipantsBottomSheet(context, users: rx.users);
+  }
+
+  Future<void> _copyMessageText(ChatMessageModel m) async {
+    final text = m.message.trim();
+    if (text.isEmpty) {
+      ToastHelper.showError('No text to copy');
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      ToastHelper.showInfo('Message copied');
+    }
+  }
+
+  Future<void> _confirmAndDeleteMessage(ChatMessageModel m) async {
+    if (_token == null || m.id <= 0) return;
+    if (_messageDeleting[m.id] == true) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.proxi.surfaceCard,
+        title: const Text('Delete message?'),
+        content: const Text('This message will be deleted for everyone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB00020)),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _messageDeleting[m.id] = true);
+    try {
+      await _api.deleteMessageById(token: _token!, messageId: m.id);
+      if (!mounted) return;
+      setState(() {
+        _messages.removeWhere((x) => x.id == m.id);
+        _messageReacting.remove(m.id);
+      });
+      ToastHelper.showInfo('Message deleted');
+    } catch (e) {
+      if (mounted) {
+        ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _messageDeleting.remove(m.id));
+      }
+    }
+  }
+
+  Future<void> _pasteIntoComposer() async {
+    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
+    if (imageFile != null) {
+      setState(() {
+        _selectedAttachment = imageFile;
+        _selectedAttachmentName = imageFile.path.split(Platform.pathSeparator).last;
+        _selectedAttachmentKind = _AttachmentKind.photo;
+      });
+      _onInputChanged();
+      return;
+    }
+    final text = await ClipboardRichPaste.clipboardPlainText();
+    if (text != null && text.trim().isNotEmpty) {
+      ClipboardRichPaste.insertTextAtSelection(_input, text);
+      _onInputChanged();
+      return;
+    }
+    ToastHelper.showError('Nothing to paste');
+  }
+
+  Future<void> _onKeyboardInsertedMessage(KeyboardInsertedContent content) async {
+    final file = await ClipboardRichPaste.keyboardInsertedContentToTempFile(content);
+    if (file != null) {
+      setState(() {
+        _selectedAttachment = file;
+        _selectedAttachmentName = file.path.split(Platform.pathSeparator).last;
+        _selectedAttachmentKind = _AttachmentKind.photo;
+      });
+      _onInputChanged();
+      return;
+    }
+    ToastHelper.showError('Could not read pasted image');
   }
 
   Future<void> _onSend() async {
@@ -697,13 +860,30 @@ class _ConversationScreenState extends State<ConversationScreen> {
                               final m = _messages[i];
                               final my = m.isMine(_myId ?? -1);
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                padding: EdgeInsets.only(
+                                  top: 4,
+                                  bottom: m.reactionTotal > 0 ? 14 : 4,
+                                ),
                                 child: _Bubble(
                                   m: m,
                                   mine: my,
                                   onOpenAttachment: m.fileUrl != null && m.fileUrl!.isNotEmpty
                                       ? () => unawaited(_openAttachment(m))
                                       : null,
+                                  showReactions: m.id > 0 && _token != null,
+                                  reactionBusy: _messageReacting[m.id] == true,
+                                  deleteBusy: _messageDeleting[m.id] == true,
+                                  canDelete: my,
+                                  onReactEmoji: m.id > 0 && _token != null
+                                      ? (emoji) async => _handleMessageReactionEmoji(m, emoji)
+                                      : null,
+                                  onReactionsSummaryTap: m.reactionTotal > 0 &&
+                                          m.reactions != null &&
+                                          m.reactions!.users.isNotEmpty
+                                      ? () => unawaited(_openMessageReactions(m))
+                                      : null,
+                                  onCopyTap: () => unawaited(_copyMessageText(m)),
+                                  onDeleteTap: my ? () => unawaited(_confirmAndDeleteMessage(m)) : null,
                                 ),
                               );
                             },
@@ -728,12 +908,34 @@ class _ConversationScreenState extends State<ConversationScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
+                        IconButton.filledTonal(
+                          onPressed: _sending ? null : () => unawaited(_pasteIntoComposer()),
+                          icon: const Icon(Icons.content_paste),
+                          style: IconButton.styleFrom(
+                            backgroundColor: cs.primary.withOpacity(0.15),
+                            foregroundColor: cs.primary,
+                          ),
+                          tooltip: 'Paste text or image',
+                        ),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: TextField(
                             controller: _input,
                             minLines: 1,
                             maxLines: 5,
                             textCapitalization: TextCapitalization.sentences,
+                            contentInsertionConfiguration: ContentInsertionConfiguration(
+                              allowedMimeTypes: const [
+                                'image/png',
+                                'image/gif',
+                                'image/jpeg',
+                                'image/jpg',
+                                'image/webp',
+                              ],
+                              onContentInserted: (KeyboardInsertedContent value) {
+                                unawaited(_onKeyboardInsertedMessage(value));
+                              },
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Message',
                               filled: true,
@@ -816,11 +1018,27 @@ class _Bubble extends StatelessWidget {
     required this.m,
     required this.mine,
     this.onOpenAttachment,
+    this.showReactions = false,
+    this.reactionBusy = false,
+    this.deleteBusy = false,
+    this.canDelete = false,
+    this.onReactEmoji,
+    this.onReactionsSummaryTap,
+    this.onCopyTap,
+    this.onDeleteTap,
   });
 
   final ChatMessageModel m;
   final bool mine;
   final VoidCallback? onOpenAttachment;
+  final bool showReactions;
+  final bool reactionBusy;
+  final bool deleteBusy;
+  final bool canDelete;
+  final Future<void> Function(String emoji)? onReactEmoji;
+  final VoidCallback? onReactionsSummaryTap;
+  final VoidCallback? onCopyTap;
+  final VoidCallback? onDeleteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -835,88 +1053,319 @@ class _Bubble extends StatelessWidget {
         : (DateTime.now().difference(at.toLocal()) < const Duration(days: 6)
             ? timeago.format(at.toLocal())
             : DateFormat('MMM d, h:mm a').format(at.toLocal()));
+
+    final reactionEmojiKeys = _orderedMessageReactionEmojis(m.reactions);
+    final showReactionBadges =
+        reactionEmojiKeys.isNotEmpty && onReactionsSummaryTap != null;
+
+    // Corner badges overlap the bubble bottom (~28px intrusion + glow); keep time / read above them.
+    final footerPadBottom = showReactionBadges ? 36.0 : 10.0;
+
+    final bubbleCard = DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: mine ? const Radius.circular(16) : const Radius.circular(4),
+          bottomRight: mine ? const Radius.circular(4) : const Radius.circular(16),
+        ),
+        border: !mine
+            ? Border.all(color: cs.outline.withOpacity(0.18))
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(14, 10, 14, footerPadBottom),
+        child: Column(
+          crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (m.message.trim().isNotEmpty)
+              Text(
+                m.message,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 16,
+                  height: 1.3,
+                ),
+              ),
+            if (m.fileUrl != null && m.fileUrl!.isNotEmpty) ...[
+              if (m.message.trim().isNotEmpty) const SizedBox(height: 8),
+              _AttachmentPreviewInBubble(
+                m: m,
+                onTap: onOpenAttachment,
+                foreground: fg,
+              ),
+            ],
+            const SizedBox(height: 6),
+            if (timeLabel != null)
+              Text(
+                timeLabel,
+                style: TextStyle(
+                  color: fg.withOpacity(0.7),
+                  fontSize: 11,
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            if (mine) ...[
+              const SizedBox(height: 2),
+              Text(
+                m.isRead ? 'Read' : 'Sent',
+                style: TextStyle(
+                  color: fg.withOpacity(0.6),
+                  fontSize: 10,
+                ),
+              ),
+            ] else if (!m.isRead) ...[
+              const SizedBox(height: 2),
+              Text(
+                'New',
+                style: TextStyle(
+                  color: fg.withOpacity(0.6),
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    final layered = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        bubbleCard,
+        if (showReactionBadges)
+          Positioned(
+            bottom: -6,
+            left: mine ? null : -2,
+            right: mine ? -2 : null,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                EmojiReactionActionButton.dismissFloatingReactionPicker();
+                onReactionsSummaryTap!();
+              },
+              child: _MessageReactionBadgeCluster(
+                emojis: reactionEmojiKeys,
+                alignEnd: mine,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    final Widget bubbleWithPicker = showReactions && onReactEmoji != null
+        ? ReactionPickerLongPress(
+            enabled: !reactionBusy && !deleteBusy,
+            reactionEmojis: MessageReactionEmojis.all,
+            pickerSelectionEmoji: m.reactions?.myEmoji,
+            onEmojiChosen: onReactEmoji!,
+            bottomMenuBuilder: (closeOverlay) => _MessageLongPressActions(
+              canDelete: canDelete,
+              onCopy: () {
+                closeOverlay();
+                onCopyTap?.call();
+              },
+              onDelete: onDeleteTap == null
+                  ? null
+                  : () {
+                      closeOverlay();
+                      onDeleteTap!.call();
+                    },
+            ),
+            child: layered,
+          )
+        : layered;
+
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.8,
         ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: mine ? const Radius.circular(16) : const Radius.circular(4),
-              bottomRight: mine ? const Radius.circular(4) : const Radius.circular(16),
+        child: bubbleWithPicker,
+      ),
+    );
+  }
+}
+
+class _MessageLongPressActions extends StatelessWidget {
+  const _MessageLongPressActions({
+    required this.canDelete,
+    required this.onCopy,
+    required this.onDelete,
+  });
+
+  final bool canDelete;
+  final VoidCallback onCopy;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 188,
+      decoration: BoxDecoration(
+        color: const Color(0xE61A1A20),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.45),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ActionRow(
+            label: 'Copy',
+            icon: Icons.content_copy_rounded,
+            color: Colors.white.withOpacity(0.92),
+            onTap: onCopy,
+          ),
+          if (canDelete && onDelete != null) ...[
+            Divider(height: 1, color: Colors.white.withOpacity(0.14)),
+            _ActionRow(
+              label: 'Delete',
+              icon: Icons.delete_forever_outlined,
+              color: cs.error,
+              onTap: onDelete!,
             ),
-            border: !mine
-                ? Border.all(color: cs.outline.withOpacity(0.18))
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Column(
-              crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (m.message.trim().isNotEmpty)
-                  Text(
-                    m.message,
-                    style: TextStyle(
-                      color: fg,
-                      fontSize: 16,
-                      height: 1.3,
-                    ),
-                  ),
-                if (m.fileUrl != null && m.fileUrl!.isNotEmpty) ...[
-                  if (m.message.trim().isNotEmpty) const SizedBox(height: 8),
-                  _AttachmentPreviewInBubble(
-                    m: m,
-                    onTap: onOpenAttachment,
-                    foreground: fg,
-                  ),
-                ],
-                const SizedBox(height: 6),
-                if (timeLabel != null)
-                  Text(
-                    timeLabel,
-                    style: TextStyle(
-                      color: fg.withOpacity(0.7),
-                      fontSize: 11,
-                    ),
-                  )
-                else
-                  const SizedBox.shrink(),
-                if (mine) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    m.isRead ? 'Read' : 'Sent',
-                    style: TextStyle(
-                      color: fg.withOpacity(0.6),
-                      fontSize: 10,
-                    ),
-                  ),
-                ] else if (!m.isRead) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'New',
-                    style: TextStyle(
-                      color: fg.withOpacity(0.6),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ],
             ),
+            Icon(icon, size: 18, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Overlapping circular emoji badges with soft halo (reference: system message apps).
+class _MessageReactionBadgeCluster extends StatelessWidget {
+  const _MessageReactionBadgeCluster({
+    required this.emojis,
+    required this.alignEnd,
+  });
+
+  final List<String> emojis;
+  final bool alignEnd;
+
+  static const double _d = 30;
+  static const double _overlap = 13;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = emojis.length;
+    if (n == 0) return const SizedBox.shrink();
+    final step = _d - _overlap;
+    final w = _d + (n - 1) * step;
+
+    return SizedBox(
+      width: w,
+      height: _d + 4,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var i = n - 1; i >= 0; i--)
+            Positioned(
+              left: alignEnd ? null : i * step,
+              right: alignEnd ? i * step : null,
+              bottom: 0,
+              child: _SingleReactionGlowBadge(emoji: emojis[i]),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SingleReactionGlowBadge extends StatelessWidget {
+  const _SingleReactionGlowBadge({required this.emoji});
+
+  final String emoji;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: _MessageReactionBadgeCluster._d,
+      height: _MessageReactionBadgeCluster._d,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withOpacity(0.42),
+            blurRadius: 14,
+            spreadRadius: -4,
           ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.55),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Container(
+        width: _MessageReactionBadgeCluster._d - 2,
+        height: _MessageReactionBadgeCluster._d - 2,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xFF25252C),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Text(
+          emoji,
+          style: const TextStyle(fontSize: 15.5, height: 1.05),
         ),
       ),
     );

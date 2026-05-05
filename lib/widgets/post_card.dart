@@ -5,13 +5,15 @@ import 'package:video_player/video_player.dart';
 
 import '../config/theme/proxi_palette.dart';
 import '../data/models/post_model.dart';
+import 'post_reaction_action_button.dart';
 import '../utils/app_vibration.dart';
 import '../views/posts/media_viewer_screen.dart';
 import '../views/posts/user_posts_screen.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
-  final VoidCallback? onLike;
+  final VoidCallback? onReactQuick;
+  final Future<void> Function(String emoji)? onReactEmoji;
   final VoidCallback? onComment;
   final VoidCallback? onLikesTap;
   /// When [post.commentsCount] > 0, same emphasis as likes; tap uses vibration (no ink splash).
@@ -23,7 +25,8 @@ class PostCard extends StatelessWidget {
   const PostCard({
     super.key,
     required this.post,
-    this.onLike,
+    this.onReactQuick,
+    this.onReactEmoji,
     this.onComment,
     this.onLikesTap,
     this.onCommentCountTap,
@@ -582,6 +585,11 @@ class PostCard extends StatelessWidget {
       fontWeight: FontWeight.w400,
     );
     final likesMeta = statsMeta.copyWith(fontWeight: FontWeight.w500);
+    final summaryTotal = post.reactionOrLikeTotal;
+    final summaryUsesReactions = post.reactions != null;
+    final summaryLabel = summaryTotal == 1
+        ? (summaryUsesReactions ? 'reaction' : 'like')
+        : (summaryUsesReactions ? 'reactions' : 'likes');
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -592,16 +600,19 @@ class PostCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                if (post.likesCount > 0 && post.id != null && onLikesTap != null)
+                if (summaryTotal > 0 && post.id != null && onLikesTap != null)
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: onLikesTap,
+                      onTap: () {
+                        PostReactionActionButton.dismissFloatingReactionPicker();
+                        onLikesTap!();
+                      },
                       borderRadius: BorderRadius.circular(6),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                         child: Text(
-                          '${post.likesCount} ${post.likesCount == 1 || post.likesCount == 0 ? 'like' : 'likes'}',
+                          '$summaryTotal $summaryLabel',
                           style: likesMeta,
                         ),
                       ),
@@ -609,7 +620,7 @@ class PostCard extends StatelessWidget {
                   )
                 else
                   Text(
-                    '${post.likesCount} ${post.likesCount == 1 || post.likesCount == 0 ? 'like' : 'likes'}',
+                    '$summaryTotal $summaryLabel',
                     style: statsMeta,
                   ),
                 Padding(
@@ -625,6 +636,7 @@ class PostCard extends StatelessWidget {
                 if (post.commentsCount > 0 && post.id != null && onCommentCountTap != null)
                   GestureDetector(
                     onTap: () {
+                      PostReactionActionButton.dismissFloatingReactionPicker();
                       AppVibration.likesListOpen();
                       onCommentCountTap!();
                     },
@@ -648,13 +660,12 @@ class PostCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildActionButton(
-                  context: context,
-                  icon: post.liked == true ? Icons.favorite : Icons.favorite_border,
-                  label: 'Like',
-                  color: post.liked == true ? Colors.red : cs.onSurfaceVariant,
-                  onTap: canLike && !isLiking ? onLike : null,
+                child: PostReactionActionButton(
+                  post: post,
+                  enabled: canLike && onReactQuick != null && onReactEmoji != null,
                   isLoading: isLiking,
+                  onQuickTap: () => onReactQuick!(),
+                  onEmojiChosen: onReactEmoji!,
                 ),
               ),
               const SizedBox(width: 12),
@@ -664,7 +675,12 @@ class PostCard extends StatelessWidget {
                   icon: Icons.chat_bubble_outline,
                   label: 'Comment',
                   color: canComment ? cs.onSurfaceVariant : cs.onSurfaceVariant.withOpacity(0.45),
-                  onTap: onComment,
+                  onTap: onComment == null
+                      ? null
+                      : () {
+                          PostReactionActionButton.dismissFloatingReactionPicker();
+                          onComment!();
+                        },
                 ),
               ),
             ],

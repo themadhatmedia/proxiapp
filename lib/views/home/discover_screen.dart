@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
+import '../../controllers/auth_controller.dart';
 import '../../controllers/discover_controller.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../controllers/notification_controller.dart';
@@ -28,14 +29,22 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   late final NotificationController _notificationController;
   Worker? _homeTabWorker;
 
+  /// Logs the Firebase Cloud Messaging device token for the logged-in user (push / profile sync).
   Future<void> _printFirebaseToken() async {
     if (kIsWeb ||
         (defaultTargetPlatform != TargetPlatform.android &&
             defaultTargetPlatform != TargetPlatform.iOS)) {
       return;
     }
+    if (!Get.isRegistered<AuthController>()) return;
+    final auth = Get.find<AuthController>();
+    if (!auth.isAuthenticated) return;
+
     final token = await FirebaseMessaging.instance.getToken();
-    print('FCM Token (DiscoverScreen): $token');
+    final uid = auth.user?.id;
+    debugPrint(
+      '[Wins Wall] Firebase Cloud Messaging token (logged-in user id=$uid): ${token ?? "(null)"}',
+    );
   }
 
   @override
@@ -65,6 +74,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         FcmService.instance.syncTokenToProfileIfNeeded();
       }
     });
+  }
+
+  /// Hot reload does not run [initState] again; this prints the FCM token after save → hot reload.
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      return;
+    }
+    _printFirebaseToken();
   }
 
   @override

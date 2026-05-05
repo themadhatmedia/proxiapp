@@ -109,6 +109,7 @@ class _MainNavigationState extends State<MainNavigation> {
         if (!Get.isRegistered<MessagesController>()) {
           Get.put(MessagesController(), permanent: true);
         }
+        unawaited(Get.find<MessagesController>().loadConversations(showSpinner: false));
         registerMessagingFcmListeners();
         handleInitialMessagingFcm();
       }
@@ -217,6 +218,10 @@ class _MainNavigationState extends State<MainNavigation> {
     required int index,
   }) {
     final isSelected = _navigationController.currentIndex.value == index;
+    final hasUnreadMessages =
+        index == 3 &&
+        Get.isRegistered<MessagesController>() &&
+        Get.find<MessagesController>().unreadConversationsCount.value > 0;
     final selectedBg = ProxiPalette.electricBlue.withOpacity(0.35);
     final unselectedIcon = ProxiPalette.skyBlue.withOpacity(0.85);
     return Expanded(
@@ -243,10 +248,29 @@ class _MainNavigationState extends State<MainNavigation> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: isSelected ? ProxiPalette.pureWhite : unselectedIcon,
-                size: 24,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    icon,
+                    color: isSelected ? ProxiPalette.pureWhite : unselectedIcon,
+                    size: 24,
+                  ),
+                  if (hasUnreadMessages)
+                    Positioned(
+                      right: -2,
+                      top: -1,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: context.proxi.bottomNavBackground, width: 1.2),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(

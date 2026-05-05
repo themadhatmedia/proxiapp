@@ -1,7 +1,10 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
+import '../../config/post_reaction_emojis.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
@@ -10,11 +13,13 @@ import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
 import '../../utils/app_vibration.dart';
+import '../../utils/clipboard_rich_paste.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/comment_card.dart';
 import '../../widgets/post_card.dart';
 import 'post_likes_bottom_sheet.dart';
+import 'post_reactions_bottom_sheet.dart';
 
 class SinglePostScreen extends StatefulWidget {
   final int postId;
@@ -90,10 +95,14 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
         if (widget.openCommentsOnLoad) {
           await _toggleComments(forceOpen: true);
         }
-        if (widget.openLikesOnLoad && parsedPost.id != null && parsedPost.likesCount > 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (widget.openLikesOnLoad && parsedPost.id != null && parsedPost.reactionOrLikeTotal > 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (!mounted) return;
-            showPostLikesBottomSheet(context, postId: parsedPost.id!);
+            if (parsedPost.reactions != null && parsedPost.reactions!.users.isNotEmpty) {
+              await showPostReactionsBottomSheet(context, parsedPost);
+            } else {
+              await showPostLikesBottomSheet(context, postId: parsedPost.id!);
+            }
           });
         }
       } else {
@@ -107,7 +116,7 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
     }
   }
 
-  Future<void> _handleLike() async {
+  Future<void> _handleReactionQuick() async {
     final post = _post;
     if (post?.id == null || _isLiking) return;
     if (!(post!.permissions?.canLike ?? false)) return;
@@ -117,22 +126,45 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
       final token = _storageService.getToken();
       if (token == null) throw Exception('Not authenticated');
 
-      if (post.liked) {
-        await _apiService.unlikePost(token, post.id!);
-        setState(() {
-          post.liked = false;
-          post.likesCount = (post.likesCount - 1).clamp(0, 1 << 30);
-        });
+      final thumb = PostReactionEmojis.thumbsUp;
+      final Map<String, dynamic> res;
+      if (post.reactions?.myEmoji == thumb) {
+        res = await _apiService.removePostReaction(token: token, postId: post.id!);
       } else {
-        await _apiService.likePost(token, post.id!);
+        res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: thumb);
         AppVibration.interactionSuccess();
-        setState(() {
-          post.liked = true;
-          post.likesCount = post.likesCount + 1;
-        });
       }
+      if (!mounted) return;
+      setState(() => post.mergeReactionResponse(res));
     } catch (e) {
-      ToastHelper.showError(e.toString().replaceFirst('Exception: ', 'Failed to like post: '));
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isLiking = false);
+    }
+  }
+
+  Future<void> _handleReactionEmoji(String emoji) async {
+    final post = _post;
+    if (post?.id == null || _isLiking) return;
+    if (!(post!.permissions?.canLike ?? false)) return;
+    if (!PostReactionEmojis.isAllowed(emoji)) return;
+
+    setState(() => _isLiking = true);
+    try {
+      final token = _storageService.getToken();
+      if (token == null) throw Exception('Not authenticated');
+
+      final Map<String, dynamic> res;
+      if (post.reactions?.myEmoji == emoji) {
+        res = await _apiService.removePostReaction(token: token, postId: post.id!);
+      } else {
+        res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: emoji);
+        AppVibration.interactionSuccess();
+      }
+      if (!mounted) return;
+      setState(() => post.mergeReactionResponse(res));
+    } catch (e) {
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isLiking = false);
     }
@@ -211,6 +243,23 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
     } finally {
       if (mounted) setState(() => _loadingComments = false);
     }
+  }
+
+  Future<void> _pasteCommentText() async {
+    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
+    if (imageFile != null) {
+      try {
+        await imageFile.delete();
+      } catch (_) {}
+      ToastHelper.showError('Comments are text only. Use Create Post to share images or GIFs.');
+      return;
+    }
+    final text = await ClipboardRichPaste.clipboardPlainText();
+    if (text != null && text.trim().isNotEmpty) {
+      ClipboardRichPaste.insertTextAtSelection(_commentController, text);
+      return;
+    }
+    ToastHelper.showError('Nothing to paste');
   }
 
   Future<void> _submitComment() async {
@@ -359,12 +408,21 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
         children: [
           PostCard(
             post: post,
-            onLike: _handleLike,
+            onReactQuick: _handleReactionQuick,
+            onReactEmoji: _handleReactionEmoji,
             onComment: () {
               AppVibration.likesListOpen();
               _toggleComments();
             },
-            onLikesTap: post.id != null && post.likesCount > 0 ? () => showPostLikesBottomSheet(context, postId: post.id!) : null,
+            onLikesTap: post.id != null && post.reactionOrLikeTotal > 0
+                ? () async {
+                    if (post.reactions != null && post.reactions!.users.isNotEmpty) {
+                      await showPostReactionsBottomSheet(context, post);
+                    } else {
+                      await showPostLikesBottomSheet(context, postId: post.id!);
+                    }
+                  }
+                : null,
             onCommentCountTap: post.id != null && post.commentsCount > 0 ? () => _toggleComments(forceOpen: true) : null,
             onDelete: null,
             isLiking: _isLiking,
@@ -429,7 +487,14 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
                     maxLines: null,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () => unawaited(_pasteCommentText()),
+                  icon: const Icon(Icons.content_paste),
+                  color: cs.primary,
+                  tooltip: 'Paste text',
+                ),
+                const SizedBox(width: 4),
                 IconButton(onPressed: _submitComment, icon: const Icon(Icons.send), color: cs.primary),
               ],
             ),

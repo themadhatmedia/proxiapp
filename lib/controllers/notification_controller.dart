@@ -1,9 +1,12 @@
+import 'dart:async' show unawaited;
+
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
 import '../controllers/circles_controller.dart';
 import '../data/models/notification_model.dart';
 import '../data/services/api_service.dart';
+import '../data/services/app_badge_service.dart';
 import '../utils/toast_helper.dart';
 
 class NotificationController extends GetxController {
@@ -15,10 +18,22 @@ class NotificationController extends GetxController {
   final RxInt unreadCount = 0.obs;
   final RxMap<String, bool> requestActionLoading = <String, bool>{}.obs;
 
+  Worker? _badgeWorker;
+
   @override
   void onInit() {
     super.onInit();
+    _badgeWorker = ever<int>(unreadCount, (count) {
+      unawaited(AppBadgeService.persistApiUnreadAndApplyBadge(count));
+    });
+    unawaited(AppBadgeService.persistApiUnreadAndApplyBadge(unreadCount.value));
     fetchNotifications();
+  }
+
+  @override
+  void onClose() {
+    _badgeWorker?.dispose();
+    super.onClose();
   }
 
   void reset() {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import 'data/services/app_badge_service.dart';
 import 'data/services/fcm_service.dart';
 import 'firebase_options.dart';
 import 'config/theme/app_theme.dart';
@@ -43,20 +44,18 @@ Future<void> _initializeFirebaseSafe() async {
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) return;
-  if (defaultTargetPlatform != TargetPlatform.android &&
-      defaultTargetPlatform != TargetPlatform.iOS) {
+  if (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS) {
     return;
   }
   await _initializeFirebaseSafe();
+  await AppBadgeService.applyBadgeFromRemoteMessage(message);
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
 
-  if (!kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS)) {
+  if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
     await _initializeFirebaseSafe();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await FcmService.instance.install();
@@ -82,9 +81,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: themeController.isDarkMode
-            ? ThemeMode.dark
-            : ThemeMode.light,
+        themeMode: themeController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
         // Full-screen brand gradient behind all routes; fixed text scale.
         builder: (context, child) {
           final data = MediaQuery.of(context);
@@ -113,9 +110,7 @@ class MyApp extends StatelessWidget {
             ),
           );
         },
-        home: authController.isAuthenticated
-            ? const MainNavigation()
-            : const AuthScreen(),
+        home: authController.isAuthenticated ? const MainNavigation() : const AuthScreen(),
         getPages: [
           GetPage(name: '/auth', page: () => const AuthScreen()),
           GetPage(name: '/home', page: () => const MainNavigation()),

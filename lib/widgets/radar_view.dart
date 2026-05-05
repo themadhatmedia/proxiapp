@@ -107,7 +107,7 @@ class _RadarViewState extends State<RadarView> with TickerProviderStateMixin {
     } else if (matchScore >= 50) {
       return mid;
     } else {
-      return const Color(0xFFE74C3C);
+      return const Color(0xFF4CAF50);
     }
   }
 

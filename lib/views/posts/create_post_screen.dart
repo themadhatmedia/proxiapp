@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_underscores
 
+import 'dart:async' show unawaited;
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -14,6 +15,7 @@ import '../../controllers/auth_controller.dart';
 import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
+import '../../utils/clipboard_rich_paste.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
@@ -169,6 +171,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
+                  leading: Icon(Icons.content_paste, color: cs.primary),
+                  title: Text('Paste from clipboard', style: TextStyle(color: cs.onSurface)),
+                  subtitle: Text(
+                    'Text, image, or GIF',
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    unawaited(_pasteFromClipboard());
+                  },
+                ),
+                ListTile(
                   leading: Icon(Icons.photo_library, color: cs.primary),
                   title: Text('Photo', style: TextStyle(color: cs.onSurface)),
                   onTap: () {
@@ -265,6 +279,29 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     } catch (e) {
       ToastHelper.showError('Failed to pick GIFs');
     }
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
+    if (imageFile != null) {
+      await _addMedia(imageFile, false);
+      return;
+    }
+    final text = await ClipboardRichPaste.clipboardPlainText();
+    if (text != null && text.trim().isNotEmpty) {
+      ClipboardRichPaste.insertTextAtSelection(_contentController, text);
+      return;
+    }
+    ToastHelper.showError('Nothing to paste');
+  }
+
+  Future<void> _onKeyboardInsertedWall(KeyboardInsertedContent content) async {
+    final file = await ClipboardRichPaste.keyboardInsertedContentToTempFile(content);
+    if (file != null) {
+      await _addMedia(file, false);
+      return;
+    }
+    ToastHelper.showError('Could not read pasted image');
   }
 
   Future<void> _pickFromCamera() async {
@@ -560,6 +597,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   minLines: 5,
                   maxLength: 280,
                   textCapitalization: TextCapitalization.sentences,
+                  contentInsertionConfiguration: ContentInsertionConfiguration(
+                    allowedMimeTypes: const [
+                      'image/png',
+                      'image/gif',
+                      'image/jpeg',
+                      'image/jpg',
+                      'image/webp',
+                    ],
+                    onContentInserted: (KeyboardInsertedContent value) {
+                      unawaited(_onKeyboardInsertedWall(value));
+                    },
+                  ),
                   style: TextStyle(
                     color: cs.onSurface,
                     fontSize: 18,
@@ -1263,7 +1312,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'Add Photos/Videos/GIFs',
+                'Add or paste Photos/Videos/GIFs',
                 style: TextStyle(
                   color: cs.onSurface,
                   fontSize: 16,

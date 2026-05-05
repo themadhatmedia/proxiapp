@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../config/post_reaction_emojis.dart';
 import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../data/services/api_service.dart';
@@ -74,51 +75,63 @@ class DiscoverController extends GetxController {
     await fetchPosts();
   }
 
-  Future<void> likePost(Post post) async {
-    try {
-      final token = _storageService.getToken();
-      if (token == null) throw Exception('Not authenticated');
-
-      await _apiService.likePost(token, post.id!);
-      AppVibration.interactionSuccess();
-
-      post.liked = true;
-      post.likesCount = post.likesCount + 1;
-      _updatePostInLists(post);
-    } catch (e) {
-      ToastHelper.showError('Failed to like post: ${e.toString()}');
-    }
+  Future<void> _setReactionImpl(Post post, String emoji) async {
+    final token = _storageService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: emoji);
+    post.mergeReactionResponse(res);
+    _updatePostInLists(post);
+    AppVibration.interactionSuccess();
   }
 
-  Future<void> unlikePost(Post post) async {
-    try {
-      final token = _storageService.getToken();
-      if (token == null) throw Exception('Not authenticated');
-
-      await _apiService.unlikePost(token, post.id!);
-
-      post.liked = false;
-      post.likesCount = post.likesCount - 1;
-      _updatePostInLists(post);
-    } catch (e) {
-      ToastHelper.showError('Failed to unlike post: ${e.toString()}');
-    }
+  Future<void> _removeReactionImpl(Post post) async {
+    final token = _storageService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final res = await _apiService.removePostReaction(token: token, postId: post.id!);
+    post.mergeReactionResponse(res);
+    _updatePostInLists(post);
   }
 
-  Future<void> toggleLike(Post post) async {
-    if (likingPosts[post.id] == true) return;
+  /// Quick tap: 👍🏻 toggle (Facebook-style default).
+  Future<void> toggleReactionQuick(Post post) async {
+    if (post.id == null || likingPosts[post.id] == true) return;
+    if (!(post.permissions?.canLike ?? false)) return;
 
     likingPosts[post.id!] = true;
     likingPosts.refresh();
 
     try {
-      if (post.liked) {
-        await unlikePost(post);
+      final thumb = PostReactionEmojis.thumbsUp;
+      if (post.reactions?.myEmoji == thumb) {
+        await _removeReactionImpl(post);
       } else {
-        await likePost(post);
+        await _setReactionImpl(post, thumb);
       }
     } catch (e) {
-      ToastHelper.showError('Failed to update like: ${e.toString()}');
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      likingPosts[post.id!] = false;
+      likingPosts.refresh();
+    }
+  }
+
+  /// Long-press picker selection (same emoji removes).
+  Future<void> chooseReaction(Post post, String emoji) async {
+    if (post.id == null || likingPosts[post.id] == true) return;
+    if (!(post.permissions?.canLike ?? false)) return;
+    if (!PostReactionEmojis.isAllowed(emoji)) return;
+
+    likingPosts[post.id!] = true;
+    likingPosts.refresh();
+
+    try {
+      if (post.reactions?.myEmoji == emoji) {
+        await _removeReactionImpl(post);
+      } else {
+        await _setReactionImpl(post, emoji);
+      }
+    } catch (e) {
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       likingPosts[post.id!] = false;
       likingPosts.refresh();

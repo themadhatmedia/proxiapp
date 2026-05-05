@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'post_reaction_models.dart';
+
 /// A row in the conversations list.
 @immutable
 class ConversationListItem {
@@ -134,6 +136,7 @@ class ChatMessageModel {
     this.isRead = true,
     this.createdAt,
     this.isMineFromApi,
+    this.reactions,
   });
 
   final int id;
@@ -146,8 +149,11 @@ class ChatMessageModel {
   final DateTime? createdAt;
   /// Set when API sends `is_mine` (thread payload may omit `receiver_id`).
   final bool? isMineFromApi;
+  final PostReactionSummary? reactions;
 
   bool isMine(int myUserId) => isMineFromApi ?? (senderId == myUserId);
+
+  int get reactionTotal => reactions?.total ?? 0;
 
   ChatMessageModel copyWith({
     int? id,
@@ -159,6 +165,7 @@ class ChatMessageModel {
     bool? isRead,
     DateTime? createdAt,
     bool? isMineFromApi,
+    PostReactionSummary? reactions,
   }) {
     return ChatMessageModel(
       id: id ?? this.id,
@@ -170,10 +177,28 @@ class ChatMessageModel {
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
       isMineFromApi: isMineFromApi ?? this.isMineFromApi,
+      reactions: reactions ?? this.reactions,
     );
   }
 
+  /// Applies `success` + `reactions` from react/remove API envelopes.
+  ChatMessageModel withReactionResponse(Map<String, dynamic> body) {
+    final raw = body['reactions'];
+    if (raw is Map) {
+      return copyWith(
+        reactions: PostReactionSummary.fromJson(Map<String, dynamic>.from(raw)),
+      );
+    }
+    return this;
+  }
+
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
+    PostReactionSummary? reactionSummary;
+    if (json['reactions'] != null && json['reactions'] is Map) {
+      reactionSummary = PostReactionSummary.fromJson(
+        Map<String, dynamic>.from(json['reactions'] as Map),
+      );
+    }
     return ChatMessageModel(
       id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
       message: (json['message'] ?? json['text'])?.toString() ?? '',
@@ -194,6 +219,7 @@ class ChatMessageModel {
         false => false,
         _ => null,
       },
+      reactions: reactionSummary,
     );
   }
 }

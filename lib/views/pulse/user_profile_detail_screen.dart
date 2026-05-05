@@ -1389,7 +1389,7 @@ class _UserProfileDetailScreenState extends State<UserProfileDetailScreen> with 
     } else if (score >= 50) {
       return const Color(0xFFFFA726);
     } else {
-      return const Color(0xFFE74C3C);
+      return const Color(0xFF4CAF50);
     }
   }
 

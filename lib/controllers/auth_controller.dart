@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 
 import '../data/models/user_model.dart';
 import '../data/services/api_service.dart';
+import '../data/services/app_badge_service.dart';
 import '../data/services/fcm_service.dart';
 import '../data/services/storage_service.dart';
 import '../utils/toast_helper.dart';
@@ -148,6 +149,7 @@ class AuthController extends GetxController {
       _storageService.clearAll();
       if (_shouldSyncFcm) {
         FcmService.clearStoredSyncSignature();
+        unawaited(AppBadgeService.clear());
       }
 
       // Delete all controllers to ensure fresh data on next login

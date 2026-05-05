@@ -11,6 +11,7 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/messages_controller.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../data/services/api_service.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../data/models/messaging_model.dart';
 import '../messages/conversation_screen.dart';
 import '../../utils/toast_helper.dart';
@@ -26,7 +27,6 @@ class MessagesScreen extends StatefulWidget {
 class _MessagesScreenState extends State<MessagesScreen> {
   final _search = TextEditingController();
   final _api = ApiService();
-  Timer? _debounce;
   Timer? _autoRefreshTimer;
   late final MessagesController _controller;
   Worker? _tabWorker;
@@ -63,7 +63,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void dispose() {
     _tabWorker?.dispose();
     _autoRefreshTimer?.cancel();
-    _debounce?.cancel();
     _search.dispose();
     super.dispose();
   }
@@ -82,23 +81,30 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _resetAndReload({required bool showSpinner}) async {
-    _debounce?.cancel();
     if (_search.text.isNotEmpty) {
       _search.clear();
+      if (mounted) setState(() {});
     }
     FocusManager.instance.primaryFocus?.unfocus();
     await _load(showSpinner: showSpinner);
   }
 
   void _onSearch(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      unawaited(_load(showSpinner: false));
-    });
+    if (mounted) setState(() {});
   }
 
   String? get _token =>
       Get.isRegistered<AuthController>() ? Get.find<AuthController>().token : null;
+
+  List<ConversationListItem> _filteredConversations(List<ConversationListItem> source) {
+    final q = _search.text.trim().toLowerCase();
+    if (q.isEmpty) return source;
+    return source.where((it) {
+      final name = it.otherUser.displayName.toLowerCase();
+      final preview = (it.lastMessageText ?? it.lastMessage?.message ?? '').toLowerCase();
+      return name.contains(q) || preview.contains(q);
+    }).toList();
+  }
 
   Future<void> _confirmDeleteConversation(ConversationListItem item) async {
     if (item.conversationId <= 0 || _token == null) return;
@@ -122,6 +128,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
     if (ok != true) return;
     try {
+      await ProgressDialogHelper.show(context);
       await _api.deleteConversationWithUser(
         token: _token!,
         conversationId: item.conversationId,
@@ -132,11 +139,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (mounted) {
         ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
       }
+    } finally {
+      await ProgressDialogHelper.hide();
     }
   }
 
   Future<void> _confirmUnreadConversation(ConversationListItem item) async {
     if (item.conversationId <= 0 || _token == null) return;
+    if (item.unreadCount > 0) {
+      if (mounted) ToastHelper.showInfo('Conversation is already unread');
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -157,20 +170,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
     if (ok != true) return;
     try {
+      await ProgressDialogHelper.show(context);
       await _api.markConversationAsUnread(
         token: _token!,
         conversationId: item.conversationId,
       );
-    } catch (_) {
-      // Fallback when API only supports message-level unread.
-      final messageId = item.lastMessage?.id;
-      if (messageId == null || messageId <= 0) rethrow;
-      await _api.markMessageAsUnread(
-        token: _token!,
-        messageId: messageId,
-      );
+      _controller.markConversationUnreadLocal(item.conversationId, unreadCount: 1);
+      unawaited(_load(showSpinner: false));
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      if (msg.toLowerCase().contains('no received message')) {
+        ToastHelper.showInfo('No incoming message to mark unread');
+      } else {
+        ToastHelper.showError(msg);
+      }
+    } finally {
+      await ProgressDialogHelper.hide();
     }
-    await _load(showSpinner: false);
   }
 
   @override
@@ -183,7 +200,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
         ),
         child: SafeArea(
           child: Obx(
-            () => Column(
+            () {
+              final filteredConversations = _filteredConversations(_controller.conversations);
+              return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
@@ -276,12 +295,30 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                     ),
                                   ],
                                 )
-                              : ListView.separated(
+                              : filteredConversations.isEmpty
+                                  ? ListView(
+                                      children: [
+                                        SizedBox(
+                                          height: MediaQuery.sizeOf(context).height * 0.35,
+                                          child: Center(
+                                            child: Text(
+                                              'No conversations found',
+                                              style: TextStyle(
+                                                color: cs.onSurfaceVariant,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : ListView.separated(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  itemCount: _controller.conversations.length,
+                                  itemCount: filteredConversations.length,
                                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                                   itemBuilder: (c, i) {
-                                    final it = _controller.conversations[i];
+                                    final it = filteredConversations[i];
                                     return Slidable(
                                       key: ValueKey<int>(it.conversationId),
                                       startActionPane: ActionPane(
@@ -330,7 +367,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         ),
                 ),
               ],
-            ),
+            );
+            },
           ),
         ),
       ),

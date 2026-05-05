@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
+import '../../config/post_reaction_emojis.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
@@ -16,6 +17,7 @@ import '../../widgets/comment_card.dart';
 import '../../widgets/post_card.dart';
 import 'create_post_screen.dart';
 import 'post_likes_bottom_sheet.dart';
+import 'post_reactions_bottom_sheet.dart';
 
 class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
@@ -238,60 +240,71 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     }
   }
 
-  Future<void> _handleLike(Post post) async {
-    if (post.id == null) return;
-    if (_likingPosts[post.id] == true) return;
+  Future<void> _handleReactionQuick(Post post) async {
+    if (post.id == null || (_likingPosts[post.id] == true)) return;
 
-    setState(() {
-      _likingPosts[post.id!] = true;
-    });
+    setState(() => _likingPosts[post.id!] = true);
 
     try {
       final token = _storageService.getToken();
       if (token == null) {
-        setState(() {
-          _likingPosts[post.id!] = false;
-        });
+        setState(() => _likingPosts[post.id!] = false);
         return;
       }
 
-      final isLiked = post.liked;
-
-      if (isLiked) {
-        await _apiService.unlikePost(token, post.id!);
+      final thumb = PostReactionEmojis.thumbsUp;
+      final Map<String, dynamic> res;
+      if (post.reactions?.myEmoji == thumb) {
+        res = await _apiService.removePostReaction(token: token, postId: post.id!);
       } else {
-        await _apiService.likePost(token, post.id!);
+        res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: thumb);
         AppVibration.interactionSuccess();
       }
 
       setState(() {
         final index = _posts.indexWhere((p) => p.id == post.id);
         if (index != -1) {
-          _posts[index] = Post(
-            id: post.id,
-            userId: post.userId,
-            content: post.content,
-            type: post.type,
-            visibility: post.visibility,
-            media: post.media,
-            likesCount: (post.likesCount) + (isLiked ? -1 : 1),
-            commentsCount: post.commentsCount,
-            liked: !isLiked,
-            isModerated: post.isModerated,
-            isFlagged: post.isFlagged,
-            createdAt: post.createdAt,
-            user: post.user,
-            permissions: post.permissions,
-            connectionAudiences: post.connectionAudiences,
-          );
+          _posts[index].mergeReactionResponse(res);
         }
         _likingPosts[post.id!] = false;
       });
     } catch (e) {
+      setState(() => _likingPosts[post.id!] = false);
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _handleReactionEmoji(Post post, String emoji) async {
+    if (post.id == null || (_likingPosts[post.id] == true)) return;
+    if (!PostReactionEmojis.isAllowed(emoji)) return;
+
+    setState(() => _likingPosts[post.id!] = true);
+
+    try {
+      final token = _storageService.getToken();
+      if (token == null) {
+        setState(() => _likingPosts[post.id!] = false);
+        return;
+      }
+
+      final Map<String, dynamic> res;
+      if (post.reactions?.myEmoji == emoji) {
+        res = await _apiService.removePostReaction(token: token, postId: post.id!);
+      } else {
+        res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: emoji);
+        AppVibration.interactionSuccess();
+      }
+
       setState(() {
+        final index = _posts.indexWhere((p) => p.id == post.id);
+        if (index != -1) {
+          _posts[index].mergeReactionResponse(res);
+        }
         _likingPosts[post.id!] = false;
       });
-      ToastHelper.showError('Failed to like post');
+    } catch (e) {
+      setState(() => _likingPosts[post.id!] = false);
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -848,10 +861,17 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             children: [
               PostCard(
                 post: post,
-                onLike: () => _handleLike(post),
+                onReactQuick: () => _handleReactionQuick(post),
+                onReactEmoji: (emoji) => _handleReactionEmoji(post, emoji),
                 onComment: () => _handleComment(post),
-                onLikesTap: post.id != null && post.likesCount > 0
-                    ? () => showPostLikesBottomSheet(context, postId: post.id!)
+                onLikesTap: post.id != null && post.reactionOrLikeTotal > 0
+                    ? () async {
+                        if (post.reactions != null && post.reactions!.users.isNotEmpty) {
+                          await showPostReactionsBottomSheet(context, post);
+                        } else {
+                          await showPostLikesBottomSheet(context, postId: post.id!);
+                        }
+                      }
                     : null,
                 onCommentCountTap: post.id != null && post.commentsCount > 0
                     ? () => _handleComment(post)

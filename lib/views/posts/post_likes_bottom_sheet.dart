@@ -8,6 +8,7 @@ import '../../data/models/post_like_models.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/app_vibration.dart';
 import '../../utils/toast_helper.dart';
+import '../../widgets/post_reaction_action_button.dart';
 import '../../widgets/safe_avatar.dart';
 import '../pulse/user_profile_detail_screen.dart';
 
@@ -18,6 +19,9 @@ Future<void> showPostLikesBottomSheet(BuildContext context, {required int postId
     ToastHelper.showError('Please sign in to view likes');
     return;
   }
+
+  PostReactionActionButton.dismissFloatingReactionPicker();
+  await Future<void>.delayed(Duration.zero);
 
   AppVibration.likesListOpen();
 
