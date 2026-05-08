@@ -22,6 +22,8 @@ import '../../data/models/post_reaction_models.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/app_vibration.dart';
 import '../../utils/clipboard_rich_paste.dart';
+import '../../utils/progress_dialog_helper.dart';
+import '../../utils/video_trim_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/emoji_reaction_action_button.dart';
 import '../../widgets/safe_avatar.dart';
@@ -99,6 +101,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
   bool _disposed = false;
   final Map<int, bool> _messageReacting = {};
   final Map<int, bool> _messageDeleting = {};
+  double? _uploadProgress;
 
   @override
   void initState() {
@@ -405,6 +408,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (ok != true) return;
     setState(() => _messageDeleting[m.id] = true);
     try {
+      await ProgressDialogHelper.show(context);
       await _api.deleteMessageById(token: _token!, messageId: m.id);
       if (!mounted) return;
       setState(() {
@@ -417,6 +421,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
         ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
+      await ProgressDialogHelper.hide();
       if (mounted) {
         setState(() => _messageDeleting.remove(m.id));
       }
@@ -465,6 +470,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (_token == null) return;
     setState(() {
       _sending = true;
+      _uploadProgress = _selectedAttachment != null ? 0 : null;
     });
     try {
       final sent = await _api.sendMessage(
@@ -472,6 +478,15 @@ class _ConversationScreenState extends State<ConversationScreen> {
         messageTo: widget.otherUserId,
         text: text.isEmpty ? null : text,
         file: _selectedAttachment,
+        onUploadProgress: (sentBytes, totalBytes) {
+          if (!mounted || totalBytes <= 0) return;
+          final next = (sentBytes / totalBytes).clamp(0.0, 1.0);
+          if (_uploadProgress == null || (next - _uploadProgress!).abs() >= 0.01 || next == 1.0) {
+            setState(() {
+              _uploadProgress = next;
+            });
+          }
+        },
       );
       if (!mounted) return;
       _input.clear();
@@ -479,6 +494,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
         _selectedAttachment = null;
         _selectedAttachmentName = null;
         _selectedAttachmentKind = null;
+        _uploadProgress = null;
       });
       if (!_messages.any((e) => e.id == sent.id)) {
         setState(() {
@@ -501,6 +517,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       if (mounted) {
         setState(() {
           _sending = false;
+          _uploadProgress = null;
         });
       }
     }
@@ -582,8 +599,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ToastHelper.showError('Could not read selected video');
       return;
     }
+    final trimmed = await VideoTrimHelper.enforceMaxDuration(context, file);
+    if (trimmed == null) return;
     setState(() {
-      _selectedAttachment = file;
+      _selectedAttachment = trimmed;
       _selectedAttachmentName = x.name;
       _selectedAttachmentKind = _AttachmentKind.video;
     });
@@ -640,6 +659,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
       _AttachmentKind.video => Icons.videocam_outlined,
       _AttachmentKind.document => Icons.insert_drive_file_outlined,
     };
+    final progress = _uploadProgress;
+    final progressPct = progress == null ? null : (progress * 100).round().clamp(0, 100);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 8, 10, 6),
@@ -659,6 +680,31 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 width: 52,
                 height: 52,
                 fit: BoxFit.cover,
+              ),
+            )
+          else if (kind == _AttachmentKind.video)
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    cs.primary.withOpacity(0.42),
+                    cs.primary.withOpacity(0.18),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.play_circle_fill_rounded, color: cs.onPrimary, size: 26),
+                  Positioned(
+                    right: 3,
+                    bottom: 3,
+                    child: Icon(Icons.videocam_rounded, color: cs.onPrimary.withOpacity(0.92), size: 12),
+                  ),
+                ],
               ),
             )
           else
@@ -693,6 +739,33 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     fontSize: 12,
                   ),
                 ),
+                if (_sending && progressPct != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            minHeight: 6,
+                            value: progress,
+                            color: cs.primary,
+                            backgroundColor: cs.primary.withOpacity(0.18),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$progressPct%',
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -882,7 +955,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                           m.reactions!.users.isNotEmpty
                                       ? () => unawaited(_openMessageReactions(m))
                                       : null,
-                                  onCopyTap: () => unawaited(_copyMessageText(m)),
+                                  onCopyTap: (m.fileUrl == null || m.fileUrl!.isEmpty)
+                                      ? () => unawaited(_copyMessageText(m))
+                                      : null,
                                   onDeleteTap: my ? () => unawaited(_confirmAndDeleteMessage(m)) : null,
                                 ),
                               );
@@ -990,16 +1065,34 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   static bool _isImage(ChatMessageModel m) {
     final t = m.type.toLowerCase();
-    if (t == 'image') return true;
+    if (t == 'image' || t.startsWith('image/') || t.contains('image')) return true;
     final u = m.fileUrl?.toLowerCase() ?? '';
-    return u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.png') || u.endsWith('.gif') || u.endsWith('.webp');
+    return u.endsWith('.jpg') ||
+        u.endsWith('.jpeg') ||
+        u.endsWith('.png') ||
+        u.endsWith('.gif') ||
+        u.endsWith('.webp') ||
+        u.contains('.jpg?') ||
+        u.contains('.jpeg?') ||
+        u.contains('.png?') ||
+        u.contains('.gif?') ||
+        u.contains('.webp?');
   }
 
   static bool _isVideo(ChatMessageModel m) {
     final t = m.type.toLowerCase();
-    if (t == 'video') return true;
+    if (t == 'video' || t.startsWith('video/') || t.contains('video') || t.contains('mp4')) return true;
     final u = m.fileUrl?.toLowerCase() ?? '';
-    return u.endsWith('.mp4') || u.endsWith('.mov') || u.endsWith('.avi') || u.endsWith('.mkv') || u.endsWith('.webm');
+    return u.endsWith('.mp4') ||
+        u.endsWith('.mov') ||
+        u.endsWith('.avi') ||
+        u.endsWith('.mkv') ||
+        u.endsWith('.webm') ||
+        u.contains('.mp4?') ||
+        u.contains('.mov?') ||
+        u.contains('.avi?') ||
+        u.contains('.mkv?') ||
+        u.contains('.webm?');
   }
 
   static Future<void> _openAttachment(ChatMessageModel m) async {
@@ -1206,7 +1299,7 @@ class _MessageLongPressActions extends StatelessWidget {
   });
 
   final bool canDelete;
-  final VoidCallback onCopy;
+  final VoidCallback? onCopy;
   final VoidCallback? onDelete;
 
   @override
@@ -1229,14 +1322,16 @@ class _MessageLongPressActions extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ActionRow(
-            label: 'Copy',
-            icon: Icons.content_copy_rounded,
-            color: Colors.white.withOpacity(0.92),
-            onTap: onCopy,
-          ),
-          if (canDelete && onDelete != null) ...[
+          if (onCopy != null)
+            _ActionRow(
+              label: 'Copy',
+              icon: Icons.content_copy_rounded,
+              color: Colors.white.withOpacity(0.92),
+              onTap: onCopy!,
+            ),
+          if (onCopy != null && canDelete && onDelete != null)
             Divider(height: 1, color: Colors.white.withOpacity(0.14)),
+          if (canDelete && onDelete != null) ...[
             _ActionRow(
               label: 'Delete',
               icon: Icons.delete_forever_outlined,
@@ -1391,16 +1486,34 @@ class _AttachmentPreviewInBubble extends StatelessWidget {
 
   bool get _isImage {
     final t = m.type.toLowerCase();
-    if (t == 'image') return true;
+    if (t == 'image' || t.startsWith('image/') || t.contains('image')) return true;
     final u = m.fileUrl?.toLowerCase() ?? '';
-    return u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.png') || u.endsWith('.gif') || u.endsWith('.webp');
+    return u.endsWith('.jpg') ||
+        u.endsWith('.jpeg') ||
+        u.endsWith('.png') ||
+        u.endsWith('.gif') ||
+        u.endsWith('.webp') ||
+        u.contains('.jpg?') ||
+        u.contains('.jpeg?') ||
+        u.contains('.png?') ||
+        u.contains('.gif?') ||
+        u.contains('.webp?');
   }
 
   bool get _isVideo {
     final t = m.type.toLowerCase();
-    if (t == 'video') return true;
+    if (t == 'video' || t.startsWith('video/') || t.contains('video') || t.contains('mp4')) return true;
     final u = m.fileUrl?.toLowerCase() ?? '';
-    return u.endsWith('.mp4') || u.endsWith('.mov') || u.endsWith('.avi') || u.endsWith('.mkv') || u.endsWith('.webm');
+    return u.endsWith('.mp4') ||
+        u.endsWith('.mov') ||
+        u.endsWith('.avi') ||
+        u.endsWith('.mkv') ||
+        u.endsWith('.webm') ||
+        u.contains('.mp4?') ||
+        u.contains('.mov?') ||
+        u.contains('.avi?') ||
+        u.contains('.mkv?') ||
+        u.contains('.webm?');
   }
 
   @override
@@ -1488,6 +1601,7 @@ class _AttachmentPreviewInBubble extends StatelessWidget {
   }
 }
 
+/// Same strategy as post cards: initialize once, seek first frame, cache controller by URL.
 class _InlineVideoThumb extends StatefulWidget {
   const _InlineVideoThumb({required this.url});
   final String url;
@@ -1496,17 +1610,41 @@ class _InlineVideoThumb extends StatefulWidget {
   State<_InlineVideoThumb> createState() => _InlineVideoThumbState();
 }
 
-class _InlineVideoThumbState extends State<_InlineVideoThumb> {
+class _InlineVideoThumbState extends State<_InlineVideoThumb> with AutomaticKeepAliveClientMixin {
   VideoPlayerController? _controller;
+  bool _isInitialized = false;
+  bool _hasError = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    final c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    _controller = c;
-    unawaited(c.initialize().then((_) {
-      if (mounted) setState(() {});
-    }));
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    try {
+      // Avoid heavy controller fan-out in long message lists.
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+      await _controller!.initialize().timeout(const Duration(seconds: 18));
+      await _controller!.seekTo(const Duration(milliseconds: 100));
+      await _controller!.pause();
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing message video thumbnail: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+    }
   }
 
   @override
@@ -1517,16 +1655,69 @@ class _InlineVideoThumbState extends State<_InlineVideoThumb> {
 
   @override
   Widget build(BuildContext context) {
-    final c = _controller;
-    if (c == null || !c.value.isInitialized) {
-      return Container(color: Colors.black12);
+    super.build(context);
+    if (_hasError) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF38304F), Color(0xFF1D1E2A)],
+          ),
+        ),
+        width: double.infinity,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.movie_creation_outlined,
+                color: Colors.white.withOpacity(0.75),
+                size: 34,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Tap to open video',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
-    return FittedBox(
-      fit: BoxFit.cover,
-      child: SizedBox(
-        width: c.value.size.width,
-        height: c.value.size.height,
-        child: VideoPlayer(c),
+
+    if (!_isInitialized || _controller == null) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2F3150), Color(0xFF1A1F3A)],
+          ),
+        ),
+        width: double.infinity,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: _controller!.value.size.width,
+          height: _controller!.value.size.height,
+          child: VideoPlayer(_controller!),
+        ),
       ),
     );
   }
@@ -1543,16 +1734,47 @@ class _ChatMediaViewerScreen extends StatefulWidget {
 
 class _ChatMediaViewerScreenState extends State<_ChatMediaViewerScreen> {
   VideoPlayerController? _video;
+  bool _videoInitFailed = false;
+  bool _videoInitializing = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.isVideo) {
-      final c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-      _video = c;
-      unawaited(c.initialize().then((_) {
-        if (mounted) setState(() {});
-      }));
+      unawaited(_initVideo());
+    }
+  }
+
+  Future<void> _initVideo() async {
+    _videoInitFailed = false;
+    _videoInitializing = true;
+    if (mounted) setState(() {});
+    await _video?.dispose();
+    _video = null;
+    VideoPlayerController? c;
+    try {
+      // Retry a couple times for flaky CDN/socket timeouts.
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        c?.dispose();
+        c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+        try {
+          await c.initialize();
+          await c.setLooping(false);
+          _video = c;
+          await c.play();
+          _videoInitFailed = false;
+          break;
+        } catch (_) {
+          if (attempt == 3) {
+            _videoInitFailed = true;
+          } else {
+            await Future<void>.delayed(const Duration(milliseconds: 600));
+          }
+        }
+      }
+    } finally {
+      _videoInitializing = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -1572,22 +1794,47 @@ class _ChatMediaViewerScreenState extends State<_ChatMediaViewerScreen> {
       ),
       body: Center(
         child: widget.isVideo
-            ? (_video == null || !_video!.value.isInitialized)
-                ? const CircularProgressIndicator(color: Colors.white)
-                : GestureDetector(
-                    onTap: () {
-                      if (_video!.value.isPlaying) {
-                        _video!.pause();
-                      } else {
-                        _video!.play();
-                      }
-                      setState(() {});
-                    },
-                    child: AspectRatio(
-                      aspectRatio: _video!.value.aspectRatio,
-                      child: VideoPlayer(_video!),
-                    ),
+            ? (_videoInitFailed
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.white70, size: 36),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Video failed to load',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: _initVideo,
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   )
+                : ((_video == null || !_video!.value.isInitialized)
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(color: Colors.white),
+                          const SizedBox(height: 12),
+                          Text(
+                            _videoInitializing ? 'Loading video...' : 'Preparing player...',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        ],
+                      )
+                    : AspectRatio(
+                        aspectRatio: _video!.value.aspectRatio,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            VideoPlayer(_video!),
+                            Positioned.fill(
+                              child: _ChatVideoControls(controller: _video!),
+                            ),
+                          ],
+                        ),
+                      )))
             : InteractiveViewer(
                 minScale: 0.8,
                 maxScale: 4,
@@ -1597,20 +1844,132 @@ class _ChatMediaViewerScreenState extends State<_ChatMediaViewerScreen> {
                 ),
               ),
       ),
-      floatingActionButton: widget.isVideo
-          ? FloatingActionButton.small(
-              onPressed: () {
-                if (_video == null) return;
-                if (_video!.value.isPlaying) {
-                  _video!.pause();
-                } else {
-                  _video!.play();
-                }
-                setState(() {});
-              },
-              child: Icon(_video?.value.isPlaying == true ? Icons.pause : Icons.play_arrow),
-            )
-          : null,
+    );
+  }
+}
+
+class _ChatVideoControls extends StatefulWidget {
+  const _ChatVideoControls({required this.controller});
+
+  final VideoPlayerController controller;
+
+  @override
+  State<_ChatVideoControls> createState() => _ChatVideoControlsState();
+}
+
+class _ChatVideoControlsState extends State<_ChatVideoControls> {
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_videoListener);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_videoListener);
+    super.dispose();
+  }
+
+  void _videoListener() {
+    if (mounted) setState(() {});
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      if (widget.controller.value.isPlaying) {
+        widget.controller.pause();
+      } else {
+        widget.controller.play();
+      }
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() {
+          _showControls = !_showControls;
+        });
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_showControls)
+            AnimatedOpacity(
+              opacity: 1.0,
+              duration: const Duration(milliseconds: 300),
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+              ),
+            ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Spacer(),
+              if (_showControls)
+                Center(
+                  child: IconButton(
+                    onPressed: _togglePlayPause,
+                    icon: Icon(
+                      widget.controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                  ),
+                ),
+              const Spacer(),
+              if (_showControls)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    children: [
+                      VideoProgressIndicator(
+                        widget.controller,
+                        allowScrubbing: true,
+                        colors: const VideoProgressColors(
+                          playedColor: Colors.white,
+                          bufferedColor: Colors.white38,
+                          backgroundColor: Colors.white24,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatDuration(widget.controller.value.position),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            _formatDuration(widget.controller.value.duration),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

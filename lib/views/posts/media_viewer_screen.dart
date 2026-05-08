@@ -232,7 +232,9 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
           alignment: Alignment.center,
           children: [
             VideoPlayer(controller),
-            _VideoControls(controller: controller),
+            Positioned.fill(
+              child: _VideoControls(controller: controller),
+            ),
           ],
         ),
       ),
@@ -288,12 +290,14 @@ class _VideoControlsState extends State<_VideoControls> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         setState(() {
           _showControls = !_showControls;
         });
       },
       child: Stack(
+        fit: StackFit.expand,
         children: [
           if (_showControls)
             AnimatedOpacity(

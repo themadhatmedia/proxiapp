@@ -2648,100 +2648,113 @@ class ApiService {
     required int messageTo,
     String? text,
     File? file,
+    void Function(int sentBytes, int totalBytes)? onUploadProgress,
   }) async {
     final url = '$baseUrl/messages';
+    if (file != null) {
+      // Large file uploads should not be retried automatically; retries can duplicate messages.
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.fields['receiver_id'] = messageTo.toString();
+      final trimmed = text?.trim() ?? '';
+      if (trimmed.isNotEmpty) {
+        request.fields['message'] = trimmed;
+      }
+      final ext = file.path.split('.').last.toLowerCase();
+      final String mime;
+      if (['jpg', 'jpeg'].contains(ext)) {
+        mime = 'image/jpeg';
+      } else if (ext == 'png') {
+        mime = 'image/png';
+      } else if (ext == 'webp') {
+        mime = 'image/webp';
+      } else if (ext == 'gif') {
+        mime = 'image/gif';
+      } else if (ext == 'mp4') {
+        mime = 'video/mp4';
+      } else if (ext == 'mov') {
+        mime = 'video/quicktime';
+      } else if (ext == 'avi') {
+        mime = 'video/x-msvideo';
+      } else if (ext == 'mkv') {
+        mime = 'video/x-matroska';
+      } else if (ext == 'webm') {
+        mime = 'video/webm';
+      } else if (ext == 'pdf') {
+        mime = 'application/pdf';
+      } else if (ext == 'doc') {
+        mime = 'application/msword';
+      } else if (ext == 'docx') {
+        mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (ext == 'xls') {
+        mime = 'application/vnd.ms-excel';
+      } else if (ext == 'xlsx') {
+        mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else if (ext == 'ppt') {
+        mime = 'application/vnd.ms-powerpoint';
+      } else if (ext == 'pptx') {
+        mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      } else if (ext == 'txt') {
+        mime = 'text/plain';
+      } else {
+        mime = 'application/octet-stream';
+      }
+      final stream = http.ByteStream(file.openRead());
+      final length = await file.length();
+      var sentBytes = 0;
+      final progressStream = stream.transform(
+        StreamTransformer<List<int>, List<int>>.fromHandlers(
+          handleData: (chunk, sink) {
+            sentBytes += chunk.length;
+            onUploadProgress?.call(sentBytes, length);
+            sink.add(chunk);
+          },
+        ),
+      );
+      final multipart = http.MultipartFile(
+        'file',
+        progressStream,
+        length,
+        filename: file.path.split(Platform.pathSeparator).last,
+        contentType: http_parser.MediaType.parse(mime),
+      );
+      request.files.add(multipart);
+      _logApiCall(
+        method: 'POST (multipart)',
+        url: url,
+        headers: request.headers,
+        requestData: {
+          'receiver_id': messageTo,
+          if (trimmed.isNotEmpty) 'message': trimmed,
+          'file': '…',
+        },
+      );
+      final sent = await request.send().timeout(const Duration(minutes: 4));
+      final res = await http.Response.fromStream(sent).timeout(const Duration(minutes: 4));
+      final responseData = _decodeJsonObjectFromResponse(res);
+      _logApiCall(
+        method: 'POST',
+        url: url,
+        statusCode: res.statusCode,
+        responseData: responseData,
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        onUploadProgress?.call(length, length);
+        final payload = responseData['data'] ?? responseData['message'];
+        if (payload is Map) {
+          return ChatMessageModel.fromJson(Map<String, dynamic>.from(payload));
+        }
+        throw Exception(responseData['message']?.toString() ?? 'Invalid message response');
+      }
+      throw Exception(
+        responseData['message']?.toString() ?? 'Failed to send message',
+      );
+    }
+
     return _retryRequest(
       method: 'POST',
       url: url,
       request: () async {
-        if (file != null) {
-          final request = http.MultipartRequest('POST', Uri.parse(url));
-          request.headers['Authorization'] = 'Bearer $token';
-          request.fields['receiver_id'] = messageTo.toString();
-          final trimmed = text?.trim() ?? '';
-          if (trimmed.isNotEmpty) {
-            request.fields['message'] = trimmed;
-          }
-          final ext = file.path.split('.').last.toLowerCase();
-          final String mime;
-          if (['jpg', 'jpeg'].contains(ext)) {
-            mime = 'image/jpeg';
-          } else if (ext == 'png') {
-            mime = 'image/png';
-          } else if (ext == 'webp') {
-            mime = 'image/webp';
-          } else if (ext == 'gif') {
-            mime = 'image/gif';
-          } else if (ext == 'mp4') {
-            mime = 'video/mp4';
-          } else if (ext == 'mov') {
-            mime = 'video/quicktime';
-          } else if (ext == 'avi') {
-            mime = 'video/x-msvideo';
-          } else if (ext == 'mkv') {
-            mime = 'video/x-matroska';
-          } else if (ext == 'webm') {
-            mime = 'video/webm';
-          } else if (ext == 'pdf') {
-            mime = 'application/pdf';
-          } else if (ext == 'doc') {
-            mime = 'application/msword';
-          } else if (ext == 'docx') {
-            mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          } else if (ext == 'xls') {
-            mime = 'application/vnd.ms-excel';
-          } else if (ext == 'xlsx') {
-            mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          } else if (ext == 'ppt') {
-            mime = 'application/vnd.ms-powerpoint';
-          } else if (ext == 'pptx') {
-            mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-          } else if (ext == 'txt') {
-            mime = 'text/plain';
-          } else {
-            mime = 'application/octet-stream';
-          }
-          final stream = http.ByteStream(file.openRead());
-          final length = await file.length();
-          final multipart = http.MultipartFile(
-            'file',
-            stream,
-            length,
-            filename: file.path.split(Platform.pathSeparator).last,
-            contentType: http_parser.MediaType.parse(mime),
-          );
-          request.files.add(multipart);
-          _logApiCall(
-            method: 'POST (multipart)',
-            url: url,
-            headers: request.headers,
-            requestData: {
-              'receiver_id': messageTo,
-              if (trimmed.isNotEmpty) 'message': trimmed,
-              'file': '…',
-            },
-          );
-          final sent = await request.send();
-          final res = await http.Response.fromStream(sent);
-          final responseData = _decodeJsonObjectFromResponse(res);
-          _logApiCall(
-            method: 'POST',
-            url: url,
-            statusCode: res.statusCode,
-            responseData: responseData,
-          );
-          if (res.statusCode == 200 || res.statusCode == 201) {
-            final payload = responseData['data'] ?? responseData['message'];
-            if (payload is Map) {
-              return ChatMessageModel.fromJson(Map<String, dynamic>.from(payload));
-            }
-            throw Exception(responseData['message']?.toString() ?? 'Invalid message response');
-          }
-          throw Exception(
-            responseData['message']?.toString() ?? 'Failed to send message',
-          );
-        }
-
         final headers = {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

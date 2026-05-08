@@ -8,6 +8,7 @@ import '../../config/post_reaction_emojis.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/notification_controller.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
@@ -175,6 +176,9 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
     if (post?.id == null) return;
 
     if (!_showComments || forceOpen) {
+      if (Get.isRegistered<NotificationController>()) {
+        await Get.find<NotificationController>().clearUnreadBadgeOnly();
+      }
       await _fetchComments(post!.id!);
       if (!mounted) return;
       setState(() => _showComments = true);

@@ -11,6 +11,7 @@ import '../config/theme/proxi_palette.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/discover_controller.dart';
 import '../controllers/navigation_controller.dart';
+import '../controllers/notification_controller.dart';
 import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../utils/app_vibration.dart';
@@ -516,6 +517,12 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
     }
   }
 
+  Future<void> _clearBadgesAfterOpeningComments() async {
+    if (Get.isRegistered<NotificationController>()) {
+      await Get.find<NotificationController>().clearUnreadBadgeOnly();
+    }
+  }
+
   Widget _buildActions(BuildContext context, DiscoverController controller) {
     final canLike = widget.post.permissions?.canLike ?? false;
     final canComment = widget.post.permissions?.canComment ?? false;
@@ -582,6 +589,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                     onTap: () {
                       PostReactionActionButton.dismissFloatingReactionPicker();
                       AppVibration.likesListOpen();
+                      unawaited(_clearBadgesAfterOpeningComments());
                       controller.toggleComments(widget.post.id!);
                     },
                     behavior: HitTestBehavior.opaque,
@@ -622,6 +630,7 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                   color: canComment ? cs.onSurfaceVariant : cs.onSurfaceVariant.withOpacity(0.45),
                   onTap: () {
                     PostReactionActionButton.dismissFloatingReactionPicker();
+                    unawaited(_clearBadgesAfterOpeningComments());
                     controller.toggleComments(widget.post.id!);
                   },
                 ),

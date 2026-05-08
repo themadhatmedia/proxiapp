@@ -17,6 +17,7 @@ import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
 import '../../utils/clipboard_rich_paste.dart';
 import '../../utils/progress_dialog_helper.dart';
+import '../../utils/video_trim_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
 import 'my_posts_screen.dart';
@@ -239,8 +240,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickVideo() async {
     try {
-      await ProgressDialogHelper.show(context);
-
       // Note: pickVideo doesn't support multiple selection, so we use pickMultipleMedia
       final List<XFile> media = await _picker.pickMultipleMedia();
 
@@ -248,14 +247,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         for (final file in media) {
           final isVideo = _isVideoFile(File(file.path));
           if (isVideo) {
-            await _addMedia(File(file.path), true);
+            final trimmed = await VideoTrimHelper.enforceMaxDuration(context, File(file.path));
+            if (trimmed != null) {
+              await _addMedia(trimmed, true);
+            }
           }
         }
       }
-
-      await ProgressDialogHelper.hide();
     } catch (e) {
-      await ProgressDialogHelper.hide();
       ToastHelper.showError('Failed to pick videos');
     }
   }
@@ -358,9 +357,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
       if (video != null) {
-        await ProgressDialogHelper.show(context);
-        await _addMedia(File(video.path), true);
-        await ProgressDialogHelper.hide();
+        final trimmed = await VideoTrimHelper.enforceMaxDuration(context, File(video.path));
+        if (trimmed != null) {
+          await ProgressDialogHelper.show(context);
+          await _addMedia(trimmed, true);
+          await ProgressDialogHelper.hide();
+        }
       }
     } catch (e) {
       await ProgressDialogHelper.hide();

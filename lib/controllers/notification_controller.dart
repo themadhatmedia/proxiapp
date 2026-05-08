@@ -118,6 +118,11 @@ class NotificationController extends GetxController {
     }
   }
 
+  Future<void> clearUnreadBadgeOnly() async {
+    unreadCount.value = 0;
+    await AppBadgeService.clear();
+  }
+
   bool isRequestActionLoading(String notificationId) {
     return requestActionLoading[notificationId] ?? false;
   }

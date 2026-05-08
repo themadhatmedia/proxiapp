@@ -158,7 +158,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
               builder: (context) => const NotificationsScreen(),
             ),
           );
-          _notificationController.fetchNotifications(showLoader: false);
         },
         child: Stack(
           clipBehavior: Clip.none,

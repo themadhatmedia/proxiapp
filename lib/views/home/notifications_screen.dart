@@ -5,7 +5,6 @@ import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../controllers/notification_controller.dart';
-import '../../data/services/app_badge_service.dart';
 import '../../data/models/notification_model.dart';
 import '../../widgets/safe_avatar.dart';
 import '../posts/single_post_screen.dart';
@@ -31,7 +30,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _controller.fetchNotifications(showLoader: true);
-      await AppBadgeService.clearPushBumpAfterViewingInbox(_controller.unreadCount.value);
+      await _controller.clearUnreadBadgeOnly();
     });
   }
 
