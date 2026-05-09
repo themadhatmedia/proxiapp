@@ -889,10 +889,10 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
 
   /// Comments are text-only; offer paste for text (and a clear message if the clipboard is an image).
   Future<void> _pasteCommentText() async {
-    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
-    if (imageFile != null) {
+    final mediaFile = await ClipboardRichPaste.clipboardPasteImageGifOrResolvedUrl();
+    if (mediaFile != null) {
       try {
-        await imageFile.delete();
+        await mediaFile.delete();
       } catch (_) {}
       ToastHelper.showError('Comments are text only. Use Create Post to share images or GIFs.');
       return;

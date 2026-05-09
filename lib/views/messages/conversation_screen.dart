@@ -429,12 +429,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Future<void> _pasteIntoComposer() async {
-    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
-    if (imageFile != null) {
+    final mediaFile = await ClipboardRichPaste.clipboardPasteImageGifOrResolvedUrl();
+    if (mediaFile != null) {
+      final isVideo = _isVideoPath(mediaFile.path);
       setState(() {
-        _selectedAttachment = imageFile;
-        _selectedAttachmentName = imageFile.path.split(Platform.pathSeparator).last;
-        _selectedAttachmentKind = _AttachmentKind.photo;
+        _selectedAttachment = mediaFile;
+        _selectedAttachmentName = mediaFile.path.split(Platform.pathSeparator).last;
+        _selectedAttachmentKind =
+            isVideo ? _AttachmentKind.video : _attachmentKindForLocalMedia(mediaFile.path);
       });
       _onInputChanged();
       return;
@@ -454,7 +456,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       setState(() {
         _selectedAttachment = file;
         _selectedAttachmentName = file.path.split(Platform.pathSeparator).last;
-        _selectedAttachmentKind = _AttachmentKind.photo;
+        _selectedAttachmentKind = _attachmentKindForLocalMedia(file.path);
       });
       _onInputChanged();
       return;
@@ -554,6 +556,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 },
               ),
               ListTile(
+                leading: Icon(Icons.gif_box_outlined, color: cs.primary),
+                title: const Text('GIF'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  unawaited(_pickGif());
+                },
+              ),
+              ListTile(
                 leading: Icon(Icons.insert_drive_file_outlined, color: cs.primary),
                 title: const Text('Document'),
                 onTap: () {
@@ -584,7 +594,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     setState(() {
       _selectedAttachment = file;
       _selectedAttachmentName = x.name;
-      _selectedAttachmentKind = _AttachmentKind.photo;
+      _selectedAttachmentKind = _attachmentKindForLocalMedia(file.path);
     });
   }
 
@@ -599,12 +609,56 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ToastHelper.showError('Could not read selected video');
       return;
     }
+    if (!_isVideoPath(x.path, mimeType: x.mimeType)) {
+      setState(() {
+        _selectedAttachment = file;
+        _selectedAttachmentName = x.name;
+        _selectedAttachmentKind = _attachmentKindForLocalMedia(file.path);
+      });
+      _onInputChanged();
+      return;
+    }
     final trimmed = await VideoTrimHelper.enforceMaxDuration(context, file);
     if (trimmed == null) return;
     setState(() {
       _selectedAttachment = trimmed;
       _selectedAttachmentName = x.name;
       _selectedAttachmentKind = _AttachmentKind.video;
+    });
+  }
+
+  Future<void> _pickGif() async {
+    final picks = await _picker.pickMultiImage();
+    if (picks.isEmpty || !mounted) return;
+    XFile? gifPick;
+    var hasNonGif = false;
+    for (final p in picks) {
+      final ext = p.path.split('.').last.toLowerCase();
+      if (ext == 'gif') {
+        gifPick ??= p;
+      } else {
+        hasNonGif = true;
+      }
+    }
+    if (gifPick == null) {
+      ToastHelper.showError('Please select a GIF file');
+      unawaited(_pickGif());
+      return;
+    }
+    if (hasNonGif) {
+      ToastHelper.showError('Only GIF files can be selected here');
+      unawaited(_pickGif());
+      return;
+    }
+    final file = File(gifPick.path);
+    if (!file.existsSync()) {
+      ToastHelper.showError('Could not read selected GIF');
+      return;
+    }
+    setState(() {
+      _selectedAttachment = file;
+      _selectedAttachmentName = gifPick!.name;
+      _selectedAttachmentKind = _AttachmentKind.gif;
     });
   }
 
@@ -647,6 +701,17 @@ class _ConversationScreenState extends State<ConversationScreen> {
     });
   }
 
+  /// GIF vs still image for composer preview label (upload behavior is still image upload).
+  static bool _isGifPath(String path) {
+    final p = path.toLowerCase();
+    return p.endsWith('.gif') || p.contains('.gif?');
+  }
+
+  static _AttachmentKind _attachmentKindForLocalMedia(String path) {
+    if (_isGifPath(path)) return _AttachmentKind.gif;
+    return _AttachmentKind.photo;
+  }
+
   Widget _buildAttachmentPreview(BuildContext context) {
     final file = _selectedAttachment;
     if (file == null) return const SizedBox.shrink();
@@ -656,6 +721,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     final name = _selectedAttachmentName ?? file.path.split(Platform.pathSeparator).last;
     final icon = switch (kind) {
       _AttachmentKind.photo => Icons.photo_outlined,
+      _AttachmentKind.gif => Icons.gif_box_outlined,
       _AttachmentKind.video => Icons.videocam_outlined,
       _AttachmentKind.document => Icons.insert_drive_file_outlined,
     };
@@ -672,7 +738,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       child: Row(
         children: [
-          if (kind == _AttachmentKind.photo)
+          if (kind == _AttachmentKind.photo || kind == _AttachmentKind.gif)
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.file(
@@ -733,7 +799,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  kind == _AttachmentKind.document ? ext.toUpperCase() : kind.name.toUpperCase(),
+                  switch (kind) {
+                    _AttachmentKind.document => ext.toUpperCase(),
+                    _AttachmentKind.gif => 'GIF',
+                    _ => kind.name.toUpperCase(),
+                  },
                   style: TextStyle(
                     color: cs.onSurfaceVariant,
                     fontSize: 12,
@@ -1093,6 +1163,27 @@ class _ConversationScreenState extends State<ConversationScreen> {
         u.contains('.avi?') ||
         u.contains('.mkv?') ||
         u.contains('.webm?');
+  }
+
+  static bool _isVideoPath(String path, {String? mimeType}) {
+    final mime = mimeType?.toLowerCase() ?? '';
+    if (mime.startsWith('video/')) return true;
+    if (mime.startsWith('image/')) return false;
+    final p = path.toLowerCase();
+    return p.endsWith('.mp4') ||
+        p.endsWith('.mov') ||
+        p.endsWith('.avi') ||
+        p.endsWith('.mkv') ||
+        p.endsWith('.webm') ||
+        p.endsWith('.m4v') ||
+        p.endsWith('.3gp') ||
+        p.contains('.mp4?') ||
+        p.contains('.mov?') ||
+        p.contains('.avi?') ||
+        p.contains('.mkv?') ||
+        p.contains('.webm?') ||
+        p.contains('.m4v?') ||
+        p.contains('.3gp?');
   }
 
   static Future<void> _openAttachment(ChatMessageModel m) async {
@@ -1469,6 +1560,7 @@ class _SingleReactionGlowBadge extends StatelessWidget {
 
 enum _AttachmentKind {
   photo,
+  gif,
   video,
   document,
 }

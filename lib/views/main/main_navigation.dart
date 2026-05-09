@@ -111,7 +111,6 @@ class _MainNavigationState extends State<MainNavigation> {
         }
         unawaited(Get.find<MessagesController>().loadConversations(showSpinner: false));
         registerMessagingFcmListeners();
-        handleInitialMessagingFcm();
       }
       if (_isOnboardingRouteActive(Get.currentRoute)) return;
       await _updateUserLocation();

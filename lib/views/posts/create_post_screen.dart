@@ -31,10 +31,11 @@ enum _ShareFeed {
 extension on _ShareFeed {
   String get apiKey => name;
 
-  String get chipHint => switch (this) {
-    _ShareFeed.inner => 'Inner connection',
-    _ShareFeed.outer => 'Outer connection',
-    _ShareFeed.mutual => 'Mutual connection',
+  /// First line of the share chip (e.g. Inner / Outer / Mutual).
+  String get chipTitleLine1 => switch (this) {
+    _ShareFeed.inner => 'Inner',
+    _ShareFeed.outer => 'Outer',
+    _ShareFeed.mutual => 'Mutual',
   };
 
   IconData get chipIcon => switch (this) {
@@ -245,7 +246,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       if (media.isNotEmpty) {
         for (final file in media) {
-          final isVideo = _isVideoFile(File(file.path));
+          final isVideo = _isVideoPath(file.path, mimeType: file.mimeType);
           if (isVideo) {
             final trimmed = await VideoTrimHelper.enforceMaxDuration(context, File(file.path));
             if (trimmed != null) {
@@ -264,15 +265,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
         int gifCount = 0;
+        bool hasNonGif = false;
         for (final image in images) {
           final file = File(image.path);
           if (_isGifFile(file)) {
             await _addMedia(file, false);
             gifCount++;
+          } else {
+            hasNonGif = true;
           }
         }
         if (gifCount == 0) {
           ToastHelper.showError('No GIF files were selected');
+          unawaited(_pickGif());
+          return;
+        }
+        if (hasNonGif) {
+          ToastHelper.showError('Only GIF files can be selected here');
+          unawaited(_pickGif());
         }
       }
     } catch (e) {
@@ -281,9 +291,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pasteFromClipboard() async {
-    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
-    if (imageFile != null) {
-      await _addMedia(imageFile, false);
+    final mediaFile = await ClipboardRichPaste.clipboardPasteImageGifOrResolvedUrl();
+    if (mediaFile != null) {
+      await _addMedia(mediaFile, _isVideoFile(mediaFile));
       return;
     }
     final text = await ClipboardRichPaste.clipboardPlainText();
@@ -297,7 +307,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _onKeyboardInsertedWall(KeyboardInsertedContent content) async {
     final file = await ClipboardRichPaste.keyboardInsertedContentToTempFile(content);
     if (file != null) {
-      await _addMedia(file, false);
+      await _addMedia(file, _isVideoFile(file));
       return;
     }
     ToastHelper.showError('Could not read pasted image');
@@ -357,7 +367,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
       if (video != null) {
-        final trimmed = await VideoTrimHelper.enforceMaxDuration(context, File(video.path));
+        final videoFile = File(video.path);
+        if (!_isVideoPath(video.path, mimeType: video.mimeType)) {
+          await _addMedia(videoFile, false);
+          return;
+        }
+        final trimmed = await VideoTrimHelper.enforceMaxDuration(context, videoFile);
         if (trimmed != null) {
           await ProgressDialogHelper.show(context);
           await _addMedia(trimmed, true);
@@ -444,8 +459,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   bool _isVideoFile(File file) {
-    final extension = file.path.split('.').last.toLowerCase();
-    return ['mp4', 'mov', 'avi', 'mkv'].contains(extension);
+    return _isVideoPath(file.path);
+  }
+
+  bool _isVideoPath(String path, {String? mimeType}) {
+    final mime = mimeType?.toLowerCase() ?? '';
+    if (mime.startsWith('video/')) return true;
+    if (mime.startsWith('image/')) return false;
+    final extension = path.split('.').last.toLowerCase();
+    return ['mp4', 'mov', 'avi', 'mkv', 'm4v', 'webm', '3gp'].contains(extension);
   }
 
   bool _isGifFile(File file) {
@@ -752,9 +774,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                feed.chipHint,
+                feed.chipTitleLine1,
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected ? cs.onSurface : cs.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                'connection',
+                textAlign: TextAlign.center,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 11,

@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
@@ -6,6 +8,7 @@ import '../../config/post_reaction_emojis.dart';
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/discover_controller.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
@@ -230,6 +233,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           ProgressDialogHelper.hide();
           ToastHelper.showSuccess('Post deleted successfully');
           _loadMyPosts();
+          if (Get.isRegistered<DiscoverController>()) {
+            unawaited(Get.find<DiscoverController>().fetchPosts());
+          }
         }
       } catch (e) {
         if (mounted) {

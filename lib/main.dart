@@ -7,6 +7,7 @@ import 'package:get_storage/get_storage.dart';
 
 import 'data/services/app_badge_service.dart';
 import 'data/services/fcm_service.dart';
+import 'data/services/messaging_fcm_listeners.dart';
 import 'firebase_options.dart';
 import 'config/theme/app_theme.dart';
 import 'config/theme/theme_controller.dart';
@@ -59,6 +60,8 @@ void main() async {
     await _initializeFirebaseSafe();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await FcmService.instance.install();
+    // Cold-start notification tap: resolve route as soon as Firebase is ready (retries until auth/nav exist).
+    handleInitialMessagingFcm();
   }
 
   runApp(const MyApp());

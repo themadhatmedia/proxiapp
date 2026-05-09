@@ -4,9 +4,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
-import '../../controllers/navigation_controller.dart';
 import '../../controllers/notification_controller.dart';
 import '../../data/services/app_badge_service.dart';
+import '../../data/services/notification_deep_link_service.dart';
 import '../../utils/app_vibration.dart';
 import '../../controllers/messages_controller.dart';
 
@@ -39,9 +39,8 @@ void registerMessagingFcmListeners() {
 
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     unawaited(AppBadgeService.applyBadgeFromRemoteMessage(message));
-    if (_looksLikeMessage(message)) {
-      _openMessagesAndRefresh();
-    } else if (Get.isRegistered<NotificationController>()) {
+    NotificationDeepLinkService.handle(message);
+    if (!_looksLikeMessage(message) && Get.isRegistered<NotificationController>()) {
       unawaited(
         Get.find<NotificationController>().fetchNotifications(showLoader: false),
       );
@@ -59,38 +58,7 @@ void handleInitialMessagingFcm() {
   FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
     if (message == null) return;
     unawaited(AppBadgeService.applyBadgeFromRemoteMessage(message));
-    if (!_looksLikeMessage(message)) return;
-    Future<void>.delayed(const Duration(milliseconds: 500), () {
-      _openMessagesAndRefresh();
-    });
-  });
-}
-
-void _openMessagesAndRefresh() {
-  void applyRefresh() {
-    if (Get.isRegistered<MessagesController>()) {
-      final controller = Get.find<MessagesController>();
-      controller.softRefresh();
-      unawaited(controller.loadConversations(showSpinner: true));
-    }
-  }
-
-  if (Get.isRegistered<NavigationController>()) {
-    final nav = Get.find<NavigationController>();
-    nav.skipInitialHomeReset.value = true;
-    nav.navigateToMessages();
-    applyRefresh();
-    return;
-  }
-
-  // App can still be bootstrapping from cold start.
-  Future<void>.delayed(const Duration(milliseconds: 350), () {
-    if (Get.isRegistered<NavigationController>()) {
-      final nav = Get.find<NavigationController>();
-      nav.skipInitialHomeReset.value = true;
-      nav.navigateToMessages();
-      applyRefresh();
-    }
+    NotificationDeepLinkService.handle(message, fromColdStart: true);
   });
 }
 

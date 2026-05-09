@@ -247,6 +247,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     _isFabExpanded = false;
                   });
                   await Get.to(() => const MyPostsScreen());
+                  _controller.fetchPosts();
                 },
               ),
               const SizedBox(height: 16),

@@ -250,10 +250,10 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
   }
 
   Future<void> _pasteCommentText() async {
-    final imageFile = await ClipboardRichPaste.clipboardImageToTempFile();
-    if (imageFile != null) {
+    final mediaFile = await ClipboardRichPaste.clipboardPasteImageGifOrResolvedUrl();
+    if (mediaFile != null) {
       try {
-        await imageFile.delete();
+        await mediaFile.delete();
       } catch (_) {}
       ToastHelper.showError('Comments are text only. Use Create Post to share images or GIFs.');
       return;
