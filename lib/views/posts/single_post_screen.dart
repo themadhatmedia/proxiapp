@@ -133,7 +133,6 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
         res = await _apiService.removePostReaction(token: token, postId: post.id!);
       } else {
         res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: thumb);
-        AppVibration.interactionSuccess();
       }
       if (!mounted) return;
       setState(() => post.mergeReactionResponse(res));
@@ -160,7 +159,6 @@ class _SinglePostScreenState extends State<SinglePostScreen> {
         res = await _apiService.removePostReaction(token: token, postId: post.id!);
       } else {
         res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: emoji);
-        AppVibration.interactionSuccess();
       }
       if (!mounted) return;
       setState(() => post.mergeReactionResponse(res));

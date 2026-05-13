@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'data/services/app_badge_service.dart';
+import 'data/services/billing_link_service.dart';
 import 'data/services/fcm_service.dart';
 import 'data/services/messaging_fcm_listeners.dart';
 import 'firebase_options.dart';
@@ -62,6 +63,9 @@ void main() async {
     await FcmService.instance.install();
     // Cold-start notification tap: resolve route as soon as Firebase is ready (retries until auth/nav exist).
     handleInitialMessagingFcm();
+    if (!Get.isRegistered<BillingLinkService>()) {
+      Get.put(BillingLinkService(), permanent: true);
+    }
   }
 
   runApp(const MyApp());

@@ -116,6 +116,27 @@ class PlanModel {
     return 'Free';
   }
 
+  /// Price shown on plan cards for Stripe (`monthly` / `yearly`).
+  String priceLabelForBillingCycle(String cycle) {
+    if (isFree) return 'Free';
+    final c = cycle.toLowerCase().trim();
+    if (c == 'yearly') {
+      if (yearlyPrice != null) {
+        return '\$${yearlyPrice!.toStringAsFixed(2)}/yr';
+      }
+      if (monthlyPrice != null) {
+        return '\$${monthlyPrice!.toStringAsFixed(2)}/mo';
+      }
+    }
+    if (monthlyPrice != null) {
+      return '\$${monthlyPrice!.toStringAsFixed(2)}/mo';
+    }
+    if (yearlyPrice != null) {
+      return '\$${yearlyPrice!.toStringAsFixed(2)}/yr';
+    }
+    return '—';
+  }
+
   String get displayLimits {
     String limits = '$innerLimit inner, $outerLimit outer';
     if (pulsesPerDay > 0) {

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../data/models/ambition_model.dart';
@@ -383,8 +384,13 @@ class OnboardingController extends GetxController {
     }
   }
 
+  /// Free tier only — paid plans use Stripe Checkout ([openStripeCheckoutForSelectedPlan]).
   Future<bool> subscribeMembershipToApi(String token) async {
     if (selectedPlan.value == null) return false;
+    if (!selectedPlan.value!.isFree) {
+      ToastHelper.showError('Paid plans use secure checkout in the browser.');
+      return false;
+    }
     try {
       isLoading.value = true;
       await _apiService.subscribeMembership(
@@ -397,6 +403,31 @@ class OnboardingController extends GetxController {
       return false;
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  /// Opens Stripe Checkout in the external browser. Does not complete onboarding until billing is active.
+  Future<void> openStripeCheckoutForSelectedPlan({
+    required String token,
+    required String planType,
+  }) async {
+    final selected = selectedPlan.value;
+    if (selected == null) {
+      throw Exception('No plan selected');
+    }
+    final res = await _apiService.createBillingCheckoutSession(
+      token: token,
+      membershipId: selected.id,
+      planType: planType,
+    );
+    final checkoutUrl = res['checkout_url']?.toString();
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      throw Exception('Missing checkout URL');
+    }
+    final uri = Uri.parse(checkoutUrl);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      throw Exception('Could not open checkout');
     }
   }
 

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
+import '../../data/models/billing_status_model.dart';
+import '../../data/models/billing_status_snapshot.dart';
 import '../../data/models/plan_model.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/toast_helper.dart';
@@ -17,12 +20,19 @@ class UpgradePlanScreen extends StatefulWidget {
   State<UpgradePlanScreen> createState() => _UpgradePlanScreenState();
 }
 
-class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
+class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindingObserver {
   final ProfileController controller = Get.put(ProfileController());
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
   int? selectedPlanId;
   bool _isSaving = false;
+  bool _awaitingStripeReturn = false;
+
+  /// Captured immediately before opening Stripe; used to detect cancel/back without paying.
+  BillingStatusSnapshot? _billingSnapshotBeforeCheckout;
+
+  /// Must match API: `monthly` | `yearly`.
+  String _billingCycle = 'monthly';
 
   int? get _currentMembershipPlanId => authController.currentUser.value?.membership?.membershipId;
 
@@ -37,7 +47,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
     return null;
   }
 
-  bool get _canUpdateSubscription {
+  bool get _canStartCheckout {
     if (_isSaving || selectedPlanId == null || _isSameAsCurrentPlan) return false;
     return _selectedPlanModel?.availableForPurchase == true;
   }
@@ -45,6 +55,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final currentUser = authController.currentUser.value;
     if (currentUser?.membership?.membershipId != null) {
       selectedPlanId = currentUser!.membership!.membershipId;
@@ -71,6 +82,73 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _awaitingStripeReturn) {
+      _syncAfterStripeReturn();
+    }
+  }
+
+  Future<void> _syncAfterStripeReturn() async {
+    final token = authController.token;
+    if (token == null) return;
+    final before = _billingSnapshotBeforeCheckout;
+    await authController.fetchUserProfile();
+    try {
+      final status = await apiService.getBillingStatus(token);
+      if (!mounted) return;
+      setState(() {
+        _awaitingStripeReturn = false;
+        _billingSnapshotBeforeCheckout = null;
+      });
+
+      if (before == null) {
+        return;
+      }
+
+      BillingStatusModel? effective = status;
+      var afterSnap = BillingStatusSnapshot.fromModel(effective);
+      if (before.matches(afterSnap)) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        effective = await apiService.getBillingStatus(token);
+        afterSnap = BillingStatusSnapshot.fromModel(effective);
+      }
+      if (before.matches(afterSnap)) {
+        ToastHelper.showInfo('Checkout canceled. Your plan was not changed.');
+        return;
+      }
+
+      final targetId = selectedPlanId;
+      if (effective != null &&
+          effective.isActive &&
+          targetId != null &&
+          effective.membershipId == targetId) {
+        ToastHelper.showSuccess('Subscription active.');
+        Get.back();
+        return;
+      }
+
+      ToastHelper.showInfo(
+        'If you completed payment, your plan may take a moment to activate.',
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _awaitingStripeReturn = false;
+          _billingSnapshotBeforeCheckout = null;
+        });
+        ToastHelper.showInfo('Could not verify billing yet — try again shortly.');
+      }
+    }
+  }
+
   Future<void> _handleSubscribe() async {
     if (selectedPlanId == null) {
       ToastHelper.showError('Please select a plan');
@@ -93,18 +171,53 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
       return;
     }
 
+    if (selectedPlan!.isFree) {
+      setState(() => _isSaving = true);
+      try {
+        await apiService.subscribeMembership(token: token, membershipId: selectedPlanId!);
+        await authController.fetchUserProfile();
+        ToastHelper.showSuccess('Subscription updated successfully');
+        Get.back();
+      } catch (e) {
+        ToastHelper.showError('Failed to update subscription');
+      } finally {
+        setState(() => _isSaving = false);
+      }
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      await apiService.subscribeMembership(
+      final res = await apiService.createBillingCheckoutSession(
         token: token,
         membershipId: selectedPlanId!,
+        planType: _billingCycle,
       );
-      await authController.fetchUserProfile();
-      ToastHelper.showSuccess('Subscription updated successfully');
-      Get.back();
+      final checkoutUrl = res['checkout_url']?.toString();
+      if (checkoutUrl == null || checkoutUrl.isEmpty) {
+        throw Exception('Missing checkout URL');
+      }
+      final uri = Uri.parse(checkoutUrl);
+      BillingStatusSnapshot snapshotBefore;
+      try {
+        final prior = await apiService.getBillingStatus(token);
+        snapshotBefore = BillingStatusSnapshot.fromModel(prior);
+      } catch (_) {
+        snapshotBefore = const BillingStatusSnapshot();
+      }
+
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        throw Exception('Could not open checkout');
+      }
+      setState(() {
+        _isSaving = false;
+        _awaitingStripeReturn = true;
+        _billingSnapshotBeforeCheckout = snapshotBefore;
+      });
+      ToastHelper.showInfo('Complete payment in the browser, then return to Proxi.');
     } catch (e) {
-      ToastHelper.showError('Failed to update subscription');
-    } finally {
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
       setState(() => _isSaving = false);
     }
   }
@@ -147,21 +260,59 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Select the subscription that works best for you',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: cs.onSurfaceVariant,
+                      Center(
+                        child: Text(
+                          'Select the subscription that works best for you',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: cs.onSurfaceVariant,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                      Obx(() {
+                        if (controller.isLoading.value) {
+                          return const SizedBox.shrink();
+                        }
+                        final plans = controller.availablePlans;
+                        if (plans.isEmpty || !plans.any((p) => !p.isFree)) {
+                          return const SizedBox.shrink();
+                        }
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: SegmentedButton<String>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: 'monthly',
+                                  label: Text('Monthly'),
+                                  icon: Icon(Icons.calendar_month_outlined, size: 18),
+                                ),
+                                ButtonSegment(
+                                  value: 'yearly',
+                                  label: Text('Yearly'),
+                                  icon: Icon(Icons.event_repeat_outlined, size: 18),
+                                ),
+                              ],
+                              selected: {_billingCycle},
+                              onSelectionChanged: (Set<String> next) {
+                                setState(() => _billingCycle = next.first);
+                              },
+                            ),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 20),
                       Obx(() {
                         if (controller.isLoading.value) {
                           return Center(
-                            child: CircularProgressIndicator(color: cs.primary),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 24),
+                              child: CircularProgressIndicator(color: cs.primary),
+                            ),
                           );
                         }
 
@@ -179,6 +330,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                             return PlanOptionCard(
                               plan: plan,
                               isSelected: selectedPlanId == plan.id,
+                              billingCycle: _billingCycle,
                               currentMembershipPlanId: _currentMembershipPlanId,
                               onTap: plan.availableForPurchase
                                   ? () {
@@ -199,9 +351,15 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> {
                 padding: const EdgeInsets.all(24.0),
                 child: Obx(() {
                   controller.availablePlans.length;
+                  final sel = _selectedPlanModel;
+                  final label = sel == null
+                      ? 'Select a plan'
+                      : sel.isFree
+                          ? (_isSaving ? 'Updating...' : 'Update subscription')
+                          : (_isSaving ? 'Starting checkout...' : 'Continue to secure checkout');
                   return CustomButton(
-                    text: _isSaving ? 'Updating...' : 'Update Subscription',
-                    isEnabled: _canUpdateSubscription,
+                    text: label,
+                    isEnabled: _canStartCheckout,
                     onPressed: _handleSubscribe,
                   );
                 }),

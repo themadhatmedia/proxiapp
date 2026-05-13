@@ -5,7 +5,6 @@ import '../data/models/comment_model.dart';
 import '../data/models/post_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/storage_service.dart';
-import '../utils/app_vibration.dart';
 import '../utils/toast_helper.dart';
 
 class DiscoverController extends GetxController {
@@ -81,7 +80,6 @@ class DiscoverController extends GetxController {
     final res = await _apiService.reactToPost(token: token, postId: post.id!, emoji: emoji);
     post.mergeReactionResponse(res);
     _updatePostInLists(post);
-    AppVibration.interactionSuccess();
   }
 
   Future<void> _removeReactionImpl(Post post) async {

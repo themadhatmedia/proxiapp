@@ -15,6 +15,7 @@ import '../models/plan_model.dart';
 import '../models/post_like_models.dart';
 import '../models/post_model.dart';
 import '../models/messaging_model.dart';
+import '../models/billing_status_model.dart';
 import '../models/user_model.dart';
 
 class ApiService {
@@ -806,7 +807,7 @@ class ApiService {
     required String token,
     required int membershipId,
   }) async {
-    final url = 'https://myproxi.app/index.php/api/v1/memberships/subscribe';
+    final url = '$baseUrl/memberships/subscribe';
     final requestData = {
       'membership_id': membershipId,
       'payment_method': 'stripe',
@@ -855,8 +856,93 @@ class ApiService {
     );
   }
 
+  /// Creates a Stripe Checkout Session; open [checkout_url] in an external browser.
+  Future<Map<String, dynamic>> createBillingCheckoutSession({
+    required String token,
+    required int membershipId,
+    required String planType,
+  }) async {
+    final url = '$baseUrl/billing/checkout-session';
+    final requestData = <String, dynamic>{
+      'membership_id': membershipId,
+      'plan_type': planType,
+    };
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'POST', url: url, headers: headers, requestData: requestData);
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+
+        final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          requestData: requestData,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return responseData ?? {};
+        }
+        final errorMessage = responseData?['message']?.toString() ??
+            responseData?['error']?.toString() ??
+            'Could not start checkout';
+        throw Exception(errorMessage);
+      },
+    );
+  }
+
+  /// Current subscription — call after returning from Stripe Checkout (see [BILLING_FLOW.md]).
+  Future<BillingStatusModel?> getBillingStatus(String token) async {
+    final url = '$baseUrl/billing/status';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await http.get(Uri.parse(url), headers: headers);
+        final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200) {
+          if (responseData == null) return null;
+          return BillingStatusModel.fromJson(responseData);
+        }
+        final errorMessage = responseData?['message']?.toString() ?? 'Failed to load billing status';
+        throw Exception(errorMessage);
+      },
+    );
+  }
+
   Future<List<PlanModel>> getMemberships(String token) async {
-    final url = 'https://myproxi.app/index.php/api/v1/memberships';
+    final url = '$baseUrl/memberships';
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',

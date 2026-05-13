@@ -1,8 +1,8 @@
+import 'dart:async' show Timer;
+
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-
-import '../utils/app_vibration.dart';
 
 /// Single active picker overlay (posts + messages share one slot).
 OverlayEntry? _floatingReactionOverlayEntry;
@@ -110,6 +110,7 @@ OverlayEntry buildReactionPickerOverlayEntry({
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
+                                  enableFeedback: false,
                                   onTap: () => onPick(emoji),
                                   customBorder: const CircleBorder(),
                                   child: Padding(
@@ -201,8 +202,14 @@ class ReactionPickerLongPress extends StatefulWidget {
 }
 
 class _ReactionPickerLongPressState extends State<ReactionPickerLongPress> {
+  static const Duration _kHoldDuration = Duration(milliseconds: 500);
+  static const double _kMoveSlop = 18;
+
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
+  Timer? _holdTimer;
+  int? _downPointer;
+  Offset? _downPosition;
 
   void _clearOverlayReferenceOnly() {
     _overlayEntry = null;
@@ -216,9 +223,54 @@ class _ReactionPickerLongPressState extends State<ReactionPickerLongPress> {
 
   @override
   void dispose() {
+    _cancelHoldTimer();
     _unregisterFloatingReactionPickerClearRefs(_clearOverlayReferenceOnly);
     _removeOverlay();
     super.dispose();
+  }
+
+  void _cancelHoldTimer() {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    _downPointer = null;
+    _downPosition = null;
+  }
+
+  void _onPointerDown(PointerDownEvent e) {
+    if (!widget.enabled) return;
+    if (_holdTimer != null) {
+      _cancelHoldTimer();
+      return;
+    }
+    _downPointer = e.pointer;
+    _downPosition = e.position;
+    _holdTimer = Timer(_kHoldDuration, () {
+      _holdTimer = null;
+      _downPointer = null;
+      _downPosition = null;
+      if (mounted) {
+        _showPicker();
+      }
+    });
+  }
+
+  void _onPointerMove(PointerMoveEvent e) {
+    if (_downPointer == null || _downPointer != e.pointer || _downPosition == null) return;
+    if ((e.position - _downPosition!).distance > _kMoveSlop) {
+      _cancelHoldTimer();
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent e) {
+    if (_downPointer == e.pointer) {
+      _cancelHoldTimer();
+    }
+  }
+
+  void _onPointerCancel(PointerCancelEvent e) {
+    if (_downPointer == e.pointer) {
+      _cancelHoldTimer();
+    }
   }
 
   void _removeOverlay() {
@@ -235,8 +287,6 @@ class _ReactionPickerLongPressState extends State<ReactionPickerLongPress> {
   void _showPicker() {
     if (!mounted || !widget.enabled) return;
     EmojiReactionActionButton.dismissFloatingReactionPicker();
-
-    AppVibration.reactionPickerOpen();
 
     _overlayEntry = buildReactionPickerOverlayEntry(
       layerLink: _layerLink,
@@ -259,9 +309,12 @@ class _ReactionPickerLongPressState extends State<ReactionPickerLongPress> {
     }
     return CompositedTransformTarget(
       link: _layerLink,
-      child: GestureDetector(
-        onLongPress: _showPicker,
+      child: Listener(
         behavior: HitTestBehavior.translucent,
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
         child: widget.child,
       ),
     );
@@ -415,8 +468,6 @@ class _EmojiReactionActionButtonState extends State<EmojiReactionActionButton> {
     if (!mounted) return;
     EmojiReactionActionButton.dismissFloatingReactionPicker();
 
-    AppVibration.reactionPickerOpen();
-
     _overlayEntry = buildReactionPickerOverlayEntry(
       layerLink: _layerLink,
       removeOverlay: _removeOverlay,
@@ -444,9 +495,10 @@ class _EmojiReactionActionButtonState extends State<EmojiReactionActionButton> {
 
     return CompositedTransformTarget(
       link: _layerLink,
-      child: Material(
+        child: Material(
         color: Colors.transparent,
         child: InkWell(
+          enableFeedback: false,
           onTap: canPress
               ? () {
                   EmojiReactionActionButton.dismissFloatingReactionPicker();

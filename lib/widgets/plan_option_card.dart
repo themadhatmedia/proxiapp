@@ -13,12 +13,16 @@ class PlanOptionCard extends StatelessWidget {
   /// even if [PlanModel.availableForPurchase] is false.
   final int? currentMembershipPlanId;
 
+  /// `monthly` or `yearly` — controls which price is shown for paid tiers.
+  final String billingCycle;
+
   const PlanOptionCard({
     super.key,
     required this.plan,
     required this.isSelected,
     this.onTap,
     this.currentMembershipPlanId,
+    this.billingCycle = 'monthly',
   });
 
   @override
@@ -30,7 +34,7 @@ class PlanOptionCard extends StatelessWidget {
         !plan.availableForPurchase && !isCurrentTier;
     final effectiveOnTap = showUnavailableOverlay ? null : onTap;
 
-    final priceLabel = plan.isFree ? 'Free' : plan.displayPrice.split(' ').first;
+    final priceLabel = plan.priceLabelForBillingCycle(billingCycle);
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 200),
