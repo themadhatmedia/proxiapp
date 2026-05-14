@@ -16,6 +16,7 @@ import '../../data/models/post_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/storage_service.dart';
 import '../../utils/clipboard_rich_paste.dart';
+import '../../utils/editable_context_menu.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/video_trim_helper.dart';
 import '../../utils/toast_helper.dart';
@@ -75,9 +76,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     _ShareFeed.outer,
     _ShareFeed.mutual,
   };
-  static const int maxMediaSize = 10 * 1024 * 1024; // 10MB per file
-  static const int maxTotalSize = 50 * 1024 * 1024; // 50MB total
-
   static const List<String> _createPostHints = [
     "What's the good news?",
     "What's your win today?",
@@ -241,22 +239,26 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickVideo() async {
     try {
-      // Note: pickVideo doesn't support multiple selection, so we use pickMultipleMedia
-      final List<XFile> media = await _picker.pickMultipleMedia();
-
-      if (media.isNotEmpty) {
-        for (final file in media) {
-          final isVideo = _isVideoPath(file.path, mimeType: file.mimeType);
-          if (isVideo) {
-            final trimmed = await VideoTrimHelper.enforceMaxDuration(context, File(file.path));
-            if (trimmed != null) {
-              await _addMedia(trimmed, true);
-            }
-          }
-        }
+      final XFile? x = await _picker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(minutes: 5),
+      );
+      if (x == null || !mounted) return;
+      final file = File(x.path);
+      if (!file.existsSync()) {
+        ToastHelper.showError('Could not read selected video');
+        return;
+      }
+      if (!_isVideoPath(x.path, mimeType: x.mimeType)) {
+        await _addMedia(file, false);
+        return;
+      }
+      final trimmed = await VideoTrimHelper.enforceMaxDuration(context, file);
+      if (trimmed != null) {
+        await _addMedia(trimmed, true);
       }
     } catch (e) {
-      ToastHelper.showError('Failed to pick videos');
+      ToastHelper.showError('Failed to pick video');
     }
   }
 
@@ -388,23 +390,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _addMedia(File file, bool isVideo) async {
     VideoPlayerController? controller;
     try {
-      final fileSize = await file.length();
-      if (fileSize > maxMediaSize) {
-        ToastHelper.showError('File size must be less than 10MB');
-        return;
-      }
-
-      // Check total size of all media files
-      int currentTotalSize = 0;
-      for (var existingFile in _mediaFiles) {
-        currentTotalSize += await existingFile.length();
-      }
-
-      if (currentTotalSize + fileSize > maxTotalSize) {
-        ToastHelper.showError('Total media size cannot exceed 50MB. Please remove some files.');
-        return;
-      }
-
       if (isVideo) {
         controller = VideoPlayerController.file(file);
 
@@ -621,6 +606,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   minLines: 5,
                   maxLength: 280,
                   textCapitalization: TextCapitalization.sentences,
+                  contextMenuBuilder: buildProxiEditableTextContextMenu,
                   contentInsertionConfiguration: ContentInsertionConfiguration(
                     allowedMimeTypes: const [
                       'image/png',
@@ -810,20 +796,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
   }
 
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
-  Future<int> _getTotalMediaSize() async {
-    int totalSize = 0;
-    for (var file in _mediaFiles) {
-      totalSize += await file.length();
-    }
-    return totalSize;
-  }
-
   void _removeServerMedia(int mediaId) {
     setState(() {
       _removedMediaIds.add(mediaId);
@@ -858,24 +830,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    FutureBuilder<int>(
-                      future: _getTotalMediaSize(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData || snapshot.data == 0) {
-                          return const SizedBox.shrink();
-                        }
-                        final totalSize = snapshot.data!;
-                        final percentage = (totalSize / maxTotalSize * 100).clamp(0, 100);
-                        final isNearLimit = percentage > 80;
-                        return Text(
-                          'New uploads: ${_formatFileSize(totalSize)} / ${_formatFileSize(maxTotalSize)}',
-                          style: TextStyle(
-                            color: isNearLimit ? Colors.orange : cs.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        );
-                      },
                     ),
                   ],
                 ),
@@ -1101,24 +1055,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    FutureBuilder<int>(
-                      future: _getTotalMediaSize(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          final totalSize = snapshot.data!;
-                          final percentage = (totalSize / maxTotalSize * 100).clamp(0, 100);
-                          final isNearLimit = percentage > 80;
-                          return Text(
-                            '${_formatFileSize(totalSize)} / ${_formatFileSize(maxTotalSize)}',
-                            style: TextStyle(
-                              color: isNearLimit ? Colors.orange : cs.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
                     ),
                   ],
                 ),

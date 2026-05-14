@@ -22,6 +22,7 @@ import '../../data/models/post_reaction_models.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/app_vibration.dart';
 import '../../utils/clipboard_rich_paste.dart';
+import '../../utils/editable_context_menu.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/video_trim_helper.dart';
 import '../../utils/toast_helper.dart';
@@ -686,14 +687,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ToastHelper.showError('Could not read selected document');
       return;
     }
-    try {
-      final length = await file.length();
-      const tenMb = 10 * 1024 * 1024;
-      if (length > tenMb) {
-        ToastHelper.showError('Document must be 10MB or less');
-        return;
-      }
-    } catch (_) {}
     setState(() {
       _selectedAttachment = file;
       _selectedAttachmentName = p.name;
@@ -1069,6 +1062,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             minLines: 1,
                             maxLines: 5,
                             textCapitalization: TextCapitalization.sentences,
+                            contextMenuBuilder: buildProxiEditableTextContextMenu,
                             contentInsertionConfiguration: ContentInsertionConfiguration(
                               allowedMimeTypes: const [
                                 'image/png',

@@ -1667,8 +1667,6 @@ class ApiService {
           } else {
             return Post.fromJson(responseData);
           }
-        } else if (response.statusCode == 413) {
-          throw Exception('Files are too large. Total size must be less than 50MB');
         } else {
           throw Exception(responseData['message'] ?? 'Failed to create post');
         }
@@ -1790,8 +1788,6 @@ class ApiService {
             return Post.fromJson(responseData['data'] as Map<String, dynamic>);
           }
           return Post.fromJson(responseData as Map<String, dynamic>);
-        } else if (response.statusCode == 413) {
-          throw Exception('Files are too large. Each file must be 10MB or less');
         } else {
           throw Exception(responseData['message'] ?? 'Failed to update post');
         }

@@ -28,8 +28,14 @@
 	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>to pick image from profile</string>
+	<string>Proxi uses the camera so you can take photos and videos for your profile and posts.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Proxi needs microphone access to record sound when you capture a video for a post.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>This app accesses your contacts to help you find and connect with friends on Proxi.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -42,7 +48,7 @@
 		<string>remote-notification</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>to use image from gallery</string>
+	<string>Proxi needs access to your photo library so you can choose photos and videos for posts, messages, and your profile.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

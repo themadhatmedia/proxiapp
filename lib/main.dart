@@ -60,15 +60,21 @@ void main() async {
   if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
     await _initializeFirebaseSafe();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    await FcmService.instance.install();
-    // Cold-start notification tap: resolve route as soon as Firebase is ready (retries until auth/nav exist).
-    handleInitialMessagingFcm();
     if (!Get.isRegistered<BillingLinkService>()) {
       Get.put(BillingLinkService(), permanent: true);
     }
   }
 
   runApp(const MyApp());
+
+  // Run FCM listener setup after the first frame so iOS native swizzling / notification
+  // plumbing is less likely to race the Dart isolate during cold start.
+  if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await FcmService.instance.install();
+      handleInitialMessagingFcm();
+    });
+  }
 }
 
 class MyApp extends StatelessWidget {
