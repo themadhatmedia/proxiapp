@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:video_player/video_player.dart';
+import 'feed_inline_video.dart';
+import 'video_post_poster.dart';
 
 import '../config/theme/proxi_palette.dart';
 import '../controllers/auth_controller.dart';
@@ -29,9 +30,13 @@ import 'safe_avatar.dart';
 class DiscoverPostCard extends StatefulWidget {
   final Post post;
 
+  /// `inner` or `outer` — scopes feed video autoplay so tabs do not fight.
+  final String feedScope;
+
   const DiscoverPostCard({
     super.key,
     required this.post,
+    required this.feedScope,
   });
 
   @override
@@ -178,42 +183,11 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   }
 
   Widget _buildSingleMediaItem(MediaItem item, int index) {
-    return GestureDetector(
-      onTap: () => Get.to(() => MediaViewerScreen(media: widget.post.media!, initialIndex: index)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: AspectRatio(
-          aspectRatio: 1,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: _buildMediaThumbnail(item),
-              ),
-              if (item.isVideo)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.3),
-                        ],
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.play_circle_outline,
-                        color: Colors.white,
-                        size: 72,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: _buildMediaTileContent(item, index, borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -380,68 +354,44 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   }
 
   Widget _buildMediaGridItem(MediaItem item, int index) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: _buildMediaTileContent(item, index, borderRadius: BorderRadius.circular(8)),
+    );
+  }
+
+  String _videoSlotId(int index) =>
+      '${widget.feedScope}_post_${widget.post.id ?? widget.post.hashCode}_$index';
+
+  Widget _buildMediaTileContent(
+    MediaItem item,
+    int index, {
+    required BorderRadius borderRadius,
+  }) {
+    if (item.isVideo) {
+      return FeedInlineVideo(
+        slotId: _videoSlotId(index),
+        videoUrl: item.fullUrl,
+        posterUrl: item.posterUrl,
+        borderRadius: borderRadius,
+        onOpenFullscreen: () => Get.to(
+          () => MediaViewerScreen(media: widget.post.media!, initialIndex: index),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: () => Get.to(() => MediaViewerScreen(media: widget.post.media!, initialIndex: index)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: _buildMediaThumbnail(item),
-            ),
-            if (item.isVideo)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.3),
-                      ],
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.play_circle_outline,
-                      color: Colors.white,
-                      size: 56,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      child: _buildMediaThumbnail(item),
     );
   }
 
   Widget _buildMediaThumbnail(MediaItem item) {
     if (item.isVideo) {
-      if (item.thumbnail != null) {
-        return CachedNetworkImage(
-          imageUrl: item.thumbnail!,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          maxWidthDiskCache: 800,
-          maxHeightDiskCache: 800,
-          placeholder: (context, url) => Container(
-            color: Colors.black,
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            ),
-          ),
-          errorWidget: (context, url, error) {
-            return _VideoThumbnailWidget(videoUrl: item.fullUrl);
-          },
-        );
-      }
-      return _VideoThumbnailWidget(videoUrl: item.fullUrl);
+      return VideoPostPreview(
+        posterUrl: item.posterUrl,
+        videoUrl: item.fullUrl,
+      );
     }
 
     return CachedNetworkImage(
@@ -474,16 +424,17 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   }
 
   Widget _buildMediaGridItemWithOverlay(MediaItem item, int index, int remainingCount) {
-    return GestureDetector(
-      onTap: () => Get.to(() => MediaViewerScreen(media: widget.post.media!, initialIndex: index)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: _buildMediaThumbnail(item),
-            ),
-            Positioned.fill(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: _buildMediaTileContent(item, index, borderRadius: BorderRadius.circular(8)),
+          ),
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => Get.to(() => MediaViewerScreen(media: widget.post.media!, initialIndex: index)),
+              behavior: HitTestBehavior.opaque,
               child: Container(
                 color: Colors.black.withOpacity(0.7),
                 child: Center(
@@ -498,8 +449,8 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -994,111 +945,6 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
   String _formatDate(DateTime? date) {
     if (date == null) return '';
     return timeago.format(date);
-  }
-}
-
-class _VideoThumbnailWidget extends StatefulWidget {
-  final String videoUrl;
-
-  const _VideoThumbnailWidget({required this.videoUrl});
-
-  @override
-  State<_VideoThumbnailWidget> createState() => _VideoThumbnailWidgetState();
-}
-
-class _VideoThumbnailWidgetState extends State<_VideoThumbnailWidget> with AutomaticKeepAliveClientMixin {
-  static final Map<String, VideoPlayerController> _controllerCache = {};
-  VideoPlayerController? _controller;
-  bool _isInitialized = false;
-  bool _hasError = false;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideo();
-  }
-
-  Future<void> _initializeVideo() async {
-    try {
-      if (_controllerCache.containsKey(widget.videoUrl)) {
-        _controller = _controllerCache[widget.videoUrl];
-        if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
-        }
-        return;
-      }
-
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      await _controller!.initialize();
-      await _controller!.seekTo(const Duration(milliseconds: 100));
-
-      _controllerCache[widget.videoUrl] = _controller!;
-
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing video thumbnail: $e');
-      if (mounted) {
-        setState(() {
-          _hasError = true;
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    if (_hasError) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: Icon(
-            Icons.videocam_off,
-            color: Colors.white60,
-            size: 64,
-          ),
-        ),
-      );
-    }
-
-    if (!_isInitialized || _controller == null) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      height: double.infinity,
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
-        ),
-      ),
-    );
   }
 }
 

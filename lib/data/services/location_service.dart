@@ -145,7 +145,7 @@ class LocationService extends GetxService {
       _lastServerPush = now;
       _lastPushedPosition = position;
 
-      await _apiService.updateLocation(
+      _apiService.queueLocationUpdate(
         token: token,
         latitude: position.latitude,
         longitude: position.longitude,
@@ -182,7 +182,7 @@ class LocationService extends GetxService {
     _locationUpdateTimer = Timer.periodic(updateInterval, (_) {
       unawaited(_updateLocationInBackground());
     });
-    await _updateLocationInBackground();
+    unawaited(_updateLocationInBackground());
   }
 
   void stopBackgroundLocationUpdates() {

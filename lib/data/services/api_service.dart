@@ -21,7 +21,11 @@ import '../models/user_model.dart';
 class ApiService {
   static const String baseUrl = 'https://myproxi.app/index.php/api/v1';
   static const int maxRetries = 3;
-  static const Duration timeout = Duration(seconds: 30);
+  static const Duration timeout = Duration(seconds: 45);
+
+  /// Shared client so API calls reuse connections instead of competing with
+  /// dozens of one-off video handshakes to the same host.
+  static final http.Client httpClient = http.Client();
 
   /// `android` / `ios` for mobile; other platforms get a stable string for the API.
   static String _registerDeviceType() {
@@ -110,8 +114,7 @@ class ApiService {
         attempts++;
         developer.log('Attempt $attempts/$maxRetries for $method $url', name: 'ApiService');
         return await request().timeout(timeout);
-      } on TimeoutException catch (e) {
-        print(e.message);
+      } on TimeoutException {
         developer.log('Timeout on attempt $attempts for $method $url', name: 'ApiService');
         if (attempts >= maxRetries) {
           _logApiCall(
@@ -119,7 +122,17 @@ class ApiService {
             url: url,
             error: 'Request timeout after $maxRetries attempts',
           );
-          throw Exception('Request timeout after $maxRetries attempts');
+          throw Exception(
+            'Request timed out. If Postman works, close and reopen the app — '
+            'heavy video loading may have blocked other requests.',
+          );
+        }
+        await Future.delayed(delay);
+        delay *= 2;
+      } on SocketException catch (e) {
+        developer.log('Socket error on attempt $attempts: $e', name: 'ApiService');
+        if (attempts >= maxRetries) {
+          throw Exception('Network error: ${e.message}. Check Wi‑Fi or cellular.');
         }
         await Future.delayed(delay);
         delay *= 2;
@@ -223,7 +236,7 @@ class ApiService {
             requestData: requestData,
           );
 
-          response = await http.post(
+          response = await httpClient.post(
             Uri.parse(url),
             headers: headers,
             body: jsonEncode(requestData),
@@ -271,7 +284,7 @@ class ApiService {
           requestData: requestData,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
           body: jsonEncode(requestData),
@@ -314,7 +327,7 @@ class ApiService {
           requestData: requestData,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
           body: jsonEncode(requestData),
@@ -357,7 +370,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
         );
@@ -397,7 +410,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -443,7 +456,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -589,7 +602,7 @@ class ApiService {
             requestData: requestData,
           );
 
-          response = await http.post(
+          response = await httpClient.post(
             Uri.parse(url),
             headers: headers,
             body: jsonEncode(requestData),
@@ -630,7 +643,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -670,7 +683,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -705,7 +718,7 @@ class ApiService {
       request: () async {
         _logApiCall(method: 'GET', url: url, headers: headers);
 
-        final response = await http.get(Uri.parse(url), headers: headers);
+        final response = await httpClient.get(Uri.parse(url), headers: headers);
         final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
 
         _logApiCall(
@@ -739,7 +752,7 @@ class ApiService {
       request: () async {
         _logApiCall(method: 'GET', url: url, headers: headers);
 
-        final response = await http.get(Uri.parse(url), headers: headers);
+        final response = await httpClient.get(Uri.parse(url), headers: headers);
         final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
 
         _logApiCall(
@@ -777,7 +790,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -829,7 +842,7 @@ class ApiService {
           requestData: requestData,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
           body: jsonEncode(requestData),
@@ -878,7 +891,7 @@ class ApiService {
       request: () async {
         _logApiCall(method: 'POST', url: url, headers: headers, requestData: requestData);
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
           body: jsonEncode(requestData),
@@ -920,7 +933,7 @@ class ApiService {
       request: () async {
         _logApiCall(method: 'GET', url: url, headers: headers);
 
-        final response = await http.get(Uri.parse(url), headers: headers);
+        final response = await httpClient.get(Uri.parse(url), headers: headers);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : null;
 
         _logApiCall(
@@ -958,7 +971,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1001,38 +1014,67 @@ class ApiService {
     );
   }
 
+  static const Duration _locationTimeout = Duration(seconds: 15);
+
+  /// Sends location in the background — never blocks other API work and does not retry.
+  void queueLocationUpdate({
+    required String token,
+    required double latitude,
+    required double longitude,
+  }) {
+    unawaited(
+      _sendLocationUpdate(
+        token: token,
+        latitude: latitude,
+        longitude: longitude,
+      ),
+    );
+  }
+
+  /// Returns immediately after scheduling [queueLocationUpdate].
   Future<void> updateLocation({
     required String token,
     required double latitude,
     required double longitude,
   }) async {
+    queueLocationUpdate(
+      token: token,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  Future<void> _sendLocationUpdate({
+    required String token,
+    required double latitude,
+    required double longitude,
+  }) async {
     final url = '$baseUrl/puls/update-location';
-    final requestData = {
-      'latitude': latitude,
-      'longitude': longitude,
-    };
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     };
+    final body = jsonEncode({
+      'latitude': latitude,
+      'longitude': longitude,
+    });
 
-    return _retryRequest(
-      method: 'POST',
-      url: url,
-      request: () async {
-        final response = await http.post(
-          Uri.parse(url),
-          headers: headers,
-          body: jsonEncode(requestData),
+    try {
+      final response = await httpClient
+          .post(Uri.parse(url), headers: headers, body: body)
+          .timeout(_locationTimeout);
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        developer.log(
+          'Location update HTTP ${response.statusCode}',
+          name: 'ApiService',
         );
-
-        if (response.statusCode != 200 && response.statusCode != 201) {
-          final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
-          final errorMessage = responseData?['message'] ?? 'Failed to update location';
-          throw Exception(errorMessage);
-        }
-      },
-    );
+      }
+    } on TimeoutException {
+      developer.log('Location update timed out', name: 'ApiService');
+    } catch (e) {
+      developer.log('Location update failed: $e', name: 'ApiService');
+    }
   }
 
   Future<Map<String, dynamic>> getNearbyUsers({
@@ -1057,7 +1099,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1096,7 +1138,7 @@ class ApiService {
       request: () async {
         _logApiCall(method: 'GET', url: url, headers: headers);
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1146,7 +1188,7 @@ class ApiService {
           requestData: requestData,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
           body: jsonEncode(requestData),
@@ -1203,7 +1245,7 @@ class ApiService {
           requestData: requestData,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
           body: jsonEncode(requestData),
@@ -1255,7 +1297,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1299,7 +1341,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1343,7 +1385,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1388,7 +1430,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.delete(
+        final response = await httpClient.delete(
           Uri.parse(url),
           headers: headers,
         );
@@ -1484,7 +1526,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.delete(
+        final response = await httpClient.delete(
           Uri.parse(url),
           headers: headers,
         );
@@ -1529,7 +1571,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -1812,7 +1854,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http
+        final response = await httpClient
             .get(
               Uri.parse(url),
               headers: headers,
@@ -1866,7 +1908,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http
+        final response = await httpClient
             .get(
               Uri.parse(url),
               headers: headers,
@@ -2042,7 +2084,7 @@ class ApiService {
           requestData: {'emoji': emoji},
         );
         final response =
-            await http.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
+            await httpClient.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
         _logApiCall(
           method: 'POST',
@@ -2074,7 +2116,7 @@ class ApiService {
       url: url,
       request: () async {
         _logApiCall(method: 'DELETE', url: url, headers: headers);
-        final response = await http.delete(Uri.parse(url), headers: headers).timeout(timeout);
+        final response = await httpClient.delete(Uri.parse(url), headers: headers).timeout(timeout);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
         _logApiCall(
           method: 'DELETE',
@@ -2114,7 +2156,7 @@ class ApiService {
           requestData: {'emoji': emoji},
         );
         final response =
-            await http.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
+            await httpClient.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
         _logApiCall(
           method: 'POST',
@@ -2146,7 +2188,7 @@ class ApiService {
       url: url,
       request: () async {
         _logApiCall(method: 'DELETE', url: url, headers: headers);
-        final response = await http.delete(Uri.parse(url), headers: headers).timeout(timeout);
+        final response = await httpClient.delete(Uri.parse(url), headers: headers).timeout(timeout);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
         _logApiCall(
           method: 'DELETE',
@@ -2179,7 +2221,7 @@ class ApiService {
       request: () async {
         _logApiCall(method: 'GET', url: url, headers: headers);
 
-        final response = await http.get(Uri.parse(url), headers: headers).timeout(timeout);
+        final response = await httpClient.get(Uri.parse(url), headers: headers).timeout(timeout);
         final responseData = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
 
         _logApiCall(
@@ -2200,8 +2242,38 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> getDiscoverPosts(String token) async {
-    final url = '$baseUrl/posts';
+  /// Wins wall posts with cursor pagination per wall.
+  ///
+  /// Initial load: `GET /posts` (optional `per_page`, `inner_per_page`, `outer_per_page`).
+  /// Load more inner: `GET /posts?inner_cursor=...` only.
+  /// Load more outer: `GET /posts?outer_cursor=...` only.
+  Future<Map<String, dynamic>> getDiscoverPosts(
+    String token, {
+    int? perPage,
+    int? innerPerPage,
+    int? outerPerPage,
+    int? mutualPerPage,
+    String? innerCursor,
+    String? outerCursor,
+    String? mutualCursor,
+  }) async {
+    final query = <String, String>{};
+    if (perPage != null) query['per_page'] = '$perPage';
+    if (innerPerPage != null) query['inner_per_page'] = '$innerPerPage';
+    if (outerPerPage != null) query['outer_per_page'] = '$outerPerPage';
+    if (mutualPerPage != null) query['mutual_per_page'] = '$mutualPerPage';
+    if (innerCursor != null && innerCursor.isNotEmpty) {
+      query['inner_cursor'] = innerCursor;
+    }
+    if (outerCursor != null && outerCursor.isNotEmpty) {
+      query['outer_cursor'] = outerCursor;
+    }
+    if (mutualCursor != null && mutualCursor.isNotEmpty) {
+      query['mutual_cursor'] = mutualCursor;
+    }
+
+    final uri = Uri.parse('$baseUrl/posts').replace(queryParameters: query.isEmpty ? null : query);
+    final url = uri.toString();
     final headers = {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
@@ -2217,9 +2289,9 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http
+        final response = await httpClient
             .get(
-              Uri.parse(url),
+              uri,
               headers: headers,
             )
             .timeout(timeout);
@@ -2261,7 +2333,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http
+        final response = await httpClient
             .get(
               Uri.parse(url),
               headers: headers,
@@ -2308,7 +2380,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -2550,7 +2622,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http
+        final response = await httpClient
             .get(
               Uri.parse(url),
               headers: headers,
@@ -2600,7 +2672,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.get(
+        final response = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -2647,7 +2719,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
         );
@@ -2693,7 +2765,7 @@ class ApiService {
           headers: headers,
         );
 
-        final response = await http.post(
+        final response = await httpClient.post(
           Uri.parse(url),
           headers: headers,
         );
@@ -2947,7 +3019,7 @@ class ApiService {
           url: url,
           headers: headers,
         );
-        final res = await http.get(
+        final res = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );
@@ -2989,7 +3061,7 @@ class ApiService {
           url: url,
           headers: headers,
         );
-        final res = await http.get(
+        final res = await httpClient.get(
           Uri.parse(url),
           headers: headers,
         );

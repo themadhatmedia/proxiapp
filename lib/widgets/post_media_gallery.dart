@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:video_player/video_player.dart';
+import 'video_post_poster.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../data/models/post_model.dart';
 import '../views/posts/media_viewer_screen.dart';
@@ -269,34 +269,14 @@ class PostMediaGallery extends StatelessWidget {
 
   Widget _buildMediaThumbnail(MediaItem item) {
     if (item.isVideo) {
-      // If video has a thumbnail URL, use it
-      if (item.thumbnail != null) {
-        return SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: CachedNetworkImage(
-            imageUrl: item.thumbnail!,
-            fit: BoxFit.cover,
-            maxWidthDiskCache: 800,
-            maxHeightDiskCache: 800,
-            placeholder: (context, url) => Container(
-              color: Colors.black,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
-            ),
-            errorWidget: (context, url, error) {
-              debugPrint('Error loading video thumbnail: $error');
-              return VideoThumbnailWidget(videoUrl: item.fullUrl);
-            },
-          ),
-        );
-      }
-      // If no thumbnail, generate one from video
-      return VideoThumbnailWidget(videoUrl: item.fullUrl);
+      return SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: VideoPostPreview(
+          posterUrl: item.posterUrl,
+          videoUrl: item.fullUrl,
+        ),
+      );
     }
 
     // For images
@@ -336,30 +316,10 @@ class PostMediaGallery extends StatelessWidget {
 
   Widget _buildSingleMediaThumbnail(MediaItem item) {
     if (item.isVideo) {
-      // If video has a thumbnail URL, use it
-      if (item.thumbnail != null) {
-        return CachedNetworkImage(
-          imageUrl: item.thumbnail!,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          placeholder: (context, url) => Container(
-            color: Colors.black,
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            ),
-          ),
-          errorWidget: (context, url, error) {
-            debugPrint('Error loading video thumbnail: $error');
-            return VideoThumbnailWidget(videoUrl: item.fullUrl);
-          },
-        );
-      }
-      // If no thumbnail, generate one from video
-      return VideoThumbnailWidget(videoUrl: item.fullUrl);
+      return VideoPostPreview(
+        posterUrl: item.posterUrl,
+        videoUrl: item.fullUrl,
+      );
     }
 
     // For images
@@ -410,116 +370,6 @@ class PostMediaGallery extends StatelessWidget {
           Icons.play_circle_outline,
           color: Colors.white,
           size: 72,
-        ),
-      ),
-    );
-  }
-}
-
-class VideoThumbnailWidget extends StatefulWidget {
-  final String videoUrl;
-
-  const VideoThumbnailWidget({
-    super.key,
-    required this.videoUrl,
-  });
-
-  @override
-  State<VideoThumbnailWidget> createState() => _VideoThumbnailWidgetState();
-}
-
-class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> with AutomaticKeepAliveClientMixin {
-  static final Map<String, VideoPlayerController> _controllerCache = {};
-  VideoPlayerController? _controller;
-  bool _isInitialized = false;
-  bool _hasError = false;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideo();
-  }
-
-  Future<void> _initializeVideo() async {
-    try {
-      if (_controllerCache.containsKey(widget.videoUrl)) {
-        _controller = _controllerCache[widget.videoUrl];
-        if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
-        }
-        return;
-      }
-
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      await _controller!.initialize();
-      await _controller!.seekTo(const Duration(milliseconds: 100));
-
-      _controllerCache[widget.videoUrl] = _controller!;
-
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing video thumbnail: $e');
-      if (mounted) {
-        setState(() {
-          _hasError = true;
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    if (_hasError) {
-      return Container(
-        color: Colors.black,
-        width: double.infinity,
-        child: const Center(
-          child: Icon(
-            Icons.videocam_off,
-            color: Colors.white60,
-            size: 48,
-          ),
-        ),
-      );
-    }
-
-    if (!_isInitialized || _controller == null) {
-      return Container(
-        color: Colors.black,
-        width: double.infinity,
-        child: const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      height: double.infinity,
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
         ),
       ),
     );

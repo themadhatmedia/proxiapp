@@ -1,8 +1,13 @@
+import 'dart:async' show unawaited;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../data/models/post_model.dart';
+import '../../utils/video_load_helper.dart';
+import '../../utils/video_playback_service.dart';
 
 class MediaViewerScreen extends StatefulWidget {
   final List<MediaItem> media;
@@ -22,41 +27,60 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
   late PageController _pageController;
   late int _currentIndex;
   final Map<int, VideoPlayerController> _videoControllers = {};
+  final Map<int, Object> _videoLoadTokens = {};
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
-
-    if (widget.media[_currentIndex].isVideo) {
-      _initializeVideoPlayer(_currentIndex);
-    }
+    _prepareVideo(_currentIndex);
+    _preloadAdjacentVideos(_currentIndex);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    for (var controller in _videoControllers.values) {
-      controller.dispose();
+    final playback = VideoPlaybackService.instance;
+    for (final entry in _videoControllers.entries) {
+      playback.release(widget.media[entry.key].fullUrl, entry.value);
     }
+    _videoControllers.clear();
     super.dispose();
   }
 
-  Future<void> _initializeVideoPlayer(int index) async {
-    if (_videoControllers.containsKey(index)) return;
+  void _preloadAdjacentVideos(int index) {
+    final playback = VideoPlaybackService.instance;
+    for (final i in [index - 1, index + 1]) {
+      if (i >= 0 && i < widget.media.length && widget.media[i].isVideo) {
+        playback.preload(widget.media[i].fullUrl);
+      }
+    }
+  }
 
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.media[index].fullUrl),
-    );
+  Future<void> _prepareVideo(int index) async {
+    if (!widget.media[index].isVideo) return;
 
-    _videoControllers[index] = controller;
+    final url = widget.media[index].fullUrl;
+    final token = Object();
+    _videoLoadTokens[index] = token;
+
+    final existing = _videoControllers[index];
+    if (existing != null) {
+      VideoPlaybackService.instance.release(url, existing);
+      _videoControllers.remove(index);
+    }
+
+    if (mounted) setState(() {});
 
     try {
-      await controller.initialize();
-      if (mounted) setState(() {});
+      final controller = await VideoPlaybackService.instance.obtain(url);
+      if (!mounted || _videoLoadTokens[index] != token) return;
+      _videoControllers[index] = controller;
+      setState(() {});
     } catch (e) {
       debugPrint('Error initializing video: $e');
+      if (mounted) setState(() {});
     }
   }
 
@@ -65,15 +89,16 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
       _currentIndex = index;
     });
 
-    for (var entry in _videoControllers.entries) {
+    for (final entry in _videoControllers.entries) {
       if (entry.key != index) {
         entry.value.pause();
       }
     }
 
-    if (widget.media[index].isVideo && !_videoControllers.containsKey(index)) {
-      _initializeVideoPlayer(index);
+    if (widget.media[index].isVideo) {
+      unawaited(_prepareVideo(index));
     }
+    _preloadAdjacentVideos(index);
   }
 
   @override
@@ -114,7 +139,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(0.6),
+            Colors.black.withValues(alpha: 0.6),
             Colors.transparent,
           ],
         ),
@@ -157,7 +182,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _currentIndex == index ? Colors.white : Colors.white.withOpacity(0.4),
+              color: _currentIndex == index ? Colors.white : Colors.white.withValues(alpha: 0.4),
             ),
           ),
         ),
@@ -167,10 +192,9 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
 
   Widget _buildMediaView(MediaItem mediaItem, int index) {
     if (mediaItem.isVideo) {
-      return _buildVideoView(index);
-    } else {
-      return _buildImageView(mediaItem);
+      return _buildVideoView(mediaItem, index);
     }
+    return _buildImageView(mediaItem);
   }
 
   Widget _buildImageView(MediaItem mediaItem) {
@@ -178,66 +202,96 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
       minScale: 0.5,
       maxScale: 4.0,
       child: Center(
-        child: Image.network(
-          mediaItem.fullUrl,
+        child: CachedNetworkImage(
+          imageUrl: mediaItem.fullUrl,
           fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.broken_image,
-                    color: Colors.white60,
-                    size: 64,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Failed to load image',
-                    style: TextStyle(color: Colors.white60),
-                  ),
-                ],
-              ),
-            );
-          },
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
-                color: Colors.white,
-              ),
-            );
-          },
+          placeholder: (_, __) => const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+          errorWidget: (_, __, ___) => const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.broken_image, color: Colors.white60, size: 64),
+                SizedBox(height: 16),
+                Text('Failed to load image', style: TextStyle(color: Colors.white60)),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildVideoView(int index) {
+  Widget _buildVideoView(MediaItem mediaItem, int index) {
     final controller = _videoControllers[index];
+    final ready = controller != null && controller.value.isInitialized;
+    final phase = VideoPlaybackService.instance.phaseFor(mediaItem.fullUrl);
+    final failed = phase == VideoLoadPhase.failed;
+    final downloading = phase == VideoLoadPhase.downloading;
 
-    if (controller == null || !controller.value.isInitialized) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Colors.white,
-        ),
-      );
-    }
-
-    return Center(
-      child: AspectRatio(
-        aspectRatio: controller.value.aspectRatio,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            VideoPlayer(controller),
-            Positioned.fill(
-              child: _VideoControls(controller: controller),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (mediaItem.posterUrl != null)
+          Positioned.fill(
+            child: CachedNetworkImage(
+              imageUrl: mediaItem.posterUrl!,
+              fit: BoxFit.contain,
+              fadeInDuration: Duration.zero,
             ),
-          ],
-        ),
-      ),
+          ),
+        if (!ready && !failed)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Colors.white),
+                if (downloading) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Downloading video…',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ],
+            ),
+          )
+        else if (failed)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white70, size: 48),
+                const SizedBox(height: 12),
+                const Text(
+                  'Video could not load',
+                  style: TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => unawaited(_prepareVideo(index)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          )
+        else if (ready && controller != null)
+          Center(
+            child: AspectRatio(
+              aspectRatio: controller.value.aspectRatio,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  VideoPlayer(controller),
+                  Positioned.fill(
+                    child: _VideoControls(controller: controller),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -303,9 +357,7 @@ class _VideoControlsState extends State<_VideoControls> {
             AnimatedOpacity(
               opacity: 1.0,
               duration: const Duration(milliseconds: 300),
-              child: Container(
-                color: Colors.black.withOpacity(0.3),
-              ),
+              child: ColoredBox(color: Colors.black.withValues(alpha: 0.3)),
             ),
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -343,17 +395,11 @@ class _VideoControlsState extends State<_VideoControls> {
                         children: [
                           Text(
                             _formatDuration(widget.controller.value.position),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
                           ),
                           Text(
                             _formatDuration(widget.controller.value.duration),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),

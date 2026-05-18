@@ -49,25 +49,27 @@ class _MainNavigationState extends State<MainNavigation> {
         r.contains('proxi-circles');
   }
 
-  Future<void> _updateUserLocation() async {
-    try {
-      final token = _authController.token;
-      if (token == null) return;
+  void _scheduleLocationUpdate() {
+    unawaited(() async {
+      try {
+        final token = _authController.token;
+        if (token == null) return;
 
-      final hasPermission = await _locationService.checkAndRequestPermission();
-      if (!hasPermission) return;
+        final hasPermission = await _locationService.checkAndRequestPermission();
+        if (!hasPermission) return;
 
-      final position = await _locationService.getCurrentLocation();
-      if (position != null) {
-        await _apiService.updateLocation(
-          token: token,
-          latitude: position.latitude,
-          longitude: position.longitude,
-        );
+        final position = await _locationService.getCurrentLocation();
+        if (position != null) {
+          _apiService.queueLocationUpdate(
+            token: token,
+            latitude: position.latitude,
+            longitude: position.longitude,
+          );
+        }
+      } catch (e) {
+        debugPrint('MainNavigation location: $e');
       }
-    } catch (e) {
-      // Silently fail - location update is not critical for navigation
-    }
+    }());
   }
 
   void _refreshCirclesData() {
@@ -113,8 +115,8 @@ class _MainNavigationState extends State<MainNavigation> {
         registerMessagingFcmListeners();
       }
       if (_isOnboardingRouteActive(Get.currentRoute)) return;
-      await _updateUserLocation();
-      await _locationService.startBackgroundLocationUpdates();
+      _scheduleLocationUpdate();
+      unawaited(_locationService.startBackgroundLocationUpdates());
     });
   }
 

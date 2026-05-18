@@ -132,14 +132,42 @@ class MediaItem {
     this.updatedAt,
   });
 
+  /// Non-empty poster URL from API (several possible field names).
+  String? get posterUrl {
+    final t = thumbnail?.trim();
+    if (t != null && t.isNotEmpty) return t;
+    return null;
+  }
+
+  static String? _thumbnailFromJson(Map<String, dynamic> json) {
+    for (final key in [
+      'thumbnail',
+      'thumbnail_url',
+      'thumb_url',
+      'preview_url',
+      'poster_url',
+      'poster',
+    ]) {
+      final value = json[key];
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) return trimmed;
+      }
+    }
+    return null;
+  }
+
   factory MediaItem.fromJson(Map<String, dynamic> json) {
+    final mediaUrl = (json['media_url'] ?? json['full_url'] ?? json['url'] ?? '').toString();
+    final mediaType = (json['media_type'] ?? json['type'] ?? 'image').toString();
+
     return MediaItem(
       id: json['id'],
       postId: json['post_id'],
-      url: json['url'] ?? '',
-      fullUrl: json['full_url'] ?? json['url'] ?? '',
-      type: json['type'] ?? 'image',
-      thumbnail: json['thumbnail'],
+      url: (json['url'] ?? mediaUrl).toString(),
+      fullUrl: mediaUrl.isNotEmpty ? mediaUrl : (json['url'] ?? '').toString(),
+      type: mediaType,
+      thumbnail: _thumbnailFromJson(json),
       order: json['order'] ?? 0,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
@@ -160,7 +188,7 @@ class MediaItem {
     };
   }
 
-  bool get isVideo => type == 'video';
+  bool get isVideo => type.toLowerCase() == 'video';
   bool get isImage => type == 'image';
   bool get isGif => type == 'gif';
 }

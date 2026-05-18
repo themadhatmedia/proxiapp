@@ -24,9 +24,12 @@ import '../../utils/app_vibration.dart';
 import '../../utils/clipboard_rich_paste.dart';
 import '../../utils/editable_context_menu.dart';
 import '../../utils/progress_dialog_helper.dart';
+import '../../utils/video_load_helper.dart';
+import '../../utils/video_playback_service.dart';
 import '../../utils/video_trim_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/emoji_reaction_action_button.dart';
+import '../../widgets/chat_video_thumbnail.dart';
 import '../../widgets/safe_avatar.dart';
 import '../posts/post_reactions_bottom_sheet.dart';
 
@@ -1634,7 +1637,13 @@ class _AttachmentPreviewInBubble extends StatelessWidget {
               child: SizedBox(
                 width: 220,
                 height: 220,
-                child: _InlineVideoThumb(url: url),
+                child: ChatVideoThumbnail(
+                  videoUrl: url,
+                  posterUrl: m.thumbnailUrl,
+                  width: 220,
+                  height: 220,
+                  iconSize: 48,
+                ),
               ),
             ),
             Container(
@@ -1687,128 +1696,6 @@ class _AttachmentPreviewInBubble extends StatelessWidget {
   }
 }
 
-/// Same strategy as post cards: initialize once, seek first frame, cache controller by URL.
-class _InlineVideoThumb extends StatefulWidget {
-  const _InlineVideoThumb({required this.url});
-  final String url;
-
-  @override
-  State<_InlineVideoThumb> createState() => _InlineVideoThumbState();
-}
-
-class _InlineVideoThumbState extends State<_InlineVideoThumb> with AutomaticKeepAliveClientMixin {
-  VideoPlayerController? _controller;
-  bool _isInitialized = false;
-  bool _hasError = false;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideo();
-  }
-
-  Future<void> _initializeVideo() async {
-    try {
-      // Avoid heavy controller fan-out in long message lists.
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-      await _controller!.initialize().timeout(const Duration(seconds: 18));
-      await _controller!.seekTo(const Duration(milliseconds: 100));
-      await _controller!.pause();
-
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing message video thumbnail: $e');
-      if (mounted) {
-        setState(() {
-          _hasError = true;
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    if (_hasError) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF38304F), Color(0xFF1D1E2A)],
-          ),
-        ),
-        width: double.infinity,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.movie_creation_outlined,
-                color: Colors.white.withOpacity(0.75),
-                size: 34,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Tap to open video',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (!_isInitialized || _controller == null) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF2F3150), Color(0xFF1A1F3A)],
-          ),
-        ),
-        width: double.infinity,
-        child: const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      height: double.infinity,
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
-        ),
-      ),
-    );
-  }
-}
-
 class _ChatMediaViewerScreen extends StatefulWidget {
   const _ChatMediaViewerScreen({required this.url, required this.isVideo});
   final String url;
@@ -1821,7 +1708,8 @@ class _ChatMediaViewerScreen extends StatefulWidget {
 class _ChatMediaViewerScreenState extends State<_ChatMediaViewerScreen> {
   VideoPlayerController? _video;
   bool _videoInitFailed = false;
-  bool _videoInitializing = false;
+  VideoLoadPhase _phase = VideoLoadPhase.idle;
+  bool _stopped = false;
 
   @override
   void initState() {
@@ -1831,104 +1719,162 @@ class _ChatMediaViewerScreenState extends State<_ChatMediaViewerScreen> {
     }
   }
 
-  Future<void> _initVideo() async {
-    _videoInitFailed = false;
-    _videoInitializing = true;
-    if (mounted) setState(() {});
-    await _video?.dispose();
+  void _stopPlayback() {
+    if (_stopped) return;
+    _stopped = true;
+    final v = _video;
     _video = null;
-    VideoPlayerController? c;
+    if (v != null) {
+      VideoPlaybackService.instance.release(widget.url, v);
+    } else {
+      VideoPlaybackService.instance.cancelPending(widget.url);
+    }
+  }
+
+  Future<void> _initVideo() async {
+    if (_stopped) return;
+
+    _videoInitFailed = false;
+    _phase = VideoLoadPhase.loadingCache;
+    if (mounted) setState(() {});
+
+    if (_video != null) {
+      VideoPlaybackService.instance.release(widget.url, _video!);
+      _video = null;
+    }
+
     try {
-      // Retry a couple times for flaky CDN/socket timeouts.
-      for (var attempt = 1; attempt <= 3; attempt++) {
-        c?.dispose();
-        c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-        try {
-          await c.initialize();
-          await c.setLooping(false);
-          _video = c;
-          await c.play();
-          _videoInitFailed = false;
-          break;
-        } catch (_) {
-          if (attempt == 3) {
-            _videoInitFailed = true;
-          } else {
-            await Future<void>.delayed(const Duration(milliseconds: 600));
-          }
-        }
+      final c = await VideoPlaybackService.instance.obtain(
+        widget.url,
+        onPhase: (phase) {
+          if (!mounted || _stopped) return;
+          if (_phase == phase) return;
+          setState(() => _phase = phase);
+        },
+      );
+
+      if (_stopped || !mounted) {
+        VideoPlaybackService.instance.release(widget.url, c);
+        return;
       }
+
+      await c.setLooping(false);
+      _video = c;
+      if (_stopped || !mounted) {
+        VideoPlaybackService.instance.release(widget.url, c);
+        _video = null;
+        return;
+      }
+
+      await c.play();
+      _videoInitFailed = false;
+    } on StateError catch (e) {
+      if (e.message != 'Video load cancelled') {
+        debugPrint('Chat video load cancelled unexpectedly: $e');
+      }
+    } catch (e) {
+      if (_stopped || !mounted) return;
+      debugPrint('Chat video load failed: $e');
+      _videoInitFailed = true;
     } finally {
-      _videoInitializing = false;
-      if (mounted) setState(() {});
+      if (mounted && !_stopped) setState(() {});
     }
   }
 
   @override
   void dispose() {
-    _video?.dispose();
+    _stopPlayback();
     super.dispose();
+  }
+
+  String get _loadingLabel {
+    switch (_phase) {
+      case VideoLoadPhase.downloading:
+        return 'Downloading video…';
+      case VideoLoadPhase.streaming:
+        return 'Loading video…';
+      case VideoLoadPhase.loadingCache:
+        return 'Loading video…';
+      default:
+        return 'Loading video…';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _stopPlayback();
+      },
+      child: Scaffold(
         backgroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: Center(
-        child: widget.isVideo
-            ? (_videoInitFailed
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.white70, size: 36),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Video failed to load',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _initVideo,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  )
-                : ((_video == null || !_video!.value.isInitialized)
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(color: Colors.white),
-                          const SizedBox(height: 12),
-                          Text(
-                            _videoInitializing ? 'Loading video...' : 'Preparing player...',
-                            style: const TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                        ],
-                      )
-                    : AspectRatio(
-                        aspectRatio: _video!.value.aspectRatio,
-                        child: Stack(
-                          alignment: Alignment.center,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              _stopPlayback();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        body: Center(
+          child: widget.isVideo
+              ? (_videoInitFailed
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.white70, size: 36),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Video failed to load',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () {
+                            _stopped = false;
+                            unawaited(_initVideo());
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    )
+                  : ((_video == null || !_video!.value.isInitialized)
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            VideoPlayer(_video!),
-                            Positioned.fill(
-                              child: _ChatVideoControls(controller: _video!),
+                            const CircularProgressIndicator(color: Colors.white),
+                            const SizedBox(height: 12),
+                            Text(
+                              _loadingLabel,
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
                             ),
                           ],
-                        ),
-                      )))
-            : InteractiveViewer(
-                minScale: 0.8,
-                maxScale: 4,
-                child: Image.network(
-                  widget.url,
-                  fit: BoxFit.contain,
+                        )
+                      : AspectRatio(
+                          aspectRatio: _video!.value.aspectRatio,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              VideoPlayer(_video!),
+                              Positioned.fill(
+                                child: _ChatVideoControls(controller: _video!),
+                              ),
+                            ],
+                          ),
+                        )))
+              : InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4,
+                  child: Image.network(
+                    widget.url,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

@@ -10,6 +10,9 @@ class VideoTrimHelper {
 
   static const Duration maxDuration = Duration(seconds: 15);
 
+  /// Short clips under this length skip the trim UI only when the file is small enough to upload.
+  static const int maxBytesWithoutTranscode = 14 * 1024 * 1024;
+
   /// Opens the trim screen for every video. It loads [Trimmer] after [TrimViewer] is in the
   /// tree so `TrimmerEvent.initialized` is not missed (otherwise the filmstrip stays blank).
   /// If the file is already ≤15s, the screen pops itself with the same path so we only pay
@@ -50,6 +53,7 @@ class _VideoTrimScreenState extends State<_VideoTrimScreen> {
   bool _ready = false;
 
   bool _saving = false;
+  bool _autoCompressing = false;
   bool _isPlaying = false;
   String? _loadError;
 
@@ -81,15 +85,23 @@ class _VideoTrimScreenState extends State<_VideoTrimScreen> {
       if (c == null || !c.value.isInitialized) {
         throw StateError('Video failed to load');
       }
-      if (c.value.duration <= widget.maxDuration) {
+      _totalMs = c.value.duration.inMilliseconds.toDouble();
+      final bytes = await widget.source.length();
+
+      if (c.value.duration <= widget.maxDuration &&
+          bytes <= VideoTrimHelper.maxBytesWithoutTranscode) {
         if (mounted) Navigator.of(context).pop(widget.source.path);
+        return;
+      }
+
+      if (c.value.duration <= widget.maxDuration &&
+          bytes > VideoTrimHelper.maxBytesWithoutTranscode) {
+        await _autoCompressShortClip();
         return;
       }
 
       await c.pause();
       await c.seekTo(Duration.zero);
-
-      _totalMs = c.value.duration.inMilliseconds.toDouble();
       final cap = widget.maxDuration.inMilliseconds.toDouble();
       _startMs = 0;
       _endMs = math.min(_totalMs, cap);
@@ -130,6 +142,42 @@ class _VideoTrimScreenState extends State<_VideoTrimScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_disposePlayback());
     });
+  }
+
+  Future<void> _autoCompressShortClip() async {
+    if (!mounted) return;
+    setState(() {
+      _autoCompressing = true;
+      _loadError = null;
+    });
+    try {
+      final maxMs = widget.maxDuration.inMilliseconds.toDouble();
+      final endMs = math.min(_totalMs > 0 ? _totalMs : maxMs, maxMs);
+      final completer = Completer<String?>();
+      await _trimmer.saveTrimmedVideo(
+        startValue: 0,
+        endValue: endMs,
+        onSave: (path) {
+          if (!completer.isCompleted) completer.complete(path);
+        },
+      );
+      final out = await completer.future.timeout(const Duration(minutes: 5));
+      if (!mounted) return;
+      if (out != null && out.isNotEmpty) {
+        Navigator.of(context).pop(out);
+        return;
+      }
+      setState(() {
+        _autoCompressing = false;
+        _loadError = 'Could not compress video';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _autoCompressing = false;
+        _loadError = 'Could not compress video';
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -233,11 +281,23 @@ class _VideoTrimScreenState extends State<_VideoTrimScreen> {
                     fit: StackFit.expand,
                     children: [
                       VideoViewer(trimmer: _trimmer),
-                      if (!_ready && _loadError == null)
+                      if ((!_ready || _autoCompressing) && _loadError == null)
                         ColoredBox(
                           color: cs.surface.withOpacity(0.65),
-                          child: const Center(
-                            child: CircularProgressIndicator(),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                if (_autoCompressing) ...[
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Compressing video for upload…',
+                                    style: TextStyle(color: cs.onSurface),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                       if (_loadError != null)

@@ -133,6 +133,7 @@ class ChatMessageModel {
     required this.senderId,
     required this.receiverId,
     this.fileUrl,
+    this.thumbnailUrl,
     this.isRead = true,
     this.createdAt,
     this.isMineFromApi,
@@ -145,6 +146,7 @@ class ChatMessageModel {
   final int senderId;
   final int receiverId;
   final String? fileUrl;
+  final String? thumbnailUrl;
   final bool isRead;
   final DateTime? createdAt;
   /// Set when API sends `is_mine` (thread payload may omit `receiver_id`).
@@ -162,6 +164,7 @@ class ChatMessageModel {
     int? senderId,
     int? receiverId,
     String? fileUrl,
+    String? thumbnailUrl,
     bool? isRead,
     DateTime? createdAt,
     bool? isMineFromApi,
@@ -174,6 +177,7 @@ class ChatMessageModel {
       senderId: senderId ?? this.senderId,
       receiverId: receiverId ?? this.receiverId,
       fileUrl: fileUrl ?? this.fileUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
       isMineFromApi: isMineFromApi ?? this.isMineFromApi,
@@ -210,6 +214,11 @@ class ChatMessageModel {
           ? json['receiver_id'] as int
           : int.tryParse('${json['receiver_id']}') ?? 0,
       fileUrl: (json['file_url'] ?? json['file'] ?? json['fileUrl'])?.toString(),
+      thumbnailUrl: (json['thumbnail_url'] ??
+              json['thumbnail'] ??
+              json['thumb_url'] ??
+              json['preview_url'])
+          ?.toString(),
       isRead: json['is_read'] != false,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse('${json['created_at']}')

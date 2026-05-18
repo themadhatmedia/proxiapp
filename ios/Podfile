@@ -8,6 +8,9 @@
 # - Info.plist usage strings for camera, mic, photos, location, contacts.
 # - permission_handler: keep GCC_PREPROCESSOR_DEFINITIONS in post_install in
 #   sync with permissions you request in Dart (see permission_handler iOS setup).
+# - After adding plugins (get_thumbnail_video, video_player): run
+#   `cd ios && pod install` (or `flutter build ios` which runs it).
+# - Runner/PrivacyInfo.xcprivacy is bundled for App Store required-reason APIs.
 platform :ios, '13.0'
 use_modular_headers!
 
@@ -59,11 +62,16 @@ post_install do |installer|
           end
         end
       end
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CONTACTS=1',
         'PERMISSION_LOCATION=1',
+        'PERMISSION_LOCATION_WHENINUSE=1',
         'PERMISSION_NOTIFICATIONS=1',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_MICROPHONE=1',
+        'PERMISSION_PHOTOS=1',
       ]
     end
   end

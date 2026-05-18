@@ -7,6 +7,7 @@ import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/discover_controller.dart';
+import '../../controllers/feed_video_autoplay_controller.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../controllers/notification_controller.dart';
 import '../../data/services/fcm_service.dart';
@@ -28,6 +29,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   final DiscoverController _controller = Get.put(DiscoverController());
   late final NotificationController _notificationController;
   Worker? _homeTabWorker;
+  Worker? _innerLoadedWorker;
+  Worker? _outerLoadedWorker;
+
+  final ScrollController _innerScrollController = ScrollController();
+  final ScrollController _outerScrollController = ScrollController();
+  bool _innerAutoplayKickDone = false;
+  bool _outerAutoplayKickDone = false;
 
   /// Logs the Firebase Cloud Messaging device token for the logged-in user (push / profile sync).
   Future<void> _printFirebaseToken() async {
@@ -50,7 +58,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<FeedVideoAutoplayController>()) {
+      Get.put(FeedVideoAutoplayController());
+    }
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
     if (Get.isRegistered<NotificationController>()) {
       _notificationController = Get.find<NotificationController>();
     } else {
@@ -63,9 +75,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         if (index == 0) {
           _printFirebaseToken();
           _notificationController.fetchNotifications(showLoader: false);
+          _kickFirstVideoAutoplay(inner: _tabController.index == 0, force: true);
+        } else if (Get.isRegistered<FeedVideoAutoplayController>()) {
+          Get.find<FeedVideoAutoplayController>().pauseAll();
         }
       });
     }
+    _innerLoadedWorker = ever<bool>(_controller.isLoadingInner, (loading) {
+      if (!loading) _kickFirstVideoAutoplay(inner: true);
+    });
+    _outerLoadedWorker = ever<bool>(_controller.isLoadingOuter, (loading) {
+      if (!loading) _kickFirstVideoAutoplay(inner: false);
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||
@@ -74,6 +96,47 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         FcmService.instance.syncTokenToProfileIfNeeded();
       }
     });
+  }
+
+  /// VisibilityDetector often misses list item 0 until the list scrolls slightly.
+  Future<void> _kickFirstVideoAutoplay({required bool inner, bool force = false}) async {
+    if (!mounted) return;
+    if (_tabController.index != (inner ? 0 : 1)) return;
+    if (!force) {
+      if (inner && _innerAutoplayKickDone) return;
+      if (!inner && _outerAutoplayKickDone) return;
+    }
+
+    final slot = _firstVideoSlot(inner: inner);
+    if (slot == null) return;
+
+    if (inner) {
+      _innerAutoplayKickDone = true;
+    } else {
+      _outerAutoplayKickDone = true;
+    }
+
+    if (!Get.isRegistered<FeedVideoAutoplayController>()) return;
+    final feedVideo = Get.find<FeedVideoAutoplayController>();
+    feedVideo.primeSlot(slotId: slot.$1, videoUrl: slot.$2);
+    feedVideo.refreshVisibilityDetection();
+  }
+
+  (String, String)? _firstVideoSlot({required bool inner}) {
+    final posts = inner ? _controller.innerProxyPosts : _controller.outerProxyPosts;
+    if (posts.isEmpty) return null;
+    final post = posts.first;
+    final media = post.media;
+    if (media == null || media.isEmpty) return null;
+
+    for (var i = 0; i < media.length; i++) {
+      final item = media[i];
+      if (!item.isVideo || item.fullUrl.isEmpty) continue;
+      final scope = inner ? 'inner' : 'outer';
+      final slotId = '${scope}_post_${post.id ?? post.hashCode}_$i';
+      return (slotId, item.fullUrl);
+    }
+    return null;
   }
 
   /// Hot reload does not run [initState] again; this prints the FCM token after save → hot reload.
@@ -88,10 +151,26 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     _printFirebaseToken();
   }
 
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    if (!Get.isRegistered<FeedVideoAutoplayController>()) return;
+    final scope = _tabController.index == 0 ? 'inner' : 'outer';
+    Get.find<FeedVideoAutoplayController>().switchFeedScope(scope);
+    _kickFirstVideoAutoplay(inner: _tabController.index == 0, force: true);
+  }
+
   @override
   void dispose() {
     _homeTabWorker?.dispose();
+    _innerLoadedWorker?.dispose();
+    _outerLoadedWorker?.dispose();
+    _innerScrollController.dispose();
+    _outerScrollController.dispose();
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    if (Get.isRegistered<FeedVideoAutoplayController>()) {
+      Get.delete<FeedVideoAutoplayController>();
+    }
     super.dispose();
   }
 
@@ -390,15 +469,38 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       }
 
       return RefreshIndicator(
-        onRefresh: _controller.refreshInnerPosts,
+        onRefresh: () async {
+          _innerAutoplayKickDone = false;
+          await _controller.refreshInnerPosts();
+        },
         color: Theme.of(context).colorScheme.primary,
-        child: ListView.builder(
-          padding: const EdgeInsets.only(bottom: 80),
-          itemCount: _controller.innerProxyPosts.length,
-          itemBuilder: (context, index) {
-            final post = _controller.innerProxyPosts[index];
-            return DiscoverPostCard(post: post);
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n is ScrollEndNotification &&
+                n.metrics.extentAfter < 320 &&
+                _tabController.index == 0) {
+              _controller.loadMoreInner();
+            }
+            return false;
           },
+          child: Obx(() {
+            final extra = _controller.isLoadingMoreInner.value ? 1 : 0;
+            return ListView.builder(
+              controller: _innerScrollController,
+              padding: const EdgeInsets.only(bottom: 80),
+              itemCount: _controller.innerProxyPosts.length + extra,
+              itemBuilder: (context, index) {
+                if (index >= _controller.innerProxyPosts.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final post = _controller.innerProxyPosts[index];
+                return DiscoverPostCard(post: post, feedScope: 'inner');
+              },
+            );
+          }),
         ),
       );
     });
@@ -439,15 +541,38 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       }
 
       return RefreshIndicator(
-        onRefresh: _controller.refreshOuterPosts,
+        onRefresh: () async {
+          _outerAutoplayKickDone = false;
+          await _controller.refreshOuterPosts();
+        },
         color: Theme.of(context).colorScheme.primary,
-        child: ListView.builder(
-          padding: const EdgeInsets.only(bottom: 80),
-          itemCount: _controller.outerProxyPosts.length,
-          itemBuilder: (context, index) {
-            final post = _controller.outerProxyPosts[index];
-            return DiscoverPostCard(post: post);
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n is ScrollEndNotification &&
+                n.metrics.extentAfter < 320 &&
+                _tabController.index == 1) {
+              _controller.loadMoreOuter();
+            }
+            return false;
           },
+          child: Obx(() {
+            final extra = _controller.isLoadingMoreOuter.value ? 1 : 0;
+            return ListView.builder(
+              controller: _outerScrollController,
+              padding: const EdgeInsets.only(bottom: 80),
+              itemCount: _controller.outerProxyPosts.length + extra,
+              itemBuilder: (context, index) {
+                if (index >= _controller.outerProxyPosts.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final post = _controller.outerProxyPosts[index];
+                return DiscoverPostCard(post: post, feedScope: 'outer');
+              },
+            );
+          }),
         ),
       );
     });

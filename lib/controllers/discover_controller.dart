@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+
+import 'feed_video_autoplay_controller.dart';
 
 import '../config/post_reaction_emojis.dart';
 import '../data/models/comment_model.dart';
+import '../data/models/feed_wall_page.dart';
 import '../data/models/post_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/storage_service.dart';
@@ -11,10 +15,20 @@ class DiscoverController extends GetxController {
   final ApiService _apiService = ApiService();
   final StorageService _storageService = StorageService();
 
+  static const int postsPerPage = 12;
+
   final RxList<Post> innerProxyPosts = <Post>[].obs;
   final RxList<Post> outerProxyPosts = <Post>[].obs;
   final RxBool isLoadingInner = false.obs;
   final RxBool isLoadingOuter = false.obs;
+  final RxBool isLoadingMoreInner = false.obs;
+  final RxBool isLoadingMoreOuter = false.obs;
+  final RxBool hasMoreInner = false.obs;
+  final RxBool hasMoreOuter = false.obs;
+
+  String? _innerNextCursor;
+  String? _outerNextCursor;
+
   final RxMap<int, List<CommentModel>> postComments = <int, List<CommentModel>>{}.obs;
   final RxMap<int, bool> showingComments = <int, bool>{}.obs;
   final RxMap<int, bool> loadingComments = <int, bool>{}.obs;
@@ -35,9 +49,21 @@ class DiscoverController extends GetxController {
     likingPosts.clear();
     isLoadingInner.value = false;
     isLoadingOuter.value = false;
+    isLoadingMoreInner.value = false;
+    isLoadingMoreOuter.value = false;
+    hasMoreInner.value = false;
+    hasMoreOuter.value = false;
+    _innerNextCursor = null;
+    _outerNextCursor = null;
   }
 
   Future<void> fetchPosts() async {
+    if (Get.isRegistered<FeedVideoAutoplayController>()) {
+      Get.find<FeedVideoAutoplayController>().pauseAll();
+    }
+
+    _innerNextCursor = null;
+    _outerNextCursor = null;
     isLoadingInner.value = true;
     isLoadingOuter.value = true;
 
@@ -45,19 +71,128 @@ class DiscoverController extends GetxController {
       final token = _storageService.getToken();
       if (token == null) throw Exception('Not authenticated');
 
-      final response = await _apiService.getDiscoverPosts(token);
+      final response = await _apiService.getDiscoverPosts(
+        token,
+        perPage: postsPerPage,
+        innerPerPage: postsPerPage,
+        outerPerPage: postsPerPage,
+      );
 
-      final innerList = response['inner_proxy'] as List? ?? [];
-      final outerList = response['outer_proxy'] as List? ?? [];
+      final payload = unwrapDiscoverFeedPayload(response);
+      final innerPage = FeedWallPage.fromSection(payload['inner_proxy'], _parsePosts);
+      final outerPage = FeedWallPage.fromSection(payload['outer_proxy'], _parsePosts);
 
-      innerProxyPosts.value = innerList.map((json) => Post.fromJson(json)).toList();
-      outerProxyPosts.value = outerList.map((json) => Post.fromJson(json)).toList();
+      innerProxyPosts
+        ..clear()
+        ..addAll(innerPage.posts);
+      outerProxyPosts
+        ..clear()
+        ..addAll(outerPage.posts);
+
+      _innerNextCursor = innerPage.nextCursor;
+      _outerNextCursor = outerPage.nextCursor;
+      hasMoreInner.value = innerPage.hasMore;
+      hasMoreOuter.value = outerPage.hasMore;
+
+      innerProxyPosts.refresh();
+      outerProxyPosts.refresh();
+
+      _refreshFeedVideoAfterLoad();
     } catch (e) {
       ToastHelper.showError('Failed to load posts: ${e.toString()}');
     } finally {
       isLoadingInner.value = false;
       isLoadingOuter.value = false;
     }
+  }
+
+  Future<void> loadMoreInner() async {
+    if (!hasMoreInner.value || isLoadingMoreInner.value || isLoadingInner.value) return;
+    final cursor = _innerNextCursor;
+    if (cursor == null || cursor.isEmpty) return;
+
+    final token = _storageService.getToken();
+    if (token == null) return;
+
+    isLoadingMoreInner.value = true;
+    try {
+      final response = await _apiService.getDiscoverPosts(
+        token,
+        innerCursor: cursor,
+      );
+
+      final payload = unwrapDiscoverFeedPayload(response);
+      final page = FeedWallPage.fromSection(payload['inner_proxy'], _parsePosts);
+      if (page.posts.isEmpty) {
+        hasMoreInner.value = false;
+        _innerNextCursor = null;
+        return;
+      }
+
+      innerProxyPosts.addAll(page.posts);
+      _innerNextCursor = page.nextCursor;
+      hasMoreInner.value = page.hasMore;
+      innerProxyPosts.refresh();
+    } catch (e) {
+      debugPrint('loadMoreInner: $e');
+    } finally {
+      isLoadingMoreInner.value = false;
+    }
+  }
+
+  Future<void> loadMoreOuter() async {
+    if (!hasMoreOuter.value || isLoadingMoreOuter.value || isLoadingOuter.value) return;
+    final cursor = _outerNextCursor;
+    if (cursor == null || cursor.isEmpty) return;
+
+    final token = _storageService.getToken();
+    if (token == null) return;
+
+    isLoadingMoreOuter.value = true;
+    try {
+      final response = await _apiService.getDiscoverPosts(
+        token,
+        outerCursor: cursor,
+      );
+
+      final payload = unwrapDiscoverFeedPayload(response);
+      final page = FeedWallPage.fromSection(payload['outer_proxy'], _parsePosts);
+      if (page.posts.isEmpty) {
+        hasMoreOuter.value = false;
+        _outerNextCursor = null;
+        return;
+      }
+
+      outerProxyPosts.addAll(page.posts);
+      _outerNextCursor = page.nextCursor;
+      hasMoreOuter.value = page.hasMore;
+      outerProxyPosts.refresh();
+    } catch (e) {
+      debugPrint('loadMoreOuter: $e');
+    } finally {
+      isLoadingMoreOuter.value = false;
+    }
+  }
+
+  void _refreshFeedVideoAfterLoad() {
+    if (!Get.isRegistered<FeedVideoAutoplayController>()) return;
+    Get.find<FeedVideoAutoplayController>().refreshVisibilityDetection();
+  }
+
+  List<Post> _parsePosts(List<dynamic> raw) {
+    final out = <Post>[];
+    for (final item in raw) {
+      try {
+        if (item is Map<String, dynamic>) {
+          out.add(Post.fromJson(item));
+        } else if (item is Map) {
+          out.add(Post.fromJson(Map<String, dynamic>.from(item)));
+        }
+      } catch (e) {
+        debugPrint('DiscoverController: skipped post: $e');
+      }
+    }
+    return out;
   }
 
   Future<void> refreshInnerPosts() async {
@@ -191,10 +326,8 @@ class DiscoverController extends GetxController {
 
         postComments[postId] = rootComments;
 
-        // Update the comment count in the post
         final post = _findPostById(postId);
         if (post != null) {
-          // Calculate total comments (root + all replies)
           int totalComments = rootComments.length;
           for (var comment in rootComments) {
             totalComments += comment.replies.length;
