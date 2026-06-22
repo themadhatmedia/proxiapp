@@ -6,7 +6,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'feed_inline_video.dart';
-import 'video_post_poster.dart';
+import 'video_thumbnail_preview.dart';
 
 import '../config/theme/proxi_palette.dart';
 import '../controllers/auth_controller.dart';
@@ -388,9 +388,11 @@ class _DiscoverPostCardState extends State<DiscoverPostCard> {
 
   Widget _buildMediaThumbnail(MediaItem item) {
     if (item.isVideo) {
-      return VideoPostPreview(
-        posterUrl: item.posterUrl,
+      return VideoThumbnailPreview(
         videoUrl: item.fullUrl,
+        posterUrl: item.posterUrl,
+        showIconOnPlaceholder: false,
+        maxThumbnailWidth: 720,
       );
     }
 

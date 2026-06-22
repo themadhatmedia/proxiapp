@@ -11,6 +11,7 @@ import '../data/services/app_badge_service.dart';
 import '../data/services/fcm_service.dart';
 import '../data/services/storage_service.dart';
 import '../utils/toast_helper.dart';
+import 'ads_controller.dart';
 import 'circles_controller.dart';
 import 'discover_controller.dart';
 import 'bookmarks_controller.dart';
@@ -55,6 +56,7 @@ class AuthController extends GetxController {
     if (token != null && userData != null) {
       _token.value = token;
       _user.value = User.fromJson(jsonDecode(userData));
+      _refreshAdsConfig();
     }
   }
 
@@ -93,6 +95,7 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(response.user.toJson()));
 
       _isLoading.value = false;
+      _refreshAdsConfig();
       if (_shouldSyncFcm) {
         unawaited(FcmService.instance.syncTokenToProfileIfNeeded());
       }
@@ -124,6 +127,7 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(response.user.toJson()));
 
       _isLoading.value = false;
+      _refreshAdsConfig();
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         unawaited(FcmService.instance.syncTokenToProfileIfNeeded());
       }
@@ -174,7 +178,6 @@ class AuthController extends GetxController {
       if (Get.isRegistered<BookmarksController>()) {
         Get.delete<BookmarksController>();
       }
-
       // MyApp only calls Get.put for these once at cold start; after delete they must
       // be registered again or Get.find fails (e.g. onboarding after logout).
       Get.put(NavigationController());
@@ -197,11 +200,18 @@ class AuthController extends GetxController {
       _storageService.saveUserData(jsonEncode(user.toJson()));
 
       _isLoading.value = false;
+      _refreshAdsConfig();
       return true;
     } catch (e) {
       _isLoading.value = false;
       ToastHelper.showError(e.toString().replaceAll('Exception: ', ''));
       return false;
+    }
+  }
+
+  void _refreshAdsConfig() {
+    if (Get.isRegistered<AdsController>()) {
+      unawaited(Get.find<AdsController>().refreshRemoteConfig());
     }
   }
 

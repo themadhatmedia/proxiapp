@@ -2,7 +2,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'data/services/app_badge_service.dart';
@@ -12,6 +15,7 @@ import 'data/services/messaging_fcm_listeners.dart';
 import 'firebase_options.dart';
 import 'config/theme/app_theme.dart';
 import 'config/theme/theme_controller.dart';
+import 'controllers/ads_controller.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/navigation_controller.dart';
 import 'controllers/onboarding_controller.dart';
@@ -28,6 +32,8 @@ import 'views/onboarding/select_plan_screen.dart';
 import 'views/onboarding/setup_permissions_screen.dart';
 import 'views/onboarding/proxi_circles_screen.dart';
 import 'utils/app_keyboard_dismiss.dart';
+import 'utils/us_date_format.dart';
+import 'widgets/proxi_ads_host.dart';
 import 'views/bookmarks/bookmarks_screen.dart';
 
 Future<void> _initializeFirebaseSafe() async {
@@ -56,6 +62,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
+  Intl.defaultLocale = 'en_US';
+  await initializeDateFormatting('en_US');
 
   if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
     await _initializeFirebaseSafe();
@@ -87,14 +95,29 @@ class MyApp extends StatelessWidget {
     Get.put(NavigationController());
     Get.put(OnboardingController());
     Get.put(ProfileController());
+    if (AdsController.isSupportedPlatform) {
+      Get.put(AdsController(), permanent: true);
+    }
 
     return Obx(
       () => GetMaterialApp(
         title: 'Proxi',
         debugShowCheckedModeBanner: false,
+        locale: UsDateFormat.locale,
+        supportedLocales: const [UsDateFormat.locale],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        routingCallback: (routing) {
+          if (Get.isRegistered<AdsController>()) {
+            Get.find<AdsController>().notifyRouteChanged();
+          }
+        },
         // Full-screen brand gradient behind all routes; fixed text scale.
         builder: (context, child) {
           final data = MediaQuery.of(context);
@@ -118,7 +141,7 @@ class MyApp extends StatelessWidget {
                     child: const SizedBox.expand(),
                   ),
                 ),
-                content,
+                ProxiAdsHost(child: content),
               ],
             ),
           );

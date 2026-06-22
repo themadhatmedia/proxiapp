@@ -14,6 +14,7 @@ import '../../data/services/api_service.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../data/models/messaging_model.dart';
 import '../messages/conversation_screen.dart';
+import '../messages/new_message_search_screen.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/safe_avatar.dart';
 
@@ -194,6 +195,21 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'messages_fab',
+        onPressed: () async {
+          await Get.to<void>(() => const NewMessageSearchScreen());
+          if (mounted) {
+            await _resetAndReload(showSpinner: true);
+          }
+        },
+        backgroundColor: ProxiPalette.electricBlue,
+        child: const Icon(
+          Icons.add,
+          color: ProxiPalette.pureWhite,
+          size: 28,
+        ),
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: AppTheme.scaffoldGradient(context),
@@ -280,7 +296,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                             Padding(
                                               padding: const EdgeInsets.symmetric(horizontal: 40),
                                               child: Text(
-                                                'Reach out from Circles, Pulse, or your profile to start chatting.',
+                                                'Tap + to search for someone and start a new conversation.',
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color: cs.onSurfaceVariant.withOpacity(0.8),

@@ -6,10 +6,16 @@
 #   Runner-Release.entitlements (production) — Release/Profile use production for
 #   TestFlight/App Store; enable Push Notifications capability in Xcode.
 # - Info.plist usage strings for camera, mic, photos, location, contacts.
+# - AdMob: GADApplicationIdentifier + SKAdNetworkItems in Info.plist; replace test
+#   app ID with production before App Store. io.flutter.embedded_views_preview = true.
+# - Stripe billing return: CFBundleURLTypes scheme proxiapp + FlutterDeepLinkingEnabled
+#   false (app_links). Associated Domains applinks:myproxi.app in entitlements — enable
+#   Associated Domains on App ID in Apple Developer + host apple-app-site-association.
+# - Affiliate share uses share_plus (no extra plist keys).
 # - permission_handler: keep GCC_PREPROCESSOR_DEFINITIONS in post_install in
 #   sync with permissions you request in Dart (see permission_handler iOS setup).
-# - After adding plugins (get_thumbnail_video, video_player): run
-#   `cd ios && pod install` (or `flutter build ios` which runs it).
+# - After adding plugins (google_mobile_ads, share_plus, get_thumbnail_video): run
+#   `flutter pub get && cd ios && pod install` (or `flutter build ios`).
 # - Runner/PrivacyInfo.xcprivacy is bundled for App Store required-reason APIs.
 platform :ios, '13.0'
 use_modular_headers!

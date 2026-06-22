@@ -33,6 +33,7 @@ class ProfileController extends GetxController {
 
   static const int maxCustomCoreValues = 5;
 
+  final affiliateCode = ''.obs;
   final linkedinUrl = ''.obs;
   final facebookUrl = ''.obs;
   final instagramUrl = ''.obs;
@@ -52,6 +53,7 @@ class ProfileController extends GetxController {
     selectedSkillNames.clear();
     selectedAmbitionNames.clear();
     customCoreValues.clear();
+    affiliateCode.value = '';
     linkedinUrl.value = '';
     facebookUrl.value = '';
     instagramUrl.value = '';
@@ -419,8 +421,10 @@ class ProfileController extends GetxController {
   }
 
   Future<void> loadSocialLinks() async {
+    await authController.fetchUserProfile();
     final currentUser = authController.currentUser.value;
     if (currentUser != null) {
+      affiliateCode.value = currentUser.affiliateCode ?? '';
       linkedinUrl.value = currentUser.linkedinUrl ?? '';
       facebookUrl.value = currentUser.facebookUrl ?? '';
       instagramUrl.value = currentUser.instagramUrl ?? '';

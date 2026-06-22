@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' as http_parser;
 
+import '../models/ads_config_model.dart';
 import '../models/ambition_model.dart';
 import '../models/core_value_model.dart';
 import '../models/interest_model.dart';
@@ -80,8 +81,7 @@ class ApiService {
     if (trimmed.isEmpty) {
       return <String, dynamic>{};
     }
-    if (trimmed.startsWith('<') &&
-        (trimmed.startsWith('<!') || trimmed.toLowerCase().startsWith('<html'))) {
+    if (trimmed.startsWith('<') && (trimmed.startsWith('<!') || trimmed.toLowerCase().startsWith('<html'))) {
       throw Exception(
         'Server returned HTML instead of JSON (HTTP ${response.statusCode}). '
         'Check the API path or your auth token.',
@@ -435,6 +435,45 @@ class ApiService {
     );
   }
 
+  /// Admin ads toggle + banner unit IDs (`GET /settings/ads`, no auth required).
+  /// Blank unit IDs from the API fall back to [AdsDefaults] in [AdsConfigModel.fromJson].
+  Future<AdsConfigModel> getAdsConfig({String? token}) async {
+    final url = '$baseUrl/settings/ads';
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await httpClient.get(Uri.parse(url), headers: headers);
+        final responseData = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 && responseData is Map) {
+          final body = Map<String, dynamic>.from(responseData);
+          final data = body['data'];
+          if (data is Map) {
+            return AdsConfigModel.fromJson(Map<String, dynamic>.from(data));
+          }
+          return AdsConfigModel.fromJson(body);
+        }
+        throw Exception('Failed to load ads config (${response.statusCode})');
+      },
+    );
+  }
+
   /// GET /users/{userId} — full public profile for another user (skills, ambitions, links, etc.).
   Future<Map<String, dynamic>> getUserPublicProfile({
     required String token,
@@ -506,6 +545,7 @@ class ApiService {
     bool? locationVisible,
     File? avatar,
     String? accountType,
+    String? affiliateCode,
     String? linkedinUrl,
     String? facebookUrl,
     String? instagramUrl,
@@ -544,6 +584,7 @@ class ApiService {
           if (ambitions != null) request.fields['ambitions'] = jsonEncode(ambitions);
           if (locationVisible != null) request.fields['location_visible'] = locationVisible.toString();
           if (accountType != null) request.fields['account_type'] = accountType;
+          if (affiliateCode != null) request.fields['affiliateCode'] = affiliateCode;
           if (linkedinUrl != null) request.fields['linkedin_url'] = linkedinUrl;
           if (facebookUrl != null) request.fields['facebook_url'] = facebookUrl;
           if (instagramUrl != null) request.fields['instagram_url'] = instagramUrl;
@@ -580,6 +621,7 @@ class ApiService {
             if (ambitions != null) 'ambitions': ambitions,
             if (locationVisible != null) 'location_visible': locationVisible,
             if (accountType != null) 'account_type': accountType,
+            if (affiliateCode != null) 'affiliateCode': affiliateCode,
             if (linkedinUrl != null) 'linkedin_url': linkedinUrl,
             if (facebookUrl != null) 'facebook_url': facebookUrl,
             if (instagramUrl != null) 'instagram_url': instagramUrl,
@@ -730,10 +772,7 @@ class ApiService {
 
         if (response.statusCode == 200) {
           final List<dynamic> data = responseData['data'] ?? responseData ?? [];
-          return data
-              .map((json) => SkillModel.fromJson(json as Map<String, dynamic>))
-              .where((s) => s.isActive && s.name.isNotEmpty)
-              .toList();
+          return data.map((json) => SkillModel.fromJson(json as Map<String, dynamic>)).where((s) => s.isActive && s.name.isNotEmpty).toList();
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to get skills';
           throw Exception(errorMessage);
@@ -764,10 +803,7 @@ class ApiService {
 
         if (response.statusCode == 200) {
           final List<dynamic> data = responseData['data'] ?? responseData ?? [];
-          return data
-              .map((json) => AmbitionModel.fromJson(json as Map<String, dynamic>))
-              .where((a) => a.isActive && a.name.isNotEmpty)
-              .toList();
+          return data.map((json) => AmbitionModel.fromJson(json as Map<String, dynamic>)).where((a) => a.isActive && a.name.isNotEmpty).toList();
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to get ambitions';
           throw Exception(errorMessage);
@@ -874,12 +910,17 @@ class ApiService {
     required String token,
     required int membershipId,
     required String planType,
+    String? affiliateCode,
   }) async {
     final url = '$baseUrl/billing/checkout-session';
     final requestData = <String, dynamic>{
       'membership_id': membershipId,
       'plan_type': planType,
     };
+    final code = affiliateCode?.trim();
+    if (code != null && code.isNotEmpty) {
+      requestData['affiliate_code'] = code;
+    }
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -911,9 +952,7 @@ class ApiService {
         if (response.statusCode == 200 || response.statusCode == 201) {
           return responseData ?? {};
         }
-        final errorMessage = responseData?['message']?.toString() ??
-            responseData?['error']?.toString() ??
-            'Could not start checkout';
+        final errorMessage = responseData?['message']?.toString() ?? responseData?['error']?.toString() ?? 'Could not start checkout';
         throw Exception(errorMessage);
       },
     );
@@ -1060,9 +1099,7 @@ class ApiService {
     });
 
     try {
-      final response = await httpClient
-          .post(Uri.parse(url), headers: headers, body: body)
-          .timeout(_locationTimeout);
+      final response = await httpClient.post(Uri.parse(url), headers: headers, body: body).timeout(_locationTimeout);
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         developer.log(
@@ -1660,8 +1697,7 @@ class ApiService {
           headers: headers,
           requestData: {
             'content': content,
-            if (connectionAudiences != null && connectionAudiences.isNotEmpty)
-              'connection_audiences': connectionAudiences,
+            if (connectionAudiences != null && connectionAudiences.isNotEmpty) 'connection_audiences': connectionAudiences,
           },
         );
 
@@ -1678,8 +1714,7 @@ class ApiService {
             headers: headers,
             requestData: {
               'content': content,
-              if (connectionAudiences != null && connectionAudiences.isNotEmpty)
-                'connection_audiences': connectionAudiences,
+              if (connectionAudiences != null && connectionAudiences.isNotEmpty) 'connection_audiences': connectionAudiences,
             },
             statusCode: response.statusCode,
             responseData: {'raw_response': response.body.substring(0, 500)},
@@ -1693,8 +1728,7 @@ class ApiService {
           headers: headers,
           requestData: {
             'content': content,
-            if (connectionAudiences != null && connectionAudiences.isNotEmpty)
-              'connection_audiences': connectionAudiences,
+            if (connectionAudiences != null && connectionAudiences.isNotEmpty) 'connection_audiences': connectionAudiences,
           },
           statusCode: response.statusCode,
           responseData: responseData,
@@ -1789,8 +1823,7 @@ class ApiService {
           headers: headers,
           requestData: {
             'content': content,
-            if (connectionAudiences != null && connectionAudiences.isNotEmpty)
-              'connection_audiences': connectionAudiences,
+            if (connectionAudiences != null && connectionAudiences.isNotEmpty) 'connection_audiences': connectionAudiences,
             if (deleteMediaIds != null && deleteMediaIds.isNotEmpty) 'delete_media_ids': deleteMediaIds,
           },
         );
@@ -2083,8 +2116,7 @@ class ApiService {
           headers: headers,
           requestData: {'emoji': emoji},
         );
-        final response =
-            await httpClient.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
+        final response = await httpClient.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
         _logApiCall(
           method: 'POST',
@@ -2155,8 +2187,7 @@ class ApiService {
           headers: headers,
           requestData: {'emoji': emoji},
         );
-        final response =
-            await httpClient.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
+        final response = await httpClient.post(Uri.parse(url), headers: headers, body: payload).timeout(timeout);
         final responseData = response.body.isNotEmpty ? _decodeJsonObjectFromResponse(response) : <String, dynamic>{};
         _logApiCall(
           method: 'POST',
@@ -3084,9 +3115,7 @@ class ApiService {
             paginationRoot = body;
           }
           final list = extractListPayload(
-            threadPaginated != null
-                ? (threadPaginated['data'] ?? threadPaginated)
-                : (body['data'] ?? body),
+            threadPaginated != null ? (threadPaginated['data'] ?? threadPaginated) : (body['data'] ?? body),
           );
           final out = list.map(ChatMessageModel.fromJson).toList();
           out.sort((a, b) {

@@ -9,6 +9,7 @@ import '../../data/models/billing_status_snapshot.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/checkout_affiliate_code_sheet.dart';
 import '../../widgets/plan_option_card.dart';
 
 class SelectPlanScreen extends StatefulWidget {
@@ -133,6 +134,12 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> with WidgetsBinding
 
     setState(() => _isSaving = true);
     try {
+      final affiliateCode = await showCheckoutAffiliateCodeSheet(context);
+      if (!mounted || affiliateCode == null) {
+        setState(() => _isSaving = false);
+        return;
+      }
+
       BillingStatusSnapshot snapshotBefore;
       try {
         final prior = await _apiService.getBillingStatus(authController.token!);
@@ -144,6 +151,7 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> with WidgetsBinding
       await onboardingController.openStripeCheckoutForSelectedPlan(
         token: authController.token!,
         planType: _billingCycle,
+        affiliateCode: affiliateCode,
       );
       setState(() {
         _isSaving = false;

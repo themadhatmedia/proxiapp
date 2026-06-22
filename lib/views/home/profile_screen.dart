@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../config/theme/app_theme.dart';
@@ -8,6 +7,7 @@ import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../data/models/user_model.dart';
+import '../../utils/us_date_format.dart';
 import '../../widgets/safe_avatar.dart';
 import '../profile/edit_ambitions_screen.dart';
 import '../profile/edit_core_values_screen.dart';
@@ -758,8 +758,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _getMemberSinceText(DateTime? createdAt) {
     if (createdAt == null) return 'Member since recently';
-    final formatter = DateFormat('dd MMM yyyy');
-    return 'Member since ${formatter.format(createdAt)}';
+    return 'Member since ${UsDateFormat.formatMediumDate(createdAt)}';
   }
 
   int _getRemainingPulses(User user) {

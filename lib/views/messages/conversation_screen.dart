@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -24,6 +23,7 @@ import '../../utils/app_vibration.dart';
 import '../../utils/clipboard_rich_paste.dart';
 import '../../utils/editable_context_menu.dart';
 import '../../utils/progress_dialog_helper.dart';
+import '../../utils/us_date_format.dart';
 import '../../utils/video_load_helper.dart';
 import '../../utils/video_playback_service.dart';
 import '../../utils/video_trim_helper.dart';
@@ -1233,7 +1233,7 @@ class _Bubble extends StatelessWidget {
         ? null
         : (DateTime.now().difference(at.toLocal()) < const Duration(days: 6)
             ? timeago.format(at.toLocal())
-            : DateFormat('MMM d, h:mm a').format(at.toLocal()));
+            : UsDateFormat.formatDateTime(at));
 
     final reactionEmojiKeys = _orderedMessageReactionEmojis(m.reactions);
     final showReactionBadges =

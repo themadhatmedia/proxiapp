@@ -19,7 +19,6 @@ class OnboardingController extends GetxController {
 
   File? profileImage;
   String name = '';
-  String accountType = 'Personal';
   String bio = '';
   DateTime? dateOfBirth;
   String? gender;
@@ -217,7 +216,7 @@ class OnboardingController extends GetxController {
         state: state,
         profession: profession.trim(),
         avatar: profileImage,
-        accountType: accountType.toLowerCase(),
+        accountType: 'personal',
       );
       return true;
     } catch (e) {
@@ -410,6 +409,7 @@ class OnboardingController extends GetxController {
   Future<void> openStripeCheckoutForSelectedPlan({
     required String token,
     required String planType,
+    String? affiliateCode,
   }) async {
     final selected = selectedPlan.value;
     if (selected == null) {
@@ -419,6 +419,7 @@ class OnboardingController extends GetxController {
       token: token,
       membershipId: selected.id,
       planType: planType,
+      affiliateCode: affiliateCode,
     );
     final checkoutUrl = res['checkout_url']?.toString();
     if (checkoutUrl == null || checkoutUrl.isEmpty) {

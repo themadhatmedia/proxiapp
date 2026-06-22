@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
+import '../../controllers/ads_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/circles_controller.dart';
 import '../../controllers/navigation_controller.dart';
@@ -18,6 +19,7 @@ import '../home/discover_screen.dart';
 import '../home/messages_screen.dart';
 import '../home/profile_screen.dart';
 import '../home/pulse_screen.dart';
+import '../../widgets/proxi_banner_ad.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -146,14 +148,28 @@ class _MainNavigationState extends State<MainNavigation> {
         value: AppTheme.systemUiOverlayFor(context),
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          body: IndexedStack(
-            index: _navigationController.currentIndex.value,
+          body: Column(
             children: [
-              const DiscoverScreen(),
-              PulseScreen(isVisible: _navigationController.currentIndex.value == 1),
-              const CirclesScreen(),
-              const MessagesScreen(),
-              const ProfileScreen(),
+              Expanded(
+                child: IndexedStack(
+                  index: _navigationController.currentIndex.value,
+                  children: [
+                    const DiscoverScreen(),
+                    PulseScreen(isVisible: _navigationController.currentIndex.value == 1),
+                    const CirclesScreen(),
+                    const MessagesScreen(),
+                    const ProfileScreen(),
+                  ],
+                ),
+              ),
+              if (Get.isRegistered<AdsController>())
+                Obx(() {
+                  final ads = Get.find<AdsController>();
+                  if (!ads.shouldShowBanner) {
+                    return const SizedBox.shrink();
+                  }
+                  return const ProxiBannerAd();
+                }),
             ],
           ),
           bottomNavigationBar: Container(

@@ -16,6 +16,7 @@ class User {
   final String? state;
   final String? profession;
   final Membership? membership;
+  final String? affiliateCode;
   final String? linkedinUrl;
   final String? facebookUrl;
   final String? instagramUrl;
@@ -47,6 +48,7 @@ class User {
     this.state,
     this.profession,
     this.membership,
+    this.affiliateCode,
     this.linkedinUrl,
     this.facebookUrl,
     this.instagramUrl,
@@ -121,6 +123,14 @@ class User {
     String? city = profileData?['city'];
     String? state = profileData?['state'];
     String? profession = profileData?['profession'];
+    String? affiliateCode = profileData?['affiliate_code'] ?? profileData?['affiliateCode'];
+    affiliateCode ??= userData['affiliate_code'] ?? userData['affiliateCode'];
+    if (affiliateCode is String && affiliateCode.trim().isEmpty) {
+      affiliateCode = null;
+    } else if (affiliateCode != null) {
+      affiliateCode = affiliateCode.toString().trim();
+    }
+
     String? linkedinUrl = profileData?['linkedin_url'];
     String? facebookUrl = profileData?['facebook_url'];
     String? instagramUrl = profileData?['instagram_url'];
@@ -159,6 +169,7 @@ class User {
       state: state,
       profession: profession,
       membership: membership,
+      affiliateCode: affiliateCode,
       linkedinUrl: linkedinUrl,
       facebookUrl: facebookUrl,
       instagramUrl: instagramUrl,
@@ -199,6 +210,7 @@ class User {
       state: state,
       profession: profession,
       membership: membership,
+      affiliateCode: affiliateCode,
       linkedinUrl: linkedinUrl,
       facebookUrl: facebookUrl,
       instagramUrl: instagramUrl,
@@ -248,6 +260,7 @@ class User {
     }
     // Social URLs live on [User] from API profile.* — [Profile.toJson] omits them; include here so
     // routes that pass [user.toJson()] (e.g. Circles search → UserProfileDetailScreen) keep links.
+    if (affiliateCode != null) profileData['affiliate_code'] = affiliateCode;
     if (linkedinUrl != null) profileData['linkedin_url'] = linkedinUrl;
     if (facebookUrl != null) profileData['facebook_url'] = facebookUrl;
     if (instagramUrl != null) profileData['instagram_url'] = instagramUrl;

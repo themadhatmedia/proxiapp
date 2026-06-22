@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
-
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../../utils/toast_helper.dart';
+import '../../utils/us_date_format.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -26,7 +25,6 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
   final TextEditingController professionController = TextEditingController();
 
   final List<String> genderOptions = ['Male', 'Female'];
-  final List<String> accountTypeOptions = ['Personal', 'Professional'];
   final List<String> stateOptions = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
 
   @override
@@ -39,24 +37,11 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000),
+    final DateTime? picked = await UsDateFormat.pickDate(
+      context,
+      initialDate: controller.dateOfBirth ?? DateTime(2000),
       firstDate: DateTime(1924),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            // colorScheme: const ColorScheme.dark(
-            //   primary: Colors.white,
-            //   onPrimary: Colors.white,
-            //   surface: Color(0xFF1A1A1A),
-            //   onSurface: Colors.white,
-            // ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -123,39 +108,6 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
                 onTap: () {
                   setState(() {
                     controller.gender = gender;
-                  });
-                  Navigator.pop(sheetContext);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showAccountTypePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.proxi.surfaceCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        final cs = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: accountTypeOptions.map((type) {
-              return ListTile(
-                title: Text(
-                  type,
-                  style: TextStyle(color: cs.onSurface),
-                  textAlign: TextAlign.center,
-                ),
-                onTap: () {
-                  setState(() {
-                    controller.accountType = type;
                   });
                   Navigator.pop(sheetContext);
                 },
@@ -365,61 +317,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
                       //   controller: nameController,
                       //   hint: 'Enter your name',
                       // ),
-                      // const SizedBox(height: 20),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Account Type ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: cs.onSurface,
-                                ),
-                              ),
-                              const TextSpan(
-                                text: '*',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: _showAccountTypePicker,
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest.withOpacity(0.65),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                controller.accountType,
-                                style: TextStyle(
-                                  color: cs.onSurface,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.arrow_drop_down,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      //                       const SizedBox(height: 20),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -490,7 +388,9 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
                             // mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                controller.dateOfBirth != null ? DateFormat('MMMM dd, yyyy').format(controller.dateOfBirth!) : 'Select Date of Birth',
+                                controller.dateOfBirth != null
+                                    ? UsDateFormat.formatShortDate(controller.dateOfBirth!)
+                                    : 'Select Date of Birth',
                                 style: TextStyle(
                                   color: controller.dateOfBirth != null ? cs.onSurface : cs.onSurfaceVariant,
                                   fontSize: 16,

@@ -14,12 +14,21 @@ import UIKit
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  /// Ensures custom schemes (e.g. proxiapp://billing/success) reach Flutter / app_links.
+  /// Stripe Checkout return: proxiapp://billing/success|cancel (app_links + BillingLinkService).
   override func application(
     _ app: UIApplication,
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
     return super.application(app, open: url, options: options)
+  }
+
+  /// Universal link fallback for https://myproxi.app/billing/... redirects (Associated Domains).
+  override func application(
+    _ application: UIApplication,
+    continue userActivity: NSUserActivity,
+    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+    return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
   }
 }

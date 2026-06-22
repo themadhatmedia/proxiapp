@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../controllers/profile_controller.dart';
+import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 
 class EditSocialLinksScreen extends StatefulWidget {
@@ -14,6 +17,7 @@ class EditSocialLinksScreen extends StatefulWidget {
 
 class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
   final ProfileController controller = Get.find<ProfileController>();
+  final TextEditingController affiliateCodeController = TextEditingController();
   final TextEditingController linkedinController = TextEditingController();
   final TextEditingController facebookController = TextEditingController();
   final TextEditingController instagramController = TextEditingController();
@@ -23,6 +27,7 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
   final TextEditingController otherController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
+  bool _isLoadingData = true;
 
   @override
   void initState() {
@@ -31,18 +36,26 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
   }
 
   Future<void> _loadData() async {
-    await controller.loadSocialLinks();
-    linkedinController.text = controller.linkedinUrl.value;
-    facebookController.text = controller.facebookUrl.value;
-    instagramController.text = controller.instagramUrl.value;
-    xController.text = controller.xUrl.value;
-    snapchatController.text = controller.snapchatUrl.value;
-    tiktokController.text = controller.tiktokUrl.value;
-    otherController.text = controller.otherUrl.value;
+    setState(() => _isLoadingData = true);
+    try {
+      await controller.loadSocialLinks();
+      if (!mounted) return;
+      affiliateCodeController.text = controller.affiliateCode.value;
+      linkedinController.text = controller.linkedinUrl.value;
+      facebookController.text = controller.facebookUrl.value;
+      instagramController.text = controller.instagramUrl.value;
+      xController.text = controller.xUrl.value;
+      snapchatController.text = controller.snapchatUrl.value;
+      tiktokController.text = controller.tiktokUrl.value;
+      otherController.text = controller.otherUrl.value;
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
+    }
   }
 
   @override
   void dispose() {
+    affiliateCodeController.dispose();
     linkedinController.dispose();
     facebookController.dispose();
     instagramController.dispose();
@@ -87,6 +100,26 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
     }
   }
 
+  String _affiliateShareMessage(String code) {
+    return 'I\'m on Proxi and wanted to share my affiliate code with you. '
+        'When you sign up for a membership plan, enter this code during checkout.\n\n'
+        'Affiliate code: $code';
+  }
+
+  Future<void> _copyAndShareAffiliateCode() async {
+    final code = affiliateCodeController.text.trim();
+    if (code.isEmpty) {
+      ToastHelper.showInfo('No affiliate code to share');
+      return;
+    }
+    final message = _affiliateShareMessage(code);
+    await Clipboard.setData(ClipboardData(text: message));
+    await Share.share(
+      message,
+      subject: 'Proxi affiliate code',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -122,7 +155,11 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
+                child: _isLoadingData
+                    ? Center(
+                        child: CircularProgressIndicator(color: cs.primary),
+                      )
+                    : SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Form(
                     key: _formKey,
@@ -138,6 +175,8 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
                           ),
                         ),
                         const SizedBox(height: 32),
+                        _buildReadOnlyAffiliateCodeField(),
+                        const SizedBox(height: 20),
                         _buildSocialLinkField(
                           controller: linkedinController,
                           label: 'LinkedIn',
@@ -191,19 +230,74 @@ class _EditSocialLinksScreenState extends State<EditSocialLinksScreen> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Obx(
-                  () => CustomButton(
-                    text: controller.isLoading.value ? 'Saving...' : 'Save',
-                    onPressed: controller.isLoading.value ? () {} : _handleSave,
+              if (!_isLoadingData)
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Obx(
+                    () => CustomButton(
+                      text: controller.isLoading.value ? 'Saving...' : 'Save',
+                      isEnabled: !controller.isLoading.value,
+                      onPressed: _handleSave,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildReadOnlyAffiliateCodeField() {
+    return Builder(
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        final hasCode = affiliateCodeController.text.trim().isNotEmpty;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.card_giftcard_outlined, color: cs.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Affiliate Code',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: affiliateCodeController,
+              readOnly: true,
+              enableInteractiveSelection: true,
+              style: TextStyle(color: cs.onSurface),
+              decoration: InputDecoration(
+                hintText: 'No affiliate code assigned',
+                hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.8)),
+                filled: true,
+                fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.65),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(16),
+                suffixIcon: hasCode
+                    ? IconButton(
+                        tooltip: 'Copy and share',
+                        onPressed: _copyAndShareAffiliateCode,
+                        icon: Icon(Icons.copy_outlined, color: cs.primary),
+                      )
+                    : null,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

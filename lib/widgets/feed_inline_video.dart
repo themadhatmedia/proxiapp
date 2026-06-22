@@ -7,7 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../controllers/feed_video_autoplay_controller.dart';
 import '../utils/video_load_helper.dart';
-import 'video_post_poster.dart';
+import 'video_thumbnail_preview.dart';
 
 /// In-feed autoplay video (Wins wall): plays when most visible, muted by default.
 class FeedInlineVideo extends StatefulWidget {
@@ -159,9 +159,11 @@ class _FeedInlineVideoState extends State<FeedInlineVideo> {
                     ),
                   )
                 else
-                  VideoPostPreview(
+                  VideoThumbnailPreview(
+                    videoUrl: widget.videoUrl,
                     posterUrl: widget.posterUrl,
-                    allowVideoFrameFallback: false,
+                    showIconOnPlaceholder: false,
+                    maxThumbnailWidth: 720,
                   ),
                 if (loading)
                   ColoredBox(

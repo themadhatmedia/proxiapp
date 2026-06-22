@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
-
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
 import '../../controllers/auth_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/toast_helper.dart';
+import '../../utils/us_date_format.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -29,11 +28,9 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
   DateTime? selectedDate;
   String? selectedGender;
   String? selectedState;
-  String? selectedAccountType;
   bool _isSaving = false;
 
   final List<String> genders = ['Male', 'Female'];
-  final List<String> accountTypes = ['Personal', 'Professional'];
   final List<String> stateOptions = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
 
   @override
@@ -48,7 +45,6 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
     selectedDate = user?.dateOfBirth;
     selectedGender = user?.gender;
     selectedState = user?.state;
-    selectedAccountType = user?.accountType ?? 'Personal';
   }
 
   @override
@@ -61,23 +57,11 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
+    final DateTime? picked = await UsDateFormat.pickDate(
+      context,
       initialDate: selectedDate ?? DateTime(2000),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            // colorScheme: const ColorScheme.light(
-            //   primary: Colors.white,
-            //   onPrimary: Colors.white,
-            //   onSurface: Colors.black,
-            // ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null && picked != selectedDate) {
@@ -123,39 +107,6 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
     );
   }
 
-  void _showAccountTypePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.proxi.surfaceCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        final cs = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: accountTypes.map((type) {
-              return ListTile(
-                title: Text(
-                  type.capitalize.toString(),
-                  style: TextStyle(color: cs.onSurface),
-                  textAlign: TextAlign.center,
-                ),
-                onTap: () {
-                  setState(() {
-                    selectedAccountType = type;
-                  });
-                  Navigator.pop(sheetContext);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _handleSave() async {
     if (nameController.text.trim().isEmpty) {
       ToastHelper.showError('Name is required');
@@ -185,7 +136,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
         city: cityController.text.trim().isNotEmpty ? cityController.text.trim() : null,
         state: selectedState,
         profession: professionController.text.trim().isNotEmpty ? professionController.text.trim() : null,
-        accountType: selectedAccountType!.toLowerCase(),
+        accountType: 'personal',
       );
 
       await authController.fetchUserProfile();
@@ -253,38 +204,6 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                         keyboardType: TextInputType.name,
                       ),
                       const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap: _showAccountTypePicker,
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest.withOpacity(0.65),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: cs.outline.withOpacity(0.45),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                selectedAccountType.toString().capitalize ?? 'Account Type',
-                                style: TextStyle(
-                                  color: selectedAccountType != null ? cs.onSurface : cs.onSurfaceVariant,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              Icon(
-                                Icons.arrow_drop_down,
-                                color: cs.onSurfaceVariant,
-                                size: 24,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
                       TextField(
                         controller: bioController,
                         maxLines: 4,
@@ -338,7 +257,9 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                selectedDate != null ? DateFormat('MMM dd, yyyy').format(selectedDate!) : 'Date of Birth',
+                                selectedDate != null
+                                    ? UsDateFormat.formatShortDate(selectedDate!)
+                                    : 'Date of Birth',
                                 style: TextStyle(
                                   color: selectedDate != null ? cs.onSurface : cs.onSurfaceVariant,
                                   fontSize: 16,

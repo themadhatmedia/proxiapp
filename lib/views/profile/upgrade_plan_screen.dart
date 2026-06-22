@@ -11,6 +11,7 @@ import '../../data/models/plan_model.dart';
 import '../../data/services/api_service.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/checkout_affiliate_code_sheet.dart';
 import '../../widgets/plan_option_card.dart';
 
 class UpgradePlanScreen extends StatefulWidget {
@@ -188,10 +189,17 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindi
 
     setState(() => _isSaving = true);
     try {
+      final affiliateCode = await showCheckoutAffiliateCodeSheet(context);
+      if (!mounted || affiliateCode == null) {
+        setState(() => _isSaving = false);
+        return;
+      }
+
       final res = await apiService.createBillingCheckoutSession(
         token: token,
         membershipId: selectedPlanId!,
         planType: _billingCycle,
+        affiliateCode: affiliateCode,
       );
       final checkoutUrl = res['checkout_url']?.toString();
       if (checkoutUrl == null || checkoutUrl.isEmpty) {
