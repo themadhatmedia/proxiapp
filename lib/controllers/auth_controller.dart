@@ -108,10 +108,22 @@ class AuthController extends GetxController {
     }
   }
 
+  /// Set when the last login attempt failed because the account is soft-deleted.
+  /// The auth screen reads this to offer a restore request. Consume by resetting.
+  bool lastLoginSoftDeleted = false;
+  String? lastSoftDeleteMessage;
+
+  /// True when the soft-deleted account already has a pending restore request.
+  /// In this case the auth screen shows an info message instead of the dialog.
+  bool lastRestoreAlreadyRequested = false;
+
   Future<bool> login({
     required String email,
     required String password,
   }) async {
+    lastLoginSoftDeleted = false;
+    lastSoftDeleteMessage = null;
+    lastRestoreAlreadyRequested = false;
     try {
       _isLoading.value = true;
 
@@ -133,9 +145,22 @@ class AuthController extends GetxController {
       }
       // ToastHelper.showSuccess('Logged in successfully');
       return true;
+    } on AccountDeletedException catch (e) {
+      _isLoading.value = false;
+      lastLoginSoftDeleted = true;
+      lastSoftDeleteMessage = e.message;
+      lastRestoreAlreadyRequested = e.data?['restore_requested'] == true;
+      return false;
     } catch (e) {
       _isLoading.value = false;
-      ToastHelper.showError(e.toString().replaceAll('Exception: ', ''));
+      final msg = e.toString().replaceAll('Exception: ', '');
+      // Fallback when the API only returns a message (no status fields).
+      if (isSoftDeletedAccountResponse({'message': msg})) {
+        lastLoginSoftDeleted = true;
+        lastSoftDeleteMessage = msg;
+        return false;
+      }
+      ToastHelper.showError(msg);
       return false;
     }
   }

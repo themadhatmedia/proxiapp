@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
@@ -62,6 +65,125 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await ProgressDialogHelper.hide();
       final errorMessage = e.toString().replaceFirst('Exception: ', '');
       ToastHelper.showError(errorMessage);
+    }
+  }
+
+  /// GDPR data export: POST to start, poll GET until `completed`, then open the
+  /// public download link in the browser.
+  Future<void> _downloadMyData() async {
+    final token = authController.token;
+    if (token == null) {
+      ToastHelper.showError('Authentication required');
+      return;
+    }
+
+    final progress = ValueNotifier<Map<String, dynamic>>(<String, dynamic>{
+      'status': 'pending',
+      'message': 'Starting your data export...',
+      'progress': 0,
+      'step': 'Queued',
+    });
+
+    bool dialogOpen = true;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _ExportProgressDialog(progress: progress),
+      ).then((_) => dialogOpen = false),
+    );
+
+    void closeDialog() {
+      if (dialogOpen && mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+        dialogOpen = false;
+      }
+    }
+
+    try {
+      final started = await apiService.requestDataExport(token);
+      progress.value = started;
+
+      String status = (started['status'] ?? '').toString();
+      String? downloadUrl = started['download_url'] as String?;
+
+      const pollInterval = Duration(seconds: 4);
+      final deadline = DateTime.now().add(const Duration(minutes: 5));
+      const terminal = {'completed', 'expired', 'failed', 'error', 'none'};
+
+      while (!terminal.contains(status) && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(pollInterval);
+        if (!mounted) return;
+        final statusResp = await apiService.getDataExportStatus(token);
+        progress.value = statusResp;
+        status = (statusResp['status'] ?? '').toString();
+        downloadUrl = statusResp['download_url'] as String?;
+      }
+
+      closeDialog();
+      if (!mounted) return;
+
+      if (status == 'completed' && downloadUrl != null && downloadUrl.isNotEmpty) {
+        final launched = await launchUrl(
+          Uri.parse(downloadUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        if (launched) {
+          ToastHelper.showSuccess('Opening your data download...');
+        } else {
+          ToastHelper.showError('Could not open the download link');
+        }
+      } else if (status == 'expired' || status == 'none') {
+        ToastHelper.showError('Export link unavailable. Please try again.');
+      } else {
+        ToastHelper.showInfo(
+          'Your export is still being prepared. Please try again in a few minutes.',
+        );
+      }
+    } catch (e) {
+      closeDialog();
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      ToastHelper.showError(msg);
+    } finally {
+      progress.dispose();
+    }
+  }
+
+  /// Soft-delete the account: confirm with password, call the API behind a
+  /// loader, then sign out (server has revoked all tokens).
+  Future<void> _deleteMyAccount() async {
+    final password = await showDialog<String>(
+      context: context,
+      builder: (_) => const _DeleteAccountDialog(),
+    );
+    if (password == null || password.isEmpty) return;
+    if (!mounted) return;
+
+    final token = authController.token;
+    if (token == null) {
+      ToastHelper.showError('Authentication required');
+      return;
+    }
+
+    await ProgressDialogHelper.show(context);
+    try {
+      final result = await apiService.deleteAccount(
+        token: token,
+        password: password,
+      );
+      await ProgressDialogHelper.hide();
+
+      final msg = (result['message'] ?? '').toString();
+      ToastHelper.showSuccess(
+        msg.isNotEmpty ? msg : 'Your account has been temporarily deleted.',
+      );
+
+      // Tokens are revoked server-side; clear local session and route to /auth.
+      await authController.logout();
+    } catch (e) {
+      await ProgressDialogHelper.hide();
+      ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -302,12 +424,262 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Your Data',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _downloadMyData,
+                          icon: const Icon(Icons.download),
+                          label: const Text('Download My Data'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _deleteMyAccount,
+                          icon: const Icon(Icons.delete_forever),
+                          label: const Text('Delete My Account'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ProxiPalette.bookmarkAccent,
+                            foregroundColor: ProxiPalette.pureWhite,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirmation dialog for account deletion. Requires the current password and
+/// returns it via `Navigator.pop` when confirmed.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final TextEditingController _passwordController = TextEditingController();
+  bool _obscure = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final pwd = _passwordController.text;
+    if (pwd.isEmpty) {
+      setState(() => _error = 'Please enter your password');
+      return;
+    }
+    Navigator.pop(context, pwd);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      backgroundColor: cs.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        'Delete my account',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: cs.onSurface,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'This temporarily deletes your account and signs you out of all '
+            'devices. Your data is kept during a retention period and then '
+            'permanently removed. You can request to restore it by logging in '
+            'again before then.\n\nEnter your password to confirm.',
+            style: TextStyle(fontSize: 14, height: 1.4, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscure,
+            style: TextStyle(color: cs.onSurface),
+            decoration: InputDecoration(
+              hintText: 'Password',
+              errorText: _error,
+              filled: true,
+              fillColor: cs.surface.withValues(alpha: 0.4),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_off : Icons.visibility,
+                  color: cs.onSurfaceVariant,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+            },
+            onSubmitted: (_) => _confirm(),
+          ),
+        ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+        ),
+        ElevatedButton(
+          onPressed: _confirm,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: ProxiPalette.bookmarkAccent,
+            foregroundColor: ProxiPalette.pureWhite,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: const Text('Delete'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Live progress dialog for the data export. Rebuilds from [progress] as each
+/// poll updates the status / step / percentage.
+class _ExportProgressDialog extends StatelessWidget {
+  const _ExportProgressDialog({required this.progress});
+
+  final ValueNotifier<Map<String, dynamic>> progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: ValueListenableBuilder<Map<String, dynamic>>(
+          valueListenable: progress,
+          builder: (context, data, _) {
+            final status = (data['status'] ?? '').toString();
+            final step = (data['step'] ?? '').toString();
+            final message =
+                (data['message'] ?? 'Preparing your data...').toString();
+
+            final rawProgress = data['progress'];
+            double? fraction;
+            if (rawProgress is num) {
+              final p = rawProgress.toDouble();
+              fraction = (p < 0 ? 0.0 : (p > 100 ? 100.0 : p)) / 100.0;
+            }
+            final showPct =
+                fraction != null && fraction > 0 && status == 'processing';
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: CircularProgressIndicator(
+                          value: showPct ? fraction : null,
+                          strokeWidth: 5,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(cs.primary),
+                          backgroundColor: cs.primary.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      if (showPct)
+                        Text(
+                          '${(fraction * 100).round()}%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Preparing your data',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  step.isNotEmpty ? step : message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'This may take a moment. Please keep the app open.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

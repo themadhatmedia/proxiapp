@@ -110,7 +110,12 @@ class _ProxiBannerAdState extends State<ProxiBannerAd> {
                   ? const Center(
                       child: Text(
                         'Loading ad…',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                        textDirection: TextDirection.ltr,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          decoration: TextDecoration.none,
+                        ),
                       ),
                     )
                   : null,

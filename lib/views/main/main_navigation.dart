@@ -13,6 +13,8 @@ import '../../controllers/navigation_controller.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/messaging_fcm_listeners.dart';
+import '../../utils/location_permission_flow.dart';
+import '../permissions/background_location_disclosure_screen.dart';
 import '../../controllers/messages_controller.dart';
 import '../home/circles_screen.dart';
 import '../home/discover_screen.dart';
@@ -118,8 +120,23 @@ class _MainNavigationState extends State<MainNavigation> {
       }
       if (_isOnboardingRouteActive(Get.currentRoute)) return;
       _scheduleLocationUpdate();
-      unawaited(_locationService.startBackgroundLocationUpdates());
+      unawaited(_maybeStartBackgroundLocation());
     });
+  }
+
+  /// Background location requires disclosure acceptance before any access.
+  Future<void> _maybeStartBackgroundLocation() async {
+    if (!await LocationPermissionFlow.hasBackgroundLocationAccess()) return;
+
+    if (!LocationPermissionFlow.hasAcceptedDisclosure) {
+      final accepted = await Get.to<bool>(
+        () => const BackgroundLocationDisclosureScreen(),
+      );
+      if (accepted != true) return;
+      await LocationPermissionFlow.markDisclosureAccepted();
+    }
+
+    await _locationService.startBackgroundLocationUpdates();
   }
 
   Future<bool> _onWillPop() async {

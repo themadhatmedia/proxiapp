@@ -12,6 +12,7 @@ import '../../utils/messaging_entry.dart';
 import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/circle_user_card.dart';
+import '../../widgets/invite_friends_sheet.dart';
 import '../circles/search_users_screen.dart';
 import '../posts/user_posts_screen.dart';
 import '../pulse/user_profile_detail_screen.dart';
@@ -548,13 +549,30 @@ class _CirclesScreenState extends State<CirclesScreen> with SingleTickerProvider
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Circles',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
-                  ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    Expanded(
+                      child: Text(
+                        'Circles',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Invite friends',
+                      onPressed: () => InviteFriendsSheet.show(context),
+                      icon: const Icon(
+                        Icons.share,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               _buildToggleTabs(),

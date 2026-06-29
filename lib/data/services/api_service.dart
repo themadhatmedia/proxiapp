@@ -19,6 +19,60 @@ import '../models/messaging_model.dart';
 import '../models/billing_status_model.dart';
 import '../models/user_model.dart';
 
+/// Thrown by [ApiService.login] when the account is soft-deleted. The login
+/// screen uses this to offer a restore request instead of a generic error toast.
+class AccountDeletedException implements Exception {
+  AccountDeletedException(this.message, {this.data});
+
+  final String message;
+  final Map<String, dynamic>? data;
+
+  @override
+  String toString() => message;
+}
+
+/// Detects soft-deleted account responses from login (and similar) endpoints.
+/// The API may use `status` or `account_status`, nested under `data`, or only a
+/// message string — we accept all documented shapes so restore is offered only
+/// for soft-deleted users.
+bool isSoftDeletedAccountResponse(dynamic responseData) {
+  if (responseData is! Map) return false;
+
+  final map = Map<String, dynamic>.from(responseData);
+
+  bool valueIsSoftDeleted(String? raw) {
+    if (raw == null || raw.isEmpty) return false;
+    final normalized = raw.toLowerCase().trim();
+    return normalized == 'temporarily_deleted' ||
+        normalized == 'soft_deleted' ||
+        normalized == 'deleted_temporarily';
+  }
+
+  void checkMap(Map<String, dynamic> m, void Function(String?) check) {
+    check(m['status']?.toString());
+    check(m['account_status']?.toString());
+  }
+
+  var matched = false;
+  void onStatus(String? value) {
+    if (valueIsSoftDeleted(value)) matched = true;
+  }
+
+  checkMap(map, onStatus);
+
+  final data = map['data'];
+  if (!matched && data is Map) {
+    checkMap(Map<String, dynamic>.from(data), onStatus);
+  }
+
+  if (matched) return true;
+
+  final message = (map['message'] ?? '').toString().toLowerCase();
+  return message.contains('temporarily deleted') ||
+      message.contains('scheduled for deletion') ||
+      message.contains('account has been deleted');
+}
+
 class ApiService {
   static const String baseUrl = 'https://myproxi.app/index.php/api/v1';
   static const int maxRetries = 3;
@@ -302,11 +356,118 @@ class ApiService {
         );
 
         if (response.statusCode == 200) {
+          final success = responseData is Map ? responseData['success'] : null;
+          if (success == false && isSoftDeletedAccountResponse(responseData)) {
+            final errorMessage =
+                responseData?['message'] ?? 'Your account is temporarily deleted.';
+            throw AccountDeletedException(
+              errorMessage,
+              data: responseData is Map
+                  ? Map<String, dynamic>.from(responseData)
+                  : null,
+            );
+          }
           return AuthResponse.fromJson(responseData);
         } else {
           final errorMessage = responseData?['message'] ?? 'Login failed';
+          if (isSoftDeletedAccountResponse(responseData)) {
+            throw AccountDeletedException(
+              errorMessage,
+              data: responseData is Map
+                  ? Map<String, dynamic>.from(responseData)
+                  : null,
+            );
+          }
           throw Exception(errorMessage);
         }
+      },
+    );
+  }
+
+  /// Soft-deletes the authenticated account. `DELETE /account` with the current
+  /// password in the JSON body. Revokes all tokens server-side on success.
+  Future<Map<String, dynamic>> deleteAccount({
+    required String token,
+    required String password,
+  }) async {
+    final url = '$baseUrl/account';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+    final requestData = {'password': password};
+
+    return _retryRequest(
+      method: 'DELETE',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'DELETE', url: url, headers: headers);
+
+        final response = await httpClient.delete(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+        final responseData =
+            response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'DELETE',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 && responseData is Map) {
+          return Map<String, dynamic>.from(responseData);
+        }
+        final errorMessage =
+            (responseData is Map ? responseData['message'] : null) ??
+                'Failed to delete account';
+        throw Exception(errorMessage);
+      },
+    );
+  }
+
+  /// Requests restoration of a soft-deleted account. `POST /account/restore-request`
+  /// (no Bearer token). Returns the raw map so the caller can read `success`
+  /// and `message` for the various outcomes (submitted / already submitted /
+  /// already active / invalid credentials).
+  Future<Map<String, dynamic>> requestAccountRestore({
+    required String email,
+    required String password,
+  }) async {
+    final url = '$baseUrl/account/restore-request';
+    final headers = {'Content-Type': 'application/json'};
+    final requestData = {'email': email, 'password': password};
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'POST', url: url, headers: headers);
+
+        final response = await httpClient.post(
+          Uri.parse(url),
+          headers: headers,
+          body: jsonEncode(requestData),
+        );
+        final responseData =
+            response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (responseData is Map) {
+          return Map<String, dynamic>.from(responseData);
+        }
+        throw Exception('Failed to submit restore request');
       },
     );
   }
@@ -431,6 +592,86 @@ class ApiService {
           final errorMessage = responseData?['message'] ?? 'Failed to get profile';
           throw Exception(errorMessage);
         }
+      },
+    );
+  }
+
+  /// Starts (or returns an existing) personal data export.
+  /// `POST /account/export` — HTTP 202 when newly queued, 200 when one already
+  /// exists. Returns the raw status map (`status`, `message`, `download_url`,
+  /// `expires_at`, `progress`, `step`).
+  Future<Map<String, dynamic>> requestDataExport(String token) async {
+    final url = '$baseUrl/account/export';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'POST',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'POST', url: url, headers: headers);
+
+        final response = await httpClient.post(Uri.parse(url), headers: headers);
+        final responseData =
+            response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'POST',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if ((response.statusCode == 200 || response.statusCode == 202) &&
+            responseData is Map) {
+          return Map<String, dynamic>.from(responseData);
+        }
+        final errorMessage =
+            (responseData is Map ? responseData['message'] : null) ??
+                'Failed to start data export';
+        throw Exception(errorMessage);
+      },
+    );
+  }
+
+  /// Checks the current data export status. `GET /account/export`.
+  /// When `status == completed`, `download_url` holds a public, tokenized link
+  /// (no auth needed) that can be opened in a browser to download the ZIP.
+  Future<Map<String, dynamic>> getDataExportStatus(String token) async {
+    final url = '$baseUrl/account/export';
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    return _retryRequest(
+      method: 'GET',
+      url: url,
+      request: () async {
+        _logApiCall(method: 'GET', url: url, headers: headers);
+
+        final response = await httpClient.get(Uri.parse(url), headers: headers);
+        final responseData =
+            response.body.isNotEmpty ? jsonDecode(response.body) : null;
+
+        _logApiCall(
+          method: 'GET',
+          url: url,
+          headers: headers,
+          statusCode: response.statusCode,
+          responseData: responseData,
+        );
+
+        if (response.statusCode == 200 && responseData is Map) {
+          return Map<String, dynamic>.from(responseData);
+        }
+        final errorMessage =
+            (responseData is Map ? responseData['message'] : null) ??
+                'Failed to get export status';
+        throw Exception(errorMessage);
       },
     );
   }

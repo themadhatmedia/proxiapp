@@ -11,6 +11,7 @@ import '../data/models/skill_model.dart';
 import '../data/models/plan_model.dart';
 import '../data/services/api_service.dart';
 import '../utils/profile_avatar_cropper.dart';
+import '../utils/progress_dialog_helper.dart';
 import '../utils/toast_helper.dart';
 import 'auth_controller.dart';
 
@@ -360,16 +361,25 @@ class ProfileController extends GetxController {
       final token = authController.token;
       if (token == null) return;
 
-      ToastHelper.showInfo('Uploading image...');
+      final loaderCtx = Get.context;
+      if (loaderCtx != null) {
+        await ProgressDialogHelper.show(loaderCtx);
+      }
 
-      await apiService.updateProfile(
-        token: token,
-        avatar: File(croppedPath),
-      );
+      try {
+        await apiService.updateProfile(
+          token: token,
+          avatar: File(croppedPath),
+        );
 
-      await authController.fetchUserProfile();
+        await authController.fetchUserProfile();
+      } finally {
+        await ProgressDialogHelper.hide();
+      }
+
       ToastHelper.showSuccess('Profile picture updated');
     } catch (e) {
+      await ProgressDialogHelper.hide();
       ToastHelper.showError('Failed to upload image');
     }
   }

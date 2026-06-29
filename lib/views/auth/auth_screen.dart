@@ -7,6 +7,8 @@ import '../../config/theme/proxi_palette.dart';
 import '../../config/theme/theme_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/navigation_controller.dart';
+import '../../data/services/api_service.dart';
+import '../../utils/progress_dialog_helper.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -64,9 +66,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       return;
     }
 
+    final email = signInEmailController.text.trim();
+    final password = signInPasswordController.text;
+
     final success = await authController.login(
-      email: signInEmailController.text.trim(),
-      password: signInPasswordController.text,
+      email: email,
+      password: password,
     );
 
     if (success) {
@@ -76,7 +81,178 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         navController.currentIndex.value = 0;
       }
       Get.off(() => const MainNavigation(), transition: Transition.fadeIn);
+    } else if (authController.lastLoginSoftDeleted) {
+      final message = authController.lastSoftDeleteMessage;
+      final alreadyRequested = authController.lastRestoreAlreadyRequested;
+      authController.lastLoginSoftDeleted = false;
+      authController.lastSoftDeleteMessage = null;
+      authController.lastRestoreAlreadyRequested = false;
+
+      // Defer so we don't compete with the login loader / toast in the same frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (alreadyRequested) {
+          // Restore already requested — inform the user, don't prompt again.
+          _showRestoreAlreadyRequestedDialog(message: message);
+        } else {
+          _showRestoreAccountDialog(email: email, password: password, message: message);
+        }
+      });
     }
+  }
+
+  void _showRestoreAlreadyRequestedDialog({String? message}) {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final cs = Theme.of(ctx).colorScheme;
+    Get.dialog<void>(
+      AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Restore request submitted',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        content: Text(
+          message?.isNotEmpty == true
+              ? '$message\n\nYour restore request has already been submitted. An admin will review and approve or reject it.'
+              : 'Your restore request has already been submitted. An admin will review and approve or reject it.',
+          style: TextStyle(fontSize: 14, height: 1.4, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Get.back(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  void _showRestoreAccountDialog({
+    required String email,
+    required String password,
+    String? message,
+  }) {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final cs = Theme.of(ctx).colorScheme;
+    Get.dialog<void>(
+      AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Account scheduled for deletion',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        content: Text(
+          message?.isNotEmpty == true
+              ? '$message\n\nWould you like to request to restore your account? An admin will review your request.'
+              : 'Your account is temporarily deleted. Would you like to request to restore it? An admin will review your request.',
+          style: TextStyle(fontSize: 14, height: 1.4, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Not now', style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              _submitRestoreRequest(email: email, password: password);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Request restore'),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  Future<void> _submitRestoreRequest({
+    required String email,
+    required String password,
+  }) async {
+    final loaderCtx = Get.context ?? context;
+    await ProgressDialogHelper.show(loaderCtx);
+    try {
+      final result = await ApiService().requestAccountRestore(
+        email: email,
+        password: password,
+      );
+      await ProgressDialogHelper.hide();
+
+      final msg = (result['message'] ?? '').toString();
+      final success = result['success'] == true;
+      _showRestoreResultDialog(
+        title: success ? 'Restore request submitted' : 'Request not submitted',
+        message: msg.isNotEmpty
+            ? msg
+            : (success
+                ? 'Restore request received. An admin will review and approve or reject it.'
+                : 'Could not submit restore request.'),
+      );
+    } catch (e) {
+      await ProgressDialogHelper.hide();
+      _showRestoreResultDialog(
+        title: 'Request not submitted',
+        message: e.toString().replaceAll('Exception: ', ''),
+      );
+    }
+  }
+
+  void _showRestoreResultDialog({required String title, required String message}) {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final cs = Theme.of(ctx).colorScheme;
+    Get.dialog<void>(
+      AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 14, height: 1.4, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Get.back(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
   }
 
   void _handleSignUp() async {

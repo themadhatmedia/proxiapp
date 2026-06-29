@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
+import '../../utils/location_permission_flow.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 
@@ -106,110 +107,15 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
     );
   }
 
-  Future<void> _showAlwaysAllowEducation() async {
-    if (!mounted) return;
-    final cs = Theme.of(context).colorScheme;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: cs.surfaceContainerHighest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Allow location in the background',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: cs.onSurface,
-          ),
-        ),
-        content: Text(
-          'Proxi uses your location to send proximity alerts and refresh nearby contacts even when the app is not open.\n\n'
-          'On the next system screen, choose Always Allow — not only while using the app — so your location stays up to date.',
-          style: TextStyle(fontSize: 14, height: 1.35, color: cs.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Not now',
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _requestLocationPermission() async {
     if (_locationGranted) return;
 
-    final whenInUsePre = await Permission.locationWhenInUse.status;
-
-    if (whenInUsePre.isPermanentlyDenied) {
-      await _openSettingsGuideDialog(
-        title: 'Location is turned off',
-        body: 'Please enable location for Proxi in Settings → Privacy → Location.',
-      );
-      return;
-    }
-
-    if (!whenInUsePre.isGranted && !whenInUsePre.isLimited) {
-      final status = await Permission.locationWhenInUse.request();
-      await _checkPermissions();
-      if (!mounted) return;
-      if (!status.isGranted && !status.isLimited) {
-        if (status.isPermanentlyDenied) {
-          await _openSettingsGuideDialog(
-            title: 'Location is turned off',
-            body: 'Location was blocked. Enable it from Settings.',
-          );
-        }
-        return;
-      }
-    }
-
-    final alwaysPre = await Permission.locationAlways.status;
-    if (alwaysPre.isGranted || alwaysPre.isLimited) {
-      await _checkPermissions();
-      return;
-    }
-
-    if (alwaysPre.isPermanentlyDenied) {
-      await _openSettingsGuideDialog(
-        title: 'Background location needed',
-        body:
-            'To update nearby contacts when Proxi is closed, open Settings → Proxi → Location and choose Always (or Allow all the time on Android).',
-      );
-      return;
-    }
-
-    await _showAlwaysAllowEducation();
-    if (!mounted) return;
-
-    await Permission.locationAlways.request();
+    await LocationPermissionFlow.requestBackgroundLocation(
+      context,
+      onOpenSettings: ({required title, required body}) =>
+          _openSettingsGuideDialog(title: title, body: body),
+    );
     await _checkPermissions();
-
-    if (!_locationGranted && mounted) {
-      final s = await Permission.locationAlways.status;
-      if (s.isPermanentlyDenied) {
-        await _openSettingsGuideDialog(
-          title: 'Background location needed',
-          body:
-              'Open Settings → Proxi → Location and choose Always so we can refresh your proximity when you move.',
-        );
-      }
-    }
   }
 
   Future<void> _requestContactsPermission() async {

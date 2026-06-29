@@ -609,27 +609,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(Icons.delete_forever),
-                              label: const Text('Delete Account'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: cs.surfaceContainerHighest,
-                                foregroundColor: cs.onSurfaceVariant,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
                               onPressed: _isLoggingOut ? null : _handleLogout,
                               icon: _isLoggingOut
                                   ? SizedBox(

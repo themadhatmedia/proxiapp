@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../controllers/auth_controller.dart';
 import 'api_service.dart';
@@ -91,28 +90,10 @@ class LocationService extends GetxService {
     return true;
   }
 
-  /// Foreground first, then "Always" / background — required for updates while the app is not open.
-  Future<bool> ensureAlwaysLocationPermission() async {
+  Future<bool> _hasAlwaysLocationPermission() async {
     if (kIsWeb) return false;
-
-    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return false;
-
-    PermissionStatus whenInUse = await Permission.locationWhenInUse.status;
-    if (whenInUse.isDenied) {
-      whenInUse = await Permission.locationWhenInUse.request();
-    }
-    if (whenInUse.isPermanentlyDenied ||
-        whenInUse.isDenied ||
-        whenInUse.isRestricted) {
-      return false;
-    }
-
-    PermissionStatus always = await Permission.locationAlways.status;
-    if (always.isGranted || always.isLimited) return true;
-
-    always = await Permission.locationAlways.request();
-    return always.isGranted || always.isLimited;
+    final perm = await Geolocator.checkPermission();
+    return perm == LocationPermission.always;
   }
 
   Future<void> _pushLocationToServer(Position position) async {
@@ -159,25 +140,23 @@ class LocationService extends GetxService {
     unawaited(_pushLocationToServer(position));
   }
 
-  /// Starts periodic updates and (when permission is "Always") a position stream for background refreshes.
+  /// Starts background refreshes only when Always permission is already granted.
+  /// Permission prompts must go through [LocationPermissionFlow] (disclosure first).
   Future<void> startBackgroundLocationUpdates() async {
     if (kIsWeb) return;
 
     stopBackgroundLocationUpdates();
 
-    await ensureAlwaysLocationPermission();
+    if (!await _hasAlwaysLocationPermission()) return;
 
-    final LocationPermission perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.always) {
-      _positionSub = Geolocator.getPositionStream(
-        locationSettings: _positionStreamSettings(),
-      ).listen(
-        _onPosition,
-        onError: (Object e, StackTrace st) {
-          debugPrint('LocationService stream: $e');
-        },
-      );
-    }
+    _positionSub = Geolocator.getPositionStream(
+      locationSettings: _positionStreamSettings(),
+    ).listen(
+      _onPosition,
+      onError: (Object e, StackTrace st) {
+        debugPrint('LocationService stream: $e');
+      },
+    );
 
     _locationUpdateTimer = Timer.periodic(updateInterval, (_) {
       unawaited(_updateLocationInBackground());
@@ -216,8 +195,7 @@ class LocationService extends GetxService {
         return;
       }
 
-      final bool hasPermission = await checkAndRequestPermission();
-      if (!hasPermission) {
+      if (!await _hasAlwaysLocationPermission()) {
         return;
       }
 
