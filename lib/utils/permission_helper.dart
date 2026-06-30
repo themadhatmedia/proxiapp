@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'location_permission_flow.dart';
+
 class PermissionHelper {
   static Future<void> showLocationPermissionDialog({
     required BuildContext context,
     required VoidCallback onGranted,
   }) async {
+    if (!await LocationPermissionFlow.ensureDisclosureBeforeLocationAccess()) {
+      return;
+    }
+
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (context.mounted) {

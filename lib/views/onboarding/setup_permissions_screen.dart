@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -30,6 +32,16 @@ class _SetupPermissionsScreenState extends State<SetupPermissionsScreen> with Wi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkPermissions();
+    // Show prominent disclosure as soon as this screen opens (Play policy).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_showDisclosureOnEntryIfNeeded());
+    });
+  }
+
+  Future<void> _showDisclosureOnEntryIfNeeded() async {
+    if (!mounted) return;
+    if (await LocationPermissionFlow.hasBackgroundLocationAccess()) return;
+    await LocationPermissionFlow.presentDisclosure();
   }
 
   @override

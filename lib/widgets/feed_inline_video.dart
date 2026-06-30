@@ -31,7 +31,12 @@ class FeedInlineVideo extends StatefulWidget {
 }
 
 class _FeedInlineVideoState extends State<FeedInlineVideo> {
-  FeedVideoAutoplayController get _coordinator => Get.find<FeedVideoAutoplayController>();
+  FeedVideoAutoplayController get _coordinator {
+    if (!Get.isRegistered<FeedVideoAutoplayController>()) {
+      Get.put(FeedVideoAutoplayController());
+    }
+    return Get.find<FeedVideoAutoplayController>();
+  }
 
   Worker? _activeWorker;
   Worker? _generationWorker;

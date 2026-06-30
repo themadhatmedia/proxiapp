@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
+import '../../utils/location_permission_flow.dart';
 import '../../controllers/auth_controller.dart';
 import 'api_service.dart';
 
@@ -70,6 +71,12 @@ class LocationService extends GetxService {
   }
 
   Future<bool> checkAndRequestPermission() async {
+    if (!kIsWeb) {
+      if (!await LocationPermissionFlow.ensureDisclosureBeforeLocationAccess()) {
+        return false;
+      }
+    }
+
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return false;

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -26,8 +27,36 @@ class LocationPermissionFlow {
       status.isGranted || status.isLimited;
 
   static Future<bool> hasBackgroundLocationAccess() async {
-    final always = await Permission.locationAlways.status;
-    return _isAuthorized(always);
+    if (kIsWeb) return false;
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.always) return true;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return await Permission.locationAlways.isGranted;
+    }
+    return false;
+  }
+
+  /// Shows the prominent disclosure if the user has not accepted yet.
+  /// Mirrors secops [BackgroundLocationDisclosurePage.present].
+  static Future<bool> presentDisclosure() async {
+    if (hasAcceptedDisclosure) return true;
+    final accepted = await Get.to<bool>(
+      () => const BackgroundLocationDisclosureScreen(),
+      fullscreenDialog: true,
+      preventDuplicates: true,
+    );
+    if (accepted == true) {
+      await markDisclosureAccepted();
+    }
+    return accepted == true;
+  }
+
+  /// On Android, Play requires disclosure before any location permission prompt.
+  static Future<bool> ensureDisclosureBeforeLocationAccess() async {
+    if (kIsWeb) return true;
+    if (defaultTargetPlatform != TargetPlatform.android) return true;
+    if (hasAcceptedDisclosure) return true;
+    return presentDisclosure();
   }
 
   static Future<bool> hasForegroundLocationAccess() async {
@@ -36,6 +65,12 @@ class LocationPermissionFlow {
   }
 
   /// Returns true when background (Always) location is granted.
+  ///
+  /// Google Play requires a prominent in-app disclosure to be shown BEFORE the
+  /// runtime permission request for background location. We therefore always
+  /// show [BackgroundLocationDisclosureScreen] here (on both Android and iOS)
+  /// whenever background access is not already granted — never gated behind a
+  /// persisted "accepted" flag, so a fresh install / new device always sees it.
   static Future<bool> requestBackgroundLocation(
     BuildContext context, {
     Future<void> Function({
@@ -43,19 +78,22 @@ class LocationPermissionFlow {
       required String body,
     })? onOpenSettings,
   }) async {
+    if (kIsWeb) return false;
+
+    // Already granted — no need to disclose or prompt again.
     if (await hasBackgroundLocationAccess()) return true;
 
     if (!await Geolocator.isLocationServiceEnabled()) {
+      await onOpenSettings?.call(
+        title: 'Location is turned off',
+        body: 'Turn on Location/GPS in your device settings to use Pulse proximity.',
+      );
       return false;
     }
 
-    if (!hasAcceptedDisclosure) {
-      final accepted = await Get.to<bool>(
-        () => const BackgroundLocationDisclosureScreen(),
-      );
-      if (accepted != true) return false;
-      await markDisclosureAccepted();
-    }
+    // Prominent disclosure — required before background location permission.
+    final accepted = await presentDisclosure();
+    if (!accepted) return false;
 
     // Step 1 — foreground / while using the app (Android 11+ requirement).
     final whenInUsePre = await Permission.locationWhenInUse.status;

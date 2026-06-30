@@ -3,6 +3,7 @@ import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../config/theme/app_theme.dart';
 import '../../config/theme/proxi_palette.dart';
@@ -14,7 +15,6 @@ import '../../data/services/api_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/messaging_fcm_listeners.dart';
 import '../../utils/location_permission_flow.dart';
-import '../permissions/background_location_disclosure_screen.dart';
 import '../../controllers/messages_controller.dart';
 import '../home/circles_screen.dart';
 import '../home/discover_screen.dart';
@@ -53,27 +53,109 @@ class _MainNavigationState extends State<MainNavigation> {
         r.contains('proxi-circles');
   }
 
-  void _scheduleLocationUpdate() {
-    unawaited(() async {
-      try {
-        final token = _authController.token;
-        if (token == null) return;
+  /// Existing/logged-in users skip onboarding, so location + contacts are
+  /// requested directly from the home screen (Walls). Runs once per app session;
+  /// the prominent location disclosure is shown before any location request, on
+  /// both Android and iOS.
+  static bool _homePermissionsPrompted = false;
 
-        final hasPermission = await _locationService.checkAndRequestPermission();
-        if (!hasPermission) return;
+  Future<void> _ensureHomePermissionsAndLocation() async {
+    final token = _authController.token;
+    if (token == null) return;
 
-        final position = await _locationService.getCurrentLocation();
-        if (position != null) {
-          _apiService.queueLocationUpdate(
-            token: token,
-            latitude: position.latitude,
-            longitude: position.longitude,
-          );
-        }
-      } catch (e) {
-        debugPrint('MainNavigation location: $e');
+    if (!_homePermissionsPrompted) {
+      _homePermissionsPrompted = true;
+      await _promptLocationFromHome();
+      await _promptContactsFromHome();
+    }
+
+    await _pushLocationUpdate(token);
+    await _maybeStartBackgroundLocation();
+  }
+
+  /// Shows the disclosure (both platforms) then the two-step location request.
+  Future<void> _promptLocationFromHome() async {
+    if (!mounted) return;
+    if (await LocationPermissionFlow.hasBackgroundLocationAccess()) return;
+    await LocationPermissionFlow.requestBackgroundLocation(
+      context,
+      onOpenSettings: ({required title, required body}) =>
+          _showPermissionSettingsDialog(title: title, body: body),
+    );
+  }
+
+  /// Requests contacts from the home screen. Skips when already granted, and
+  /// does not nag with a settings dialog when permanently denied.
+  Future<void> _promptContactsFromHome() async {
+    if (!mounted) return;
+    final status = await Permission.contacts.status;
+    if (status.isGranted || status.isLimited || status.isPermanentlyDenied) {
+      return;
+    }
+    await Permission.contacts.request();
+  }
+
+  /// Pushes a one-off location update — only if foreground access already
+  /// exists, so it never triggers a duplicate permission prompt.
+  Future<void> _pushLocationUpdate(String token) async {
+    try {
+      if (!await LocationPermissionFlow.hasForegroundLocationAccess()) return;
+
+      final position = await _locationService.getCurrentLocation();
+      if (position != null) {
+        _apiService.queueLocationUpdate(
+          token: token,
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
       }
-    }());
+    } catch (e) {
+      debugPrint('MainNavigation location: $e');
+    }
+  }
+
+  Future<void> _showPermissionSettingsDialog({
+    required String title,
+    required String body,
+  }) async {
+    if (!mounted) return;
+    final cs = Theme.of(context).colorScheme;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        content: Text(
+          body,
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Not now', style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+            ),
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _refreshCirclesData() {
@@ -119,24 +201,18 @@ class _MainNavigationState extends State<MainNavigation> {
         registerMessagingFcmListeners();
       }
       if (_isOnboardingRouteActive(Get.currentRoute)) return;
-      _scheduleLocationUpdate();
-      unawaited(_maybeStartBackgroundLocation());
+      unawaited(_ensureHomePermissionsAndLocation());
     });
   }
 
-  /// Background location requires disclosure acceptance before any access.
+  /// Background location updates only run when the user has already granted
+  /// "Always"/background access (which is only ever requested after the
+  /// prominent disclosure in [LocationPermissionFlow.requestBackgroundLocation]).
+  /// We never request the permission here — only resume updates if granted.
   Future<void> _maybeStartBackgroundLocation() async {
-    if (!await LocationPermissionFlow.hasBackgroundLocationAccess()) return;
-
-    if (!LocationPermissionFlow.hasAcceptedDisclosure) {
-      final accepted = await Get.to<bool>(
-        () => const BackgroundLocationDisclosureScreen(),
-      );
-      if (accepted != true) return;
-      await LocationPermissionFlow.markDisclosureAccepted();
+    if (await LocationPermissionFlow.hasBackgroundLocationAccess()) {
+      await _locationService.startBackgroundLocationUpdates();
     }
-
-    await _locationService.startBackgroundLocationUpdates();
   }
 
   Future<bool> _onWillPop() async {
