@@ -14,8 +14,10 @@
 # - Affiliate share uses share_plus (no extra plist keys).
 # - permission_handler: keep GCC_PREPROCESSOR_DEFINITIONS in post_install in
 #   sync with permissions you request in Dart (see permission_handler iOS setup).
-# - After adding plugins (google_mobile_ads, share_plus, get_thumbnail_video): run
-#   `flutter pub get && cd ios && pod install` (or `flutter build ios`).
+# - After adding plugins (google_mobile_ads, share_plus, get_thumbnail_video,
+#   in_app_purchase): run `flutter pub get && cd ios && pod install`.
+# - In-App Purchase: enable capability on App ID in Apple Developer + Xcode Runner
+#   target (Signing & Capabilities). Subscriptions must exist in App Store Connect.
 # - Runner/PrivacyInfo.xcprivacy is bundled for App Store required-reason APIs.
 platform :ios, '13.0'
 use_modular_headers!

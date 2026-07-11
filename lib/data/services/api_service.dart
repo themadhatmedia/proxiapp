@@ -1096,13 +1096,36 @@ class ApiService {
   Future<Map<String, dynamic>> subscribeMembership({
     required String token,
     required int membershipId,
+    String paymentMethod = 'stripe',
+    String? transactionId,
+    String? planType,
+    String? productId,
+    String? receiptData,
+    String? affiliateCode,
   }) async {
     final url = '$baseUrl/memberships/subscribe';
-    final requestData = {
+    final requestData = <String, dynamic>{
       'membership_id': membershipId,
-      'payment_method': 'stripe',
-      'transaction_id': 'txn_123',
+      'payment_method': paymentMethod,
     };
+    if (transactionId != null && transactionId.isNotEmpty) {
+      requestData['transaction_id'] = transactionId;
+    } else if (paymentMethod == 'stripe') {
+      requestData['transaction_id'] = 'txn_123';
+    }
+    if (planType != null && planType.isNotEmpty) {
+      requestData['plan_type'] = planType;
+    }
+    if (productId != null && productId.isNotEmpty) {
+      requestData['product_id'] = productId;
+    }
+    if (receiptData != null && receiptData.isNotEmpty) {
+      requestData['receipt_data'] = receiptData;
+    }
+    final code = affiliateCode?.trim();
+    if (code != null && code.isNotEmpty) {
+      requestData['affiliate_code'] = code;
+    }
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -1137,12 +1160,38 @@ class ApiService {
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
+          if (responseData is Map && responseData['success'] == false) {
+            final errorMessage = responseData['message']?.toString() ?? 'Failed to subscribe to plan';
+            throw Exception(errorMessage);
+          }
           return responseData ?? {};
         } else {
           final errorMessage = responseData?['message'] ?? 'Failed to subscribe to plan';
           throw Exception(errorMessage);
         }
       },
+    );
+  }
+
+  /// Verifies an App Store subscription purchase and activates membership on the server.
+  Future<Map<String, dynamic>> verifyAppleInAppPurchase({
+    required String token,
+    required int membershipId,
+    required String planType,
+    required String productId,
+    required String transactionId,
+    required String receiptData,
+    String? affiliateCode,
+  }) async {
+    return subscribeMembership(
+      token: token,
+      membershipId: membershipId,
+      paymentMethod: 'apple',
+      transactionId: transactionId,
+      planType: planType,
+      productId: productId,
+      receiptData: receiptData,
+      affiliateCode: affiliateCode,
     );
   }
 

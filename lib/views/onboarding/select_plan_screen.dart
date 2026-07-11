@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../config/apple_iap_products.dart';
 import '../../config/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/onboarding_controller.dart';
 import '../../data/models/billing_status_model.dart';
 import '../../data/models/billing_status_snapshot.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/apple_iap_service.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/checkout_affiliate_code_sheet.dart';
+import '../../widgets/ios_payment_method_sheet.dart';
 import '../../widgets/plan_option_card.dart';
 
 class SelectPlanScreen extends StatefulWidget {
@@ -140,6 +143,21 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> with WidgetsBinding
         return;
       }
 
+      if (AppleIapService.isSupported) {
+        final method = await showIosPaymentMethodSheet(context);
+        if (!mounted || method == null) {
+          setState(() => _isSaving = false);
+          return;
+        }
+        if (method == IosPaymentMethod.inAppPurchase) {
+          await _startAppleInAppPurchase(
+            token: authController.token!,
+            affiliateCode: affiliateCode,
+          );
+          return;
+        }
+      }
+
       BillingStatusSnapshot snapshotBefore;
       try {
         final prior = await _apiService.getBillingStatus(authController.token!);
@@ -163,6 +181,56 @@ class _SelectPlanScreenState extends State<SelectPlanScreen> with WidgetsBinding
       setState(() => _isSaving = false);
       ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
     }
+  }
+
+  Future<void> _startAppleInAppPurchase({
+    required String token,
+    required String affiliateCode,
+  }) async {
+    final selected = onboardingController.selectedPlan.value;
+    if (selected == null) {
+      setState(() => _isSaving = false);
+      return;
+    }
+
+    final productId = AppleIapProducts.productIdForPlan(selected, _billingCycle);
+    if (productId == null) {
+      setState(() => _isSaving = false);
+      ToastHelper.showError('This plan is not available via In-App Purchase.');
+      return;
+    }
+
+    final result = await AppleIapService.instance.purchaseAndVerify(
+      productId: productId,
+      token: token,
+      membershipId: selected.id,
+      planType: _billingCycle,
+      affiliateCode: affiliateCode.isEmpty ? null : affiliateCode,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (!result.success) {
+      if (result.error != null && result.error!.isNotEmpty) {
+        ToastHelper.showError(result.error!);
+      }
+      return;
+    }
+
+    await authController.fetchUserProfile();
+    try {
+      final status = await _apiService.getBillingStatus(token);
+      if (status != null &&
+          status.isActive &&
+          status.membershipId == selected.id) {
+        Get.toNamed('/setup-permissions');
+        return;
+      }
+    } catch (_) {}
+
+    ToastHelper.showSuccess('Purchase complete. Your plan may take a moment to update.');
+    Get.toNamed('/setup-permissions');
   }
 
   @override

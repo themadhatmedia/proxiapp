@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config/apple_iap_products.dart';
 import '../../config/theme/app_theme.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
@@ -9,9 +10,11 @@ import '../../data/models/billing_status_model.dart';
 import '../../data/models/billing_status_snapshot.dart';
 import '../../data/models/plan_model.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/apple_iap_service.dart';
 import '../../utils/toast_helper.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/checkout_affiliate_code_sheet.dart';
+import '../../widgets/ios_payment_method_sheet.dart';
 import '../../widgets/plan_option_card.dart';
 
 class UpgradePlanScreen extends StatefulWidget {
@@ -127,12 +130,23 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindi
       }
 
       final targetId = selectedPlanId;
+      final targetCycle = _billingCycle.toLowerCase().trim();
+      if (effective != null &&
+          effective.isActive &&
+          targetId != null &&
+          effective.membershipId == targetId &&
+          (effective.planType?.toLowerCase().trim() == targetCycle)) {
+        ToastHelper.showSuccess('Subscription active.');
+        Get.back(result: true);
+        return;
+      }
+
       if (effective != null &&
           effective.isActive &&
           targetId != null &&
           effective.membershipId == targetId) {
         ToastHelper.showSuccess('Subscription active.');
-        Get.back();
+        Get.back(result: true);
         return;
       }
 
@@ -148,6 +162,33 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindi
         ToastHelper.showInfo('Could not verify billing yet — try again shortly.');
       }
     }
+  }
+
+  Future<bool> _confirmMembershipUpdated({
+    required String token,
+    required int expectedMembershipId,
+    String? expectedPlanType,
+  }) async {
+    final normalizedPlanType = expectedPlanType?.toLowerCase().trim();
+    for (var attempt = 0; attempt < 5; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(Duration(seconds: attempt <= 2 ? 1 : 2));
+      }
+      await authController.fetchUserProfile();
+      try {
+        final status = await apiService.getBillingStatus(token);
+        final planTypeOk = normalizedPlanType == null ||
+            normalizedPlanType.isEmpty ||
+            status?.planType?.toLowerCase().trim() == normalizedPlanType;
+        if (status != null &&
+            status.isActive &&
+            status.membershipId == expectedMembershipId &&
+            planTypeOk) {
+          return true;
+        }
+      } catch (_) {}
+    }
+    return false;
   }
 
   Future<void> _handleSubscribe() async {
@@ -178,11 +219,11 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindi
         await apiService.subscribeMembership(token: token, membershipId: selectedPlanId!);
         await authController.fetchUserProfile();
         ToastHelper.showSuccess('Subscription updated successfully');
-        Get.back();
+        Get.back(result: true);
       } catch (e) {
         ToastHelper.showError('Failed to update subscription');
       } finally {
-        setState(() => _isSaving = false);
+        if (mounted) setState(() => _isSaving = false);
       }
       return;
     }
@@ -195,39 +236,124 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindi
         return;
       }
 
-      final res = await apiService.createBillingCheckoutSession(
-        token: token,
-        membershipId: selectedPlanId!,
-        planType: _billingCycle,
-        affiliateCode: affiliateCode,
-      );
-      final checkoutUrl = res['checkout_url']?.toString();
-      if (checkoutUrl == null || checkoutUrl.isEmpty) {
-        throw Exception('Missing checkout URL');
-      }
-      final uri = Uri.parse(checkoutUrl);
-      BillingStatusSnapshot snapshotBefore;
-      try {
-        final prior = await apiService.getBillingStatus(token);
-        snapshotBefore = BillingStatusSnapshot.fromModel(prior);
-      } catch (_) {
-        snapshotBefore = const BillingStatusSnapshot();
+      if (AppleIapService.isSupported) {
+        final method = await showIosPaymentMethodSheet(context);
+        if (!mounted || method == null) {
+          setState(() => _isSaving = false);
+          return;
+        }
+        if (method == IosPaymentMethod.inAppPurchase) {
+          await _startAppleInAppPurchase(
+            token: token,
+            affiliateCode: affiliateCode,
+          );
+          return;
+        }
       }
 
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched) {
-        throw Exception('Could not open checkout');
-      }
-      setState(() {
-        _isSaving = false;
-        _awaitingStripeReturn = true;
-        _billingSnapshotBeforeCheckout = snapshotBefore;
-      });
-      ToastHelper.showInfo('Complete payment in the browser, then return to Proxi.');
+      await _startStripeCheckout(
+        token: token,
+        affiliateCode: affiliateCode,
+      );
     } catch (e) {
       ToastHelper.showError(e.toString().replaceFirst('Exception: ', ''));
-      setState(() => _isSaving = false);
+    } finally {
+      if (mounted && !_awaitingStripeReturn) {
+        setState(() => _isSaving = false);
+      }
     }
+  }
+
+  Future<void> _startStripeCheckout({
+    required String token,
+    required String affiliateCode,
+  }) async {
+    final res = await apiService.createBillingCheckoutSession(
+      token: token,
+      membershipId: selectedPlanId!,
+      planType: _billingCycle,
+      affiliateCode: affiliateCode,
+    );
+    final checkoutUrl = res['checkout_url']?.toString();
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      throw Exception('Missing checkout URL');
+    }
+    final uri = Uri.parse(checkoutUrl);
+    BillingStatusSnapshot snapshotBefore;
+    try {
+      final prior = await apiService.getBillingStatus(token);
+      snapshotBefore = BillingStatusSnapshot.fromModel(prior);
+    } catch (_) {
+      snapshotBefore = const BillingStatusSnapshot();
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      throw Exception('Could not open checkout');
+    }
+    if (!mounted) return;
+    setState(() {
+      _isSaving = false;
+      _awaitingStripeReturn = true;
+      _billingSnapshotBeforeCheckout = snapshotBefore;
+    });
+    ToastHelper.showInfo('Complete payment in the browser, then return to Proxi.');
+  }
+
+  Future<void> _startAppleInAppPurchase({
+    required String token,
+    required String affiliateCode,
+  }) async {
+    final selectedPlan = _selectedPlanModel;
+    if (selectedPlan == null) {
+      setState(() => _isSaving = false);
+      return;
+    }
+
+    final productId = AppleIapProducts.productIdForPlan(selectedPlan, _billingCycle);
+    if (productId == null) {
+      setState(() => _isSaving = false);
+      ToastHelper.showError('This plan is not available via In-App Purchase.');
+      return;
+    }
+
+    final result = await AppleIapService.instance.purchaseAndVerify(
+      productId: productId,
+      token: token,
+      membershipId: selectedPlanId!,
+      planType: _billingCycle,
+      affiliateCode: affiliateCode.isEmpty ? null : affiliateCode,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (!result.success) {
+      if (result.error != null && result.error!.isNotEmpty) {
+        ToastHelper.showError(result.error!);
+      } else {
+        ToastHelper.showError('Purchase could not be completed.');
+      }
+      return;
+    }
+
+    final activated = await _confirmMembershipUpdated(
+      token: token,
+      expectedMembershipId: selectedPlanId!,
+      expectedPlanType: _billingCycle,
+    );
+    if (!mounted) return;
+
+    if (activated) {
+      ToastHelper.showSuccess('Subscription active.');
+      Get.back(result: true);
+      return;
+    }
+
+    ToastHelper.showInfo(
+      'Purchase received. Your plan may take a moment to activate — pull to refresh your profile.',
+    );
+    Get.back(result: true);
   }
 
   @override
@@ -364,7 +490,7 @@ class _UpgradePlanScreenState extends State<UpgradePlanScreen> with WidgetsBindi
                       ? 'Select a plan'
                       : sel.isFree
                           ? (_isSaving ? 'Updating...' : 'Update subscription')
-                          : (_isSaving ? 'Starting checkout...' : 'Continue to secure checkout');
+                          : (_isSaving ? 'Please wait...' : 'Continue to secure checkout');
                   return CustomButton(
                     text: label,
                     isEnabled: _canStartCheckout,

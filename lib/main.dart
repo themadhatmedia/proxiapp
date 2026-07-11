@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'data/services/app_badge_service.dart';
+import 'data/services/apple_iap_service.dart';
 import 'data/services/billing_link_service.dart';
 import 'data/services/fcm_service.dart';
 import 'data/services/messaging_fcm_listeners.dart';
@@ -84,6 +85,9 @@ void main() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     if (!Get.isRegistered<BillingLinkService>()) {
       Get.put(BillingLinkService(), permanent: true);
+    }
+    if (AppleIapService.isSupported) {
+      await AppleIapService.instance.init();
     }
   }
 

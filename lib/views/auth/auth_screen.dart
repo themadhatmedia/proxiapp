@@ -80,7 +80,13 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         final navController = Get.find<NavigationController>();
         navController.currentIndex.value = 0;
       }
-      Get.off(() => const MainNavigation(), transition: Transition.fadeIn);
+      // Named route so [ProxiAdsHost] treats this as the main shell (avoids a second
+      // banner below the bottom nav after logout → login).
+      Get.offAll(
+        () => const MainNavigation(),
+        routeName: '/home',
+        transition: Transition.fadeIn,
+      );
     } else if (authController.lastLoginSoftDeleted) {
       final message = authController.lastSoftDeleteMessage;
       final alreadyRequested = authController.lastRestoreAlreadyRequested;

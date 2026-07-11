@@ -407,7 +407,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () => Get.to(() => const UpgradePlanScreen()),
+                          onPressed: () async {
+                            await Get.to(() => const UpgradePlanScreen());
+                            await authController.fetchUserProfile();
+                          },
                           icon: const Icon(Icons.arrow_upward),
                           label: const Text('Upgrade Subscription'),
                           style: ElevatedButton.styleFrom(

@@ -14,7 +14,10 @@ class ProxiAdsHost extends StatelessWidget {
   /// Main tab shell already renders the banner above [Scaffold.bottomNavigationBar].
   static bool _isMainShellRoute(String route) {
     final r = route.toLowerCase();
-    return r == '/' || r == '/home';
+    if (r == '/' || r == '/home') return true;
+    // Fallback for legacy anonymous routes from Get.off(() => MainNavigation()).
+    if (r.contains('mainnavigation')) return true;
+    return false;
   }
 
   @override
